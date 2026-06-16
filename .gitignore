@@ -1,0 +1,31 @@
+# Miscellaneous
+*.log
+.DS_Store
+.history
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Android Studio build artifacts
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Firebase & API 키 
+google-services.json
+firebase_options.dart
+*.keystore
+*.jks
+*.env
