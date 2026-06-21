@@ -2,17 +2,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import '../model/user.dart';
 import '../services/auth/kakao_auth_service.dart';
+import '../services/auth/google_auth_service.dart';
 
 // KakaoAuthService 인스턴스 생성
 final kakaoAuthServiceProvider = Provider<KakaoAuthService>((ref) {
   return KakaoAuthService();
 });
 
+// GoogleAuthService 인스턴스 생성
+final googleAuthServiceProvider = Provider<GoogleAuthService>((ref) {
+  return GoogleAuthService();
+});
+
 // 로그인 상태 관리, 화면에 쓸 수 있게 연결해주는 역할
 final authStateProvider = StateNotifierProvider<AuthStateNotifier, AuthState>((
   ref,
 ) {
-  return AuthStateNotifier(ref.read(kakaoAuthServiceProvider));
+  return AuthStateNotifier(
+    ref.read(kakaoAuthServiceProvider),
+    ref.read(googleAuthServiceProvider),
+  );
 });
 
 class AuthState {
@@ -39,9 +48,12 @@ class AuthState {
 // 상태 변경 로직
 class AuthStateNotifier extends StateNotifier<AuthState> {
   final KakaoAuthService _kakaoAuthService;
+  final GoogleAuthService _googleAuthService;
 
-  AuthStateNotifier(this._kakaoAuthService) : super(AuthState());
+  AuthStateNotifier(this._kakaoAuthService, this._googleAuthService)
+    : super(AuthState());
 
+  // 카카오 로그인
   Future<void> signInWithKakao() async {
     state = state.copyWith(isLoading: true, errorMessage: null); // 1. 로딩 시작
 
@@ -57,8 +69,22 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  // 구글 로그인
+  Future<void> signInWithGoogle() async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+
+    final user = await _googleAuthService.signInWithGoogle();
+
+    if (user != null) {
+      state = state.copyWith(isLoading: false, user: user);
+    } else {
+      state = state.copyWith(isLoading: false, errorMessage: '구글 로그인에 실패했습니다.');
+    }
+  }
+
   Future<void> signOut() async {
     await _kakaoAuthService.signOut();
+    await _googleAuthService.signOut();
     state = AuthState();
   }
 }

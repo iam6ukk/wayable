@@ -41,6 +41,19 @@ class LoginScreen extends ConsumerWidget {
                     style: const TextStyle(color: Colors.red),
                   ),
                 ),
+              // 구글 로그인 버튼
+              GestureDetector(
+                onTap: authState.isLoading
+                    ? null // 중복 클릭 방지
+                    : () {
+                        ref.read(authStateProvider.notifier).signInWithGoogle();
+                      },
+                child: Image.asset(
+                  'assets/images/google_login_medium_wide.png',
+                  width: double.infinity,
+                ),
+              ),
+              const SizedBox(height: 12),
 
               // 카카오 로그인 버튼
               GestureDetector(
