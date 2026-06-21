@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:wayable/model/user.dart';
 import 'package:wayable/constants/app_constants.dart';
+import 'package:wayable/utils/app_logger.dart';
 
 class GoogleAuthService {
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
@@ -33,16 +34,23 @@ class GoogleAuthService {
 
       if (firebaseUser == null) return null;
 
+      AppLogger.debug('[Auth] Google login success');
+      AppLogger.debug('[Auth] uid: ${firebaseUser.uid}');
+
       return AppUser(
         uid: firebaseUser.uid,
         nickname: firebaseUser.displayName,
         email: firebaseUser.email,
       );
     } on GoogleSignInException catch (e) {
-      print('Google Sign-In 오류: ${e.code} - ${e.description}');
+      AppLogger.error(
+        '[Auth] Google Sign-In error (code: ${e.code}, message: ${e.description})',
+      );
       return null;
     } on FirebaseAuthException catch (e) {
-      print('Firebase 인증 오류: ${e.message}');
+      AppLogger.error(
+        '[Auth] Firebase auth error (code: ${e.code}, message: ${e.message})',
+      );
       return null;
     }
   }
