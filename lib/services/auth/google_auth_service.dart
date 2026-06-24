@@ -1,8 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:wayable/model/user.dart';
-import 'package:wayable/constants/app_constants.dart';
 import 'package:wayable/utils/app_logger.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class GoogleAuthService {
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
@@ -12,7 +12,7 @@ class GoogleAuthService {
   Future<void> initGoogleSignIn() async {
     if (_initialized) return;
     await _googleSignIn.initialize(
-      serverClientId: AppConstants.googleServiceClientId,
+      serverClientId: dotenv.env['GOOGLE_CLIENT_ID']!,
     );
     _initialized = true;
   }

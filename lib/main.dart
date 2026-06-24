@@ -4,13 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kakao_flutter_sdk_common/kakao_flutter_sdk_common.dart';
 import 'package:wayable/screen/auth/login_screen.dart';
 import 'firebase_options.dart';
-import 'package:wayable/constants/app_constants.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await dotenv.load(fileName: ".env");
+  final kakaoNativeAppKey = dotenv.env['KAKAO_NATIVE_APP_KEY'];
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  KakaoSdk.init(nativeAppKey: AppConstants.kakaoNativeAppKey);
+  KakaoSdk.init(nativeAppKey: kakaoNativeAppKey);
 
   runApp(const ProviderScope(child: MyApp()));
 }

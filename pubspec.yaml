@@ -28,16 +28,17 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  http: ^1.2.2
   flutter:
     sdk: flutter
-
+  flutter_dotenv: ^5.2.1
+  flutter_riverpod: ^3.3.2
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   firebase_core: ^4.10.0
   firebase_auth: ^6.5.2
   cloud_firestore: ^6.5.0
-  flutter_riverpod: ^3.3.2
   kakao_flutter_sdk_user: ^2.0.0+1 # 카카오 로그인 API 패키지
   google_sign_in: ^7.2.0
   cloud_functions: ^6.3.3
@@ -64,6 +65,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - .env
 
   # To add assets to your application, add an assets section, like this:
   # assets:
