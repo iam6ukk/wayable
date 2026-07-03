@@ -2,9 +2,12 @@ import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' as kakao;
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:wayable/model/user.dart';
+import 'package:wayable/services/user_service.dart';
 import 'package:wayable/utils/app_logger.dart';
 
 class KakaoAuthService {
+  final _userService = UserService();
+
   Future<AppUser?> signInWithKakao() async {
     try {
       kakao.OAuthToken token;
@@ -34,15 +37,35 @@ class KakaoAuthService {
         firebaseToken,
       );
 
+      final uid = userCredential.user!.uid;
       AppLogger.debug('[Auth] Kakao login success');
-      AppLogger.debug('[Auth] uid: ${userCredential.user?.uid}');
 
-      return AppUser(
-        uid: userCredential.user!.uid,
-        nickname: kakaoUser.kakaoAccount?.profile?.nickname,
-      );
+      final exists = await _userService.userExists(uid);
+
+      if (!exists) {
+        final newUser = AppUser(
+          uid: uid,
+          nickname: kakaoUser.kakaoAccount?.profile?.nickname,
+          email: null,
+          provider: 'kakao',
+        );
+
+        // 저장 전 데이터 확인
+        AppLogger.debug('[Auth] 저장할 유저 데이터: ${newUser.toFirestore()}');
+
+        await _userService.createUser(newUser);
+        AppLogger.info('[Auth] 신규 카카오 유저 저장 완료');
+        return newUser;
+      } else {
+        // 기존 유저 → Firestore에서 불러오기
+        final existingUser = await _userService.getUser(uid);
+        AppLogger.debug('[UserService] 문서 존재 여부: ${existingUser != null}');
+        AppLogger.info('[Auth] 기존 카카오 유저 로그인');
+        return existingUser;
+      }
     } catch (e) {
       AppLogger.error('[Auth] Kakao login failed', error: e);
+      AppLogger.debug('[Auth] 에러 타입: ${e.runtimeType}');
       return null;
     }
   }
