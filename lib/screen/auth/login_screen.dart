@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_provider.dart';
+import '../../screen/home_screen.dart';
 
 class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
@@ -11,9 +12,11 @@ class LoginScreen extends ConsumerWidget {
 
     // 로그인 성공 시 다음 화면으로 이동 (예시: 홈 화면)
     ref.listen(authStateProvider, (previous, next) {
-      if (next.user != null) {
-        // TODO: 홈 화면으로 이동
-        // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen()));
+      if (next.user != null && previous?.user == null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
       }
     });
 
@@ -75,6 +78,17 @@ class LoginScreen extends ConsumerWidget {
                   padding: EdgeInsets.only(top: 16),
                   child: CircularProgressIndicator(),
                 ),
+
+              // 비회원 버튼
+              TextButton(
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const HomeScreen()),
+                  );
+                },
+                child: const Text('비회원으로 진행하기'),
+              ),
             ],
           ),
         ),
