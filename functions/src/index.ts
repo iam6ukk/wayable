@@ -32,3 +32,5 @@ export const kakaoCustomToken = functions.https.onCall(async (request) => {
     throw new functions.https.HttpsError("internal", "카카오 인증 실패");
   }
 });
+
+export { dailyDeltaSync } from "./batch/dailyDeltaSync";
