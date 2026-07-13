@@ -1,7 +1,7 @@
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' as kakao;
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:wayable/model/user.dart';
+import 'package:wayable/model/user/user.dart';
 import 'package:wayable/services/user_service.dart';
 import 'package:wayable/utils/app_logger.dart';
 

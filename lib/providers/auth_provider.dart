@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import '../model/user.dart';
+import '../model/user/user.dart';
 import '../services/auth/kakao_auth_service.dart';
 import '../services/auth/google_auth_service.dart';
 

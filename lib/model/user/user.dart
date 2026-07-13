@@ -5,11 +5,8 @@ class AppUser {
   final String? nickname;
   final String? email;
   final String? provider; // 로그인 서비스
-  final List<String> accessibilityProfiles; // 접근성 프로필
-  final String? areaCode; // 지역코드
-  final String? areaName; // "서울"
-  final String? sigunguCode; // 시군구코드
-  final String? sigunguName; // "강남구"
+  final List<String> accessibilityProfiles; // 접근성 프로필 (대분류)
+  final List<String> accessibilityFields; // 상세 무장애 정보 항목
   final DateTime createdAt; // 생성일
 
   AppUser({
@@ -18,10 +15,7 @@ class AppUser {
     this.email,
     required this.provider,
     this.accessibilityProfiles = const [],
-    this.areaCode,
-    this.areaName,
-    this.sigunguCode,
-    this.sigunguName,
+    this.accessibilityFields = const [],
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -33,10 +27,7 @@ class AppUser {
       'email': email,
       'provider': provider,
       'accessibilityProfiles': accessibilityProfiles,
-      'areaCode': areaCode,
-      'areaName': areaName,
-      'sigunguCode': sigunguCode,
-      'sigunguName': sigunguName,
+      'accessibilityFields': accessibilityFields,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -52,10 +43,9 @@ class AppUser {
       accessibilityProfiles: List<String>.from(
         data['accessibilityProfiles'] ?? [],
       ),
-      areaCode: data['areaCode'] as String?,
-      areaName: data['areaName'] as String?,
-      sigunguCode: data['sigunguCode'] as String?,
-      sigunguName: data['sigunguName'] as String?,
+      accessibilityFields: List<String>.from(
+        data['accessibilityFields'] ?? [],
+      ),
       createdAt: data['createdAt'] != null
           ? (data['createdAt'] as Timestamp).toDate()
           : DateTime.now(),
@@ -67,10 +57,7 @@ class AppUser {
     String? nickname,
     String? email,
     List<String>? accessibilityProfiles,
-    String? areaCode,
-    String? areaName,
-    String? sigunguCode,
-    String? sigunguName,
+    List<String>? accessibilityFields,
   }) {
     return AppUser(
       uid: uid,
@@ -79,10 +66,7 @@ class AppUser {
       provider: provider,
       accessibilityProfiles:
           accessibilityProfiles ?? this.accessibilityProfiles,
-      areaCode: areaCode ?? this.areaCode,
-      areaName: areaName ?? this.areaName,
-      sigunguCode: sigunguCode ?? this.sigunguCode,
-      sigunguName: sigunguName ?? this.sigunguName,
+      accessibilityFields: accessibilityFields ?? this.accessibilityFields,
       createdAt: createdAt,
     );
   }

@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:wayable/model/user.dart';
+import 'package:wayable/model/user/user.dart';
 import 'package:wayable/services/user_service.dart';
 import 'package:wayable/utils/app_logger.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';

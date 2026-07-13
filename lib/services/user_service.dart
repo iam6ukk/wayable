@@ -1,4 +1,4 @@
-import 'package:wayable/model/user.dart';
+import 'package:wayable/model/user/user.dart';
 import 'package:wayable/utils/app_logger.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
