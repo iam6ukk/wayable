@@ -1,4 +1,4 @@
-import 'package:wayable/model/user.dart';
+import 'package:wayable/model/user/user.dart';
 import 'package:wayable/utils/app_logger.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -25,6 +25,21 @@ class UserService {
       AppLogger.info('[UserService] 신규 유저 저장 완료');
     } catch (e) {
       AppLogger.error('[UserService] 유저 저장 실패', error: e);
+      rethrow;
+    }
+  }
+
+  // 기존 유저 정보 일부 업데이트 (접근성 프로필 등)
+  Future<void> updateUser(AppUser user) async {
+    try {
+      AppLogger.debug('[UserService] Firestore 업데이트 시도 중...');
+      await _db
+          .collection('users')
+          .doc(user.uid)
+          .set(user.toFirestore(), SetOptions(merge: true));
+      AppLogger.info('[UserService] 유저 정보 업데이트 완료');
+    } catch (e) {
+      AppLogger.error('[UserService] 유저 정보 업데이트 실패', error: e);
       rethrow;
     }
   }
