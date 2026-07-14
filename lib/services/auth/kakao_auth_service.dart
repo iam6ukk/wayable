@@ -8,7 +8,7 @@ import 'package:wayable/utils/app_logger.dart';
 class KakaoAuthService {
   final _userService = UserService();
 
-  Future<AppUser?> signInWithKakao() async {
+  Future<({AppUser? user, bool isNewUser})> signInWithKakao() async {
     try {
       kakao.OAuthToken token;
 
@@ -55,18 +55,18 @@ class KakaoAuthService {
 
         await _userService.createUser(newUser);
         AppLogger.info('[Auth] 신규 카카오 유저 저장 완료');
-        return newUser;
+        return (user: newUser, isNewUser: true);
       } else {
         // 기존 유저 → Firestore에서 불러오기
         final existingUser = await _userService.getUser(uid);
         AppLogger.debug('[UserService] 문서 존재 여부: ${existingUser != null}');
         AppLogger.info('[Auth] 기존 카카오 유저 로그인');
-        return existingUser;
+        return (user: existingUser, isNewUser: false);
       }
     } catch (e) {
       AppLogger.error('[Auth] Kakao login failed', error: e);
       AppLogger.debug('[Auth] 에러 타입: ${e.runtimeType}');
-      return null;
+      return (user: null, isNewUser: false);
     }
   }
 

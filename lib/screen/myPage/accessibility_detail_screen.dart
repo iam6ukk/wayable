@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../model/accessibility/accessibility_field.dart';
 import '../../model/accessibility/accessibility_field_mapping.dart';
 import '../../model/accessibility/accessibility_profile.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/user_service.dart';
+import '../../utils/app_logger.dart';
 import '../../widgets/app_dialog.dart';
-import '../home_screen.dart';
 
 const _kProfileOrder = [
   AccessibilityProfile.physicalAssist,
@@ -16,17 +19,27 @@ const _kProfileOrder = [
 const _kCurrentStep = 2;
 const _kTotalSteps = 2;
 
-class AccessibilityDetailScreen extends StatefulWidget {
-  const AccessibilityDetailScreen({super.key, required this.selectedProfiles});
+class AccessibilityDetailScreen extends ConsumerStatefulWidget {
+  const AccessibilityDetailScreen({
+    super.key,
+    required this.selectedProfiles,
+    required this.onComplete,
+  });
 
   final Set<AccessibilityProfile> selectedProfiles;
 
+  /// 저장을 마치거나 건너뛰었을 때 호출된다. 진입 경로에 따라 호출부에서
+  /// 홈 화면 이동, 이전 화면으로 복귀 등을 결정한다.
+  final VoidCallback onComplete;
+
   @override
-  State<AccessibilityDetailScreen> createState() =>
+  ConsumerState<AccessibilityDetailScreen> createState() =>
       _AccessibilityDetailScreenState();
 }
 
-class _AccessibilityDetailScreenState extends State<AccessibilityDetailScreen> {
+class _AccessibilityDetailScreenState
+    extends ConsumerState<AccessibilityDetailScreen> {
+  final _userService = UserService();
   final Set<AccessibilityField> _selectedFields = {};
   final Set<AccessibilityProfile> _selectAllProfiles = {};
 
@@ -69,16 +82,31 @@ class _AccessibilityDetailScreenState extends State<AccessibilityDetailScreen> {
       secondaryLabel: '취소하기',
     );
     if (skip != true || !context.mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
-      (route) => false,
-    );
+    widget.onComplete();
   }
 
   bool _hasSelectionFor(AccessibilityProfile profile) {
     if (_selectAllProfiles.contains(profile)) return true;
     final categoryFields = AccessibilityFieldMapping.mapping[profile] ?? const [];
     return categoryFields.any(_selectedFields.contains);
+  }
+
+  /// profile별로 개별 선택된 필드가 있으면 그 필드만, 없으면(전체 선택 혹은
+  /// 미선택) 해당 profile의 전체 필드를 저장 대상으로 확정한다.
+  List<AccessibilityField> _resolveFields(List<AccessibilityProfile> profiles) {
+    final resolved = <AccessibilityField>{};
+    for (final profile in profiles) {
+      final categoryFields = AccessibilityFieldMapping.mapping[profile] ?? const [];
+      final individuallySelected = categoryFields.where(
+        _selectedFields.contains,
+      );
+      if (individuallySelected.isNotEmpty) {
+        resolved.addAll(individuallySelected);
+      } else {
+        resolved.addAll(categoryFields);
+      }
+    }
+    return resolved.toList();
   }
 
   Future<void> _handleSave(List<AccessibilityProfile> profiles) async {
@@ -96,7 +124,30 @@ class _AccessibilityDetailScreenState extends State<AccessibilityDetailScreen> {
       if (confirmed != true) return;
     }
 
-    // TODO: profiles/_selectedFields/_selectAllProfiles를 AppUser.accessibilityFields로 저장하는 로직 연동
+    final currentUser = ref.read(authStateProvider).user;
+    if (currentUser == null) {
+      AppLogger.error('[AccessibilityDetailScreen] 로그인된 유저 정보가 없어 저장을 건너뜀');
+      if (!mounted) return;
+      widget.onComplete();
+      return;
+    }
+
+    final updatedUser = currentUser.copyWith(
+      accessibilityProfiles: profiles.map((p) => p.name).toList(),
+      accessibilityFields: _resolveFields(
+        profiles,
+      ).map((f) => f.name).toList(),
+    );
+
+    try {
+      await _userService.updateUser(updatedUser);
+      ref.read(authStateProvider.notifier).setUser(updatedUser);
+    } catch (e) {
+      if (!mounted) return;
+      await showInfoDialog(context, content: '저장에 실패했습니다. 다시 시도해주세요.');
+      return;
+    }
+
     if (!mounted) return;
     await showInfoDialog(
       context,
@@ -104,10 +155,7 @@ class _AccessibilityDetailScreenState extends State<AccessibilityDetailScreen> {
     );
 
     if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
-      (route) => false,
-    );
+    widget.onComplete();
   }
 
   @override

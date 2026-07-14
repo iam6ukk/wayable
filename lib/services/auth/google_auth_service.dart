@@ -19,7 +19,7 @@ class GoogleAuthService {
     _initialized = true;
   }
 
-  Future<AppUser?> signInWithGoogle() async {
+  Future<({AppUser? user, bool isNewUser})> signInWithGoogle() async {
     try {
       await initGoogleSignIn();
 
@@ -34,7 +34,7 @@ class GoogleAuthService {
       final userCredential = await _auth.signInWithCredential(credential);
       final firebaseUser = userCredential.user;
 
-      if (firebaseUser == null) return null;
+      if (firebaseUser == null) return (user: null, isNewUser: false);
 
       final uid = firebaseUser.uid;
       AppLogger.debug('[Auth] Google login success');
@@ -51,23 +51,23 @@ class GoogleAuthService {
         );
         await _userService.createUser(newUser);
         AppLogger.info('[Auth] 신규 구글 유저 저장 완료');
-        return newUser;
+        return (user: newUser, isNewUser: true);
       } else {
         // 기존 유저 → Firestore에서 불러오기
         final existingUser = await _userService.getUser(uid);
         AppLogger.info('[Auth] 기존 구글 유저 로그인');
-        return existingUser;
+        return (user: existingUser, isNewUser: false);
       }
     } on GoogleSignInException catch (e) {
       AppLogger.error(
         '[Auth] Google Sign-In error (code: ${e.code}, message: ${e.description})',
       );
-      return null;
+      return (user: null, isNewUser: false);
     } on FirebaseAuthException catch (e) {
       AppLogger.error(
         '[Auth] Firebase auth error (code: ${e.code}, message: ${e.message})',
       );
-      return null;
+      return (user: null, isNewUser: false);
     }
   }
 

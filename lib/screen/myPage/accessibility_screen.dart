@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../model/accessibility/accessibility_profile.dart';
 import '../../widgets/app_dialog.dart';
 import '../../widgets/toast.dart';
-import '../home_screen.dart';
 import 'accessibility_detail_screen.dart';
 
 const _kProfileOrder = [
@@ -17,7 +16,11 @@ const _kCurrentStep = 1;
 const _kTotalSteps = 2;
 
 class AccessibilityScreen extends StatefulWidget {
-  const AccessibilityScreen({super.key});
+  const AccessibilityScreen({super.key, required this.onComplete});
+
+  /// 설정을 마치거나(저장) 건너뛰었을 때 호출된다. 진입 경로에 따라
+  /// 호출부에서 홈 화면 이동, 이전 화면으로 복귀 등을 결정한다.
+  final VoidCallback onComplete;
 
   @override
   State<AccessibilityScreen> createState() => _AccessibilityScreenState();
@@ -46,10 +49,7 @@ class _AccessibilityScreenState extends State<AccessibilityScreen> {
       secondaryLabel: '취소하기',
     );
     if (skip != true || !context.mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
-      (route) => false,
-    );
+    widget.onComplete();
   }
 
   @override
@@ -155,6 +155,7 @@ class _AccessibilityScreenState extends State<AccessibilityScreen> {
                       MaterialPageRoute(
                         builder: (_) => AccessibilityDetailScreen(
                           selectedProfiles: _selectedProfiles,
+                          onComplete: widget.onComplete,
                         ),
                       ),
                     );
