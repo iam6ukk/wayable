@@ -42,6 +42,7 @@ dependencies:
   kakao_flutter_sdk_user: ^2.0.0+1 # 카카오 로그인 API 패키지
   google_sign_in: ^7.2.0
   cloud_functions: ^6.3.3
+  geolocator: ^14.0.3
 
 dev_dependencies:
   flutter_test:
