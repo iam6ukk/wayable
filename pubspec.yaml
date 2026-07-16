@@ -54,6 +54,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_native_splash: ^2.4.8
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -67,6 +68,36 @@ flutter:
   assets:
     - assets/images/
     - .env
+
+  fonts:
+    - family: Pretendard
+      fonts:
+        - asset: assets/fonts/Pretendard-Light.otf
+          weight: 300
+        - asset: assets/fonts/Pretendard-Regular.otf
+          weight: 400
+        - asset: assets/fonts/Pretendard-Medium.otf
+          weight: 500
+        - asset: assets/fonts/Pretendard-SemiBold.otf
+          weight: 600
+        - asset: assets/fonts/Pretendard-Bold.otf
+          weight: 700
+    - family: CalSans
+      fonts:
+        - asset: assets/fonts/CalSans-SemiBold.otf
+          weight: 600
+
+flutter_native_splash:
+  color: "#EAF4FF"
+  image: assets/images/transparent.png
+  android_12:
+    color: "#EAF4FF"
+    image: assets/images/transparent.png
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/wayable.png"
 
   # To add assets to your application, add an assets section, like this:
   # assets:
