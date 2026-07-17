@@ -14,7 +14,8 @@ class _LandingPageState extends State<LandingPage> {
   bool _logoVisible = false;
   bool _exiting = false; // true가 되면 대제목/소제목이 위로 사라짐
 
-  static const _bgColor = Color(0xFFE8F4FF);
+  static const _exitDuration = Duration(milliseconds: 500);
+  static const _bgColor = Color(0xFFEAF4FF);
   static const _titleColor = Color(0xFF052A5F);
 
   @override
@@ -37,25 +38,27 @@ class _LandingPageState extends State<LandingPage> {
     if (!mounted) return;
     setState(() => _logoVisible = true);
 
-    // 페이드인 완료 후 화면 유지 (전체 노출 약 2.5~2.7초 지점에서 전환 시작)
+    // 페이드인 완료 후 화면 유지
     await Future.delayed(const Duration(milliseconds: 1700));
     if (!mounted) return;
     _startExit();
   }
 
   Future<void> _startExit() async {
-    setState(() => _exiting = true); // 대제목/소제목 슬라이드업 + 페이드아웃
-    await Future.delayed(const Duration(milliseconds: 400));
+    setState(() => _exiting = true);
+    await Future.delayed(_exitDuration);
     if (!mounted) return;
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 500),
+        transitionDuration: _exitDuration,
         pageBuilder: (context, animation, secondaryAnimation) =>
             const LoginScreen(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          // 배경은 즉시 전환, 로고 이동은 Hero가 자동으로 애니메이션 처리
-          return child;
+          return FadeTransition(
+            opacity: CurvedAnimation(parent: animation, curve: Curves.easeIn),
+            child: child,
+          );
         },
       ),
     );
@@ -97,7 +100,7 @@ class _LandingPageState extends State<LandingPage> {
               ),
               const SizedBox(height: 48),
               AnimatedOpacity(
-                duration: const Duration(milliseconds: 600),
+                duration: const Duration(milliseconds: 500),
                 opacity: _logoVisible ? 1 : 0,
                 child: Hero(
                   tag: 'app_logo',
@@ -114,11 +117,12 @@ class _LandingPageState extends State<LandingPage> {
   // 대제목/소제목 공통: 진입 시 페이드인, exiting=true가 되면 위로 슬라이드하며 페이드아웃
   Widget _buildExitingText({required bool visible, required Widget child}) {
     return AnimatedSlide(
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeInOut,
-      offset: _exiting ? const Offset(0, -0.4) : Offset.zero,
+      duration: _exitDuration,
+      curve: Curves.easeInOutCubic,
+      offset: _exiting ? const Offset(0, -3.0) : Offset.zero,
       child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 400),
+        duration: _exitDuration,
+        curve: Curves.easeOut,
         opacity: _exiting ? 0 : (visible ? 1 : 0),
         child: child,
       ),

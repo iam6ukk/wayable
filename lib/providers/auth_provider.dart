@@ -74,10 +74,7 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
         isNewUser: result.isNewUser,
       );
     } else {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: '카카오 로그인에 실패했습니다.',
-      );
+      state = state.copyWith(isLoading: false);
     }
   }
 
@@ -94,7 +91,7 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
         isNewUser: result.isNewUser,
       );
     } else {
-      state = state.copyWith(isLoading: false, errorMessage: '구글 로그인에 실패했습니다.');
+      state = state.copyWith(isLoading: false);
     }
   }
 

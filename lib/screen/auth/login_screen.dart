@@ -4,6 +4,7 @@ import '../../providers/auth_provider.dart';
 import '../../screen/home_screen.dart';
 import '../myPage/accessibility_screen.dart';
 import '../../navigation/navigator_key.dart';
+import '../../widgets/app_dialog.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -134,10 +135,45 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     GestureDetector(
                       onTap: authState.isLoading
                           ? null
-                          : () {
-                              ref
+                          : () async {
+                              await ref
                                   .read(authStateProvider.notifier)
-                                  .signInWithGoogle();
+                                  .signInWithKakao();
+
+                              final currentState = ref.read(authStateProvider);
+
+                              if (currentState.user != null) {
+                                // 로그인 성공
+                                if (context.mounted) {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          currentState.isNewUser
+                                          ? AccessibilityScreen(
+                                              onComplete: () {
+                                                if (context.mounted) {
+                                                  Navigator.pushReplacement(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          const HomeScreen(),
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                            )
+                                          : const HomeScreen(),
+                                    ),
+                                  );
+                                }
+                              } else if (currentState.errorMessage != null) {
+                                // 로그인 실패
+                                await showInfoDialog(
+                                  context,
+                                  content: '로그인에 실패했습니다. 다시 시도해주세요.',
+                                );
+                              }
                             },
                       child: Container(
                         width: double.infinity,
@@ -148,15 +184,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             Radius.circular(8),
                           ),
                         ),
-                        alignment: Alignment.center,
-                        child: const Text(
-                          '카카오 로그인',
-                          style: TextStyle(
-                            fontFamily: 'Pretendard',
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black,
-                          ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Positioned(
+                              left: 12,
+                              child: Image.asset(
+                                'assets/images/kakao.png',
+                                width: 35,
+                                height: 35,
+                              ),
+                            ),
+                            const Text(
+                              '카카오 로그인',
+                              style: TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -165,10 +213,45 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     GestureDetector(
                       onTap: authState.isLoading
                           ? null
-                          : () {
-                              ref
+                          : () async {
+                              await ref
                                   .read(authStateProvider.notifier)
                                   .signInWithGoogle();
+
+                              final currentState = ref.read(authStateProvider);
+
+                              if (currentState.user != null) {
+                                // 로그인 성공
+                                if (context.mounted) {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          currentState.isNewUser
+                                          ? AccessibilityScreen(
+                                              onComplete: () {
+                                                if (context.mounted) {
+                                                  Navigator.pushReplacement(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          const HomeScreen(),
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                            )
+                                          : const HomeScreen(),
+                                    ),
+                                  );
+                                }
+                              } else if (currentState.errorMessage != null) {
+                                // 로그인 실패
+                                await showInfoDialog(
+                                  context,
+                                  content: '로그인에 실패했습니다. 다시 시도해주세요.',
+                                );
+                              }
                             },
                       child: Container(
                         margin: const EdgeInsets.only(top: 18),
@@ -184,26 +267,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             Radius.circular(8),
                           ),
                         ),
-                        alignment: Alignment.center,
-                        child: const Text(
-                          'Google 계정으로 로그인',
-                          style: TextStyle(
-                            fontFamily: 'Pretendard',
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black,
-                          ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Positioned(
+                              left: 10,
+                              child: Image.asset(
+                                'assets/images/google.png',
+                                width: 40,
+                                height: 40,
+                              ),
+                            ),
+                            const Text(
+                              'Google 계정으로 로그인',
+                              style: TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-
-                    if (authState.isLoading)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 16),
-                        child: CircularProgressIndicator(),
-                      ),
-
-                    const SizedBox(height: 20),
 
                     // 비회원 버튼 (하단에서 114px 지점)
                     TextButton(
@@ -213,6 +300,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           MaterialPageRoute(builder: (_) => const HomeScreen()),
                         );
                       },
+                      style: TextButton.styleFrom(
+                        overlayColor: Colors.transparent,
+                      ),
                       child: Text(
                         '비회원으로 진행하기',
                         style: TextStyle(
