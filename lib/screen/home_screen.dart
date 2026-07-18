@@ -5,9 +5,6 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('WayAble')),
-      body: const Center(child: Text('홈 화면')),
-    );
+    return const Center(child: Text('홈 화면'));
   }
 }

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wayable/screen/home_screen.dart';
 import '../../providers/auth_provider.dart';
-import '../../screen/home_screen.dart';
+import '../../navigation/main_shell.dart';
 import '../myPage/accessibility_screen.dart';
 import '../../navigation/navigator_key.dart';
 import '../../widgets/app_dialog.dart';
@@ -46,16 +47,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     // 신규 유저는 접근성 프로필 설정 화면을 거쳐 홈으로, 기존 유저는 바로 홈으로 이동한다.
     ref.listen(authStateProvider, (previous, next) {
       if (next.user != null && previous?.user == null) {
+        // 로그인 성공
         if (next.isNewUser) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
               builder: (_) => AccessibilityScreen(
                 onComplete: () {
-                  // LoginScreen은 이미 pushReplacement로 트리에서 빠졌으므로
-                  // 여기서 캡처한 context 대신 전역 navigatorKey로 이동해야 한다.
                   navigatorKey.currentState?.pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const HomeScreen()),
+                    MaterialPageRoute(builder: (_) => const MainShell()),
                     (route) => false,
                   );
                 },
@@ -65,9 +65,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         } else {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
+            MaterialPageRoute(builder: (_) => const MainShell()),
           );
         }
+      } else if (next.errorMessage != null &&
+          previous?.errorMessage != next.errorMessage) {
+        // 로그인 실패
+        showInfoDialog(context, content: '로그인에 실패했습니다. 다시 시도해주세요.');
       }
     });
 
@@ -121,16 +125,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // 에러 메시지
-                    if (authState.errorMessage != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: Text(
-                          authState.errorMessage!,
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      ),
-
                     // 카카오 로그인 버튼
                     GestureDetector(
                       onTap: authState.isLoading
@@ -139,41 +133,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               await ref
                                   .read(authStateProvider.notifier)
                                   .signInWithKakao();
-
-                              final currentState = ref.read(authStateProvider);
-
-                              if (currentState.user != null) {
-                                // 로그인 성공
-                                if (context.mounted) {
-                                  Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          currentState.isNewUser
-                                          ? AccessibilityScreen(
-                                              onComplete: () {
-                                                if (context.mounted) {
-                                                  Navigator.pushReplacement(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                      builder: (context) =>
-                                                          const HomeScreen(),
-                                                    ),
-                                                  );
-                                                }
-                                              },
-                                            )
-                                          : const HomeScreen(),
-                                    ),
-                                  );
-                                }
-                              } else if (currentState.errorMessage != null) {
-                                // 로그인 실패
-                                await showInfoDialog(
-                                  context,
-                                  content: '로그인에 실패했습니다. 다시 시도해주세요.',
-                                );
-                              }
                             },
                       child: Container(
                         width: double.infinity,
@@ -217,41 +176,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               await ref
                                   .read(authStateProvider.notifier)
                                   .signInWithGoogle();
-
-                              final currentState = ref.read(authStateProvider);
-
-                              if (currentState.user != null) {
-                                // 로그인 성공
-                                if (context.mounted) {
-                                  Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          currentState.isNewUser
-                                          ? AccessibilityScreen(
-                                              onComplete: () {
-                                                if (context.mounted) {
-                                                  Navigator.pushReplacement(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                      builder: (context) =>
-                                                          const HomeScreen(),
-                                                    ),
-                                                  );
-                                                }
-                                              },
-                                            )
-                                          : const HomeScreen(),
-                                    ),
-                                  );
-                                }
-                              } else if (currentState.errorMessage != null) {
-                                // 로그인 실패
-                                await showInfoDialog(
-                                  context,
-                                  content: '로그인에 실패했습니다. 다시 시도해주세요.',
-                                );
-                              }
                             },
                       child: Container(
                         margin: const EdgeInsets.only(top: 18),
@@ -297,7 +221,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       onPressed: () {
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (_) => const HomeScreen()),
+                          MaterialPageRoute(builder: (_) => const MainShell()),
                         );
                       },
                       style: TextButton.styleFrom(

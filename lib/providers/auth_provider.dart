@@ -74,7 +74,10 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
         isNewUser: result.isNewUser,
       );
     } else {
-      state = state.copyWith(isLoading: false);
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: '로그인에 실패했습니다. 다시 시도해주세요.',
+      );
     }
   }
 
@@ -91,7 +94,10 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
         isNewUser: result.isNewUser,
       );
     } else {
-      state = state.copyWith(isLoading: false);
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: '로그인에 실패했습니다. 다시 시도해주세요.',
+      );
     }
   }
 

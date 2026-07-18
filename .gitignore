@@ -22,6 +22,8 @@ migrate_working_dir/
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/build/
+/android/app/build/
 
 # Firebase & API 키 
 google-services.json
@@ -35,3 +37,6 @@ serviceAccountKey.json
 
 # Node.js (scripts/ 백필 스크립트용)
 node_modules/
+
+# Claude Code local session state
+/.claude/
