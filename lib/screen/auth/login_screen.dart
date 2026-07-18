@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_provider.dart';
-import '../../screen/home_screen.dart';
+import '../../navigation/main_shell.dart';
 import '../myPage/accessibility_screen.dart';
 import '../../navigation/navigator_key.dart';
 
@@ -25,7 +25,7 @@ class LoginScreen extends ConsumerWidget {
                   // LoginScreen은 이미 pushReplacement로 트리에서 빠졌으므로
                   // 여기서 캡처한 context 대신 전역 navigatorKey로 이동해야 한다.
                   navigatorKey.currentState?.pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const HomeScreen()),
+                    MaterialPageRoute(builder: (_) => const MainShell()),
                     (route) => false,
                   );
                 },
@@ -35,7 +35,7 @@ class LoginScreen extends ConsumerWidget {
         } else {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
+            MaterialPageRoute(builder: (_) => const MainShell()),
           );
         }
       }
@@ -105,7 +105,7 @@ class LoginScreen extends ConsumerWidget {
                 onPressed: () {
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (_) => const HomeScreen()),
+                    MaterialPageRoute(builder: (_) => const MainShell()),
                   );
                 },
                 child: const Text('비회원으로 진행하기'),

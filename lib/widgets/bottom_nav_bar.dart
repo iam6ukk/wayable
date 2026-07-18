@@ -1,0 +1,78 @@
+import 'package:flutter/material.dart';
+
+const _kBarColor = Color(0xFFD8EDFF);
+const _kUnselectedIconColor = Color(0xFFB7B7B7);
+const _kSelectedIconColor = Colors.black;
+
+enum BottomNavTab {
+  explore, // 맞춤 여행지 탐색
+  map, // 지도 기반 탐색
+  home, // 메인
+  myPage, // 마이페이지
+  savedList, // 저장목록
+}
+
+extension _BottomNavTabX on BottomNavTab {
+  IconData get icon => switch (this) {
+    BottomNavTab.explore => Icons.search_outlined,
+    BottomNavTab.map => Icons.pin_drop_outlined,
+    BottomNavTab.home => Icons.home_outlined,
+    BottomNavTab.myPage => Icons.person_outlined,
+    BottomNavTab.savedList => Icons.bookmark_outlined,
+  };
+}
+
+/// 하단 탭 메뉴 공통 컴포넌트. 화면들이 currentTab과 onTabSelected만
+/// 넘겨주면 되도록 재사용 가능한 형태로 제공한다.
+class BottomNavBar extends StatelessWidget {
+  const BottomNavBar({
+    super.key,
+    required this.currentTab,
+    required this.onTabSelected,
+  });
+
+  final BottomNavTab currentTab;
+  final ValueChanged<BottomNavTab> onTabSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    // 시스템 제스처/내비게이션 바 영역은 배경색만 이어지도록 하단 인셋만큼
+    // 추가 패딩을 주고, 실제 탭 영역은 안드로이드 표준 높이(56dp)로 고정한다.
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+
+    return Container(
+      width: double.infinity,
+      color: _kBarColor,
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: SizedBox(
+        height: kBottomNavigationBarHeight,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: BottomNavTab.values
+              .map((tab) => _buildTabIcon(tab))
+              .toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabIcon(BottomNavTab tab) {
+    final isSelected = tab == currentTab;
+
+    return GestureDetector(
+      onTap: () => onTabSelected(tab),
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 48,
+        height: kBottomNavigationBarHeight,
+        child: Center(
+          child: Icon(
+            tab.icon,
+            size: 28,
+            color: isSelected ? _kSelectedIconColor : _kUnselectedIconColor,
+          ),
+        ),
+      ),
+    );
+  }
+}
