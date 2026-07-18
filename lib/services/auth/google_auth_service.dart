@@ -68,6 +68,9 @@ class GoogleAuthService {
         '[Auth] Firebase auth error (code: ${e.code}, message: ${e.message})',
       );
       return (user: null, isNewUser: false);
+    } catch (e) {
+      AppLogger.error('[Auth] Unexpected error: $e');
+      return (user: null, isNewUser: false);
     }
   }
 

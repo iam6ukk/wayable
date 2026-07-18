@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kakao_flutter_sdk_common/kakao_flutter_sdk_common.dart';
+import 'package:wayable/screen/auth/landing.dart';
 import 'package:wayable/screen/auth/login_screen.dart';
 import 'firebase_options.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -28,7 +29,11 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
-      home: const LoginScreen(),
+      theme: ThemeData(
+        fontFamily: 'Pretendard', // 한글 폰트 프리텐다드로 전역 지정
+        useMaterial3: true,
+      ),
+      home: const LandingPage(),
     );
   }
 }
