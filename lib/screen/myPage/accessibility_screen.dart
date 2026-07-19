@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../model/accessibility/accessibility_profile.dart';
+import '../../providers/auth_provider.dart';
 import '../../widgets/app_dialog.dart';
 import '../../widgets/toast.dart';
 import 'accessibility_detail_screen.dart';
@@ -15,7 +17,7 @@ const _kProfileOrder = [
 const _kCurrentStep = 1;
 const _kTotalSteps = 2;
 
-class AccessibilityScreen extends StatefulWidget {
+class AccessibilityScreen extends ConsumerStatefulWidget {
   const AccessibilityScreen({super.key, required this.onComplete});
 
   /// 설정을 마치거나(저장) 건너뛰었을 때 호출된다. 진입 경로에 따라
@@ -23,10 +25,11 @@ class AccessibilityScreen extends StatefulWidget {
   final VoidCallback onComplete;
 
   @override
-  State<AccessibilityScreen> createState() => _AccessibilityScreenState();
+  ConsumerState<AccessibilityScreen> createState() =>
+      _AccessibilityScreenState();
 }
 
-class _AccessibilityScreenState extends State<AccessibilityScreen> {
+class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
   final Set<AccessibilityProfile> _selectedProfiles = {};
 
   void _toggleSelection(AccessibilityProfile profile) {
@@ -43,8 +46,8 @@ class _AccessibilityScreenState extends State<AccessibilityScreen> {
     final skip = await showTwoButtonDialog(
       context,
       content:
-          '접근성 프로필을 설정하면 나에게 맞는 장소를 쉽게 찾을 수 있어요.\n\n'
-          '마이페이지에서 언제든 다시 설정할 수 있습니다.',
+          '접근성 프로필을 설정하면 나에게 맞는 장소를 쉽게 찾을 수 있어요.\n'
+          '마이페이지에서 언제든 접근성 프로필을 수정할 수 있습니다.',
       primaryLabel: '건너뛰기',
       secondaryLabel: '취소하기',
     );
@@ -54,6 +57,8 @@ class _AccessibilityScreenState extends State<AccessibilityScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final nickname = ref.watch(authStateProvider).user?.nickname ?? '게스트';
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -103,9 +108,9 @@ class _AccessibilityScreenState extends State<AccessibilityScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              const Text(
-                '뫄뫄님의 관심유형을 선택해주세요',
-                style: TextStyle(
+              Text(
+                '$nickname님의 관심유형을 선택해주세요',
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w500,
                   color: Colors.black,

@@ -46,7 +46,7 @@ class KakaoAuthService {
         final newUser = AppUser(
           uid: uid,
           nickname: kakaoUser.kakaoAccount?.profile?.nickname,
-          email: null,
+          email: kakaoUser.kakaoAccount?.email,
           provider: 'kakao',
         );
 

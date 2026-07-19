@@ -40,7 +40,10 @@ class AccessibilityDetailScreen extends ConsumerStatefulWidget {
 class _AccessibilityDetailScreenState
     extends ConsumerState<AccessibilityDetailScreen> {
   final _userService = UserService();
-  final Set<AccessibilityField> _selectedFields = {};
+  // profile별로 독립된 필드 선택 상태를 갖는다. 같은 AccessibilityField를
+  // 공유하는 profile(예: seniorCompanion과 physicalAssist)이 있어도, 한쪽에서
+  // 고른다고 다른 쪽 칩까지 같이 활성화되면 안 되기 때문.
+  final Map<AccessibilityProfile, Set<AccessibilityField>> _selectedFields = {};
   final Set<AccessibilityProfile> _selectAllProfiles = {};
 
   void _toggleSelection(
@@ -48,10 +51,11 @@ class _AccessibilityDetailScreenState
     AccessibilityField field,
   ) {
     setState(() {
-      if (_selectedFields.contains(field)) {
-        _selectedFields.remove(field);
+      final fields = _selectedFields.putIfAbsent(profile, () => {});
+      if (fields.contains(field)) {
+        fields.remove(field);
       } else {
-        _selectedFields.add(field);
+        fields.add(field);
       }
       // 개별 필드를 직접 고르면 그 profile의 '전체' 선택은 해제된다.
       _selectAllProfiles.remove(profile);
@@ -65,9 +69,7 @@ class _AccessibilityDetailScreenState
       } else {
         _selectAllProfiles.add(profile);
         // '전체'를 고르면 그 profile 안에서 개별로 골라둔 필드는 해제된다.
-        final categoryFields =
-            AccessibilityFieldMapping.mapping[profile] ?? const [];
-        _selectedFields.removeWhere(categoryFields.contains);
+        _selectedFields[profile]?.clear();
       }
     });
   }
@@ -76,8 +78,8 @@ class _AccessibilityDetailScreenState
     final skip = await showTwoButtonDialog(
       context,
       content:
-          '접근성 프로필을 설정하면 나에게 맞는 장소를 쉽게 찾을 수 있어요.\n\n'
-          '마이페이지에서 언제든 다시 설정할 수 있습니다.',
+          '접근성 프로필을 설정하면 나에게 맞는 장소를 쉽게 찾을 수 있어요.\n'
+          '마이페이지에서 언제든 접근성 프로필을 수정할 수 있습니다.',
       primaryLabel: '건너뛰기',
       secondaryLabel: '취소하기',
     );
@@ -87,8 +89,7 @@ class _AccessibilityDetailScreenState
 
   bool _hasSelectionFor(AccessibilityProfile profile) {
     if (_selectAllProfiles.contains(profile)) return true;
-    final categoryFields = AccessibilityFieldMapping.mapping[profile] ?? const [];
-    return categoryFields.any(_selectedFields.contains);
+    return _selectedFields[profile]?.isNotEmpty ?? false;
   }
 
   /// profile별로 개별 선택된 필드가 있으면 그 필드만, 없으면(전체 선택 혹은
@@ -96,10 +97,9 @@ class _AccessibilityDetailScreenState
   List<AccessibilityField> _resolveFields(List<AccessibilityProfile> profiles) {
     final resolved = <AccessibilityField>{};
     for (final profile in profiles) {
-      final categoryFields = AccessibilityFieldMapping.mapping[profile] ?? const [];
-      final individuallySelected = categoryFields.where(
-        _selectedFields.contains,
-      );
+      final categoryFields =
+          AccessibilityFieldMapping.mapping[profile] ?? const [];
+      final individuallySelected = _selectedFields[profile] ?? const {};
       if (individuallySelected.isNotEmpty) {
         resolved.addAll(individuallySelected);
       } else {
@@ -134,9 +134,7 @@ class _AccessibilityDetailScreenState
 
     final updatedUser = currentUser.copyWith(
       accessibilityProfiles: profiles.map((p) => p.name).toList(),
-      accessibilityFields: _resolveFields(
-        profiles,
-      ).map((f) => f.name).toList(),
+      accessibilityFields: _resolveFields(profiles).map((f) => f.name).toList(),
     );
 
     try {
@@ -151,7 +149,7 @@ class _AccessibilityDetailScreenState
     if (!mounted) return;
     await showInfoDialog(
       context,
-      content: '접근성 프로필이 저장되었습니다.\n마이페이지에서 수정할 수 있습니다.',
+      content: '접근성 프로필이 저장됐습니다.\n마이페이지에서 수정할 수 있습니다.',
     );
 
     if (!mounted) return;
@@ -335,7 +333,7 @@ class _AccessibilityDetailScreenState
   }
 
   Widget _buildChip(AccessibilityProfile profile, AccessibilityField field) {
-    final isSelected = _selectedFields.contains(field);
+    final isSelected = _selectedFields[profile]?.contains(field) ?? false;
     return _chip(
       label: field.label,
       isSelected: isSelected,

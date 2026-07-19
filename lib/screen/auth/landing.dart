@@ -104,6 +104,7 @@ class _LandingPageState extends State<LandingPage> {
                 opacity: _logoVisible ? 1 : 0,
                 child: Hero(
                   tag: 'app_logo',
+                  curve: Curves.easeInOutCubic,
                   child: Image.asset('assets/images/wayable.png', width: 150),
                 ),
               ),

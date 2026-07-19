@@ -20,6 +20,18 @@ void main() async {
   runApp(const ProviderScope(child: MyApp()));
 }
 
+// Android 기본 오버스크롤(당길 때 화면이 늘어나는 stretch) 효과를 제거한다.
+class _NoStretchScrollBehavior extends MaterialScrollBehavior {
+  @override
+  Widget buildOverscrollIndicator(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    return child;
+  }
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -29,6 +41,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
+      scrollBehavior: _NoStretchScrollBehavior(),
       theme: ThemeData(
         fontFamily: 'Pretendard', // 한글 폰트 프리텐다드로 전역 지정
         useMaterial3: true,
