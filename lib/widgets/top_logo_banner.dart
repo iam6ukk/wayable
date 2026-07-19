@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 const _kBannerColor = Color(0xFFD8EDFF);
 
@@ -20,7 +19,7 @@ class TopLogoBanner extends StatelessWidget {
       child: SizedBox(
         height: kToolbarHeight,
         child: Center(
-          child: SvgPicture.asset('assets/images/logo.svg', height: 28),
+          child: Image.asset('assets/images/wayable.png', height: 28),
         ),
       ),
     );

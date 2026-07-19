@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../model/accessibility/accessibility_field.dart';
 import '../../model/accessibility/accessibility_profile.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/toast.dart';
@@ -14,13 +13,6 @@ const _kDividerColor = Color(0xFFE3E3E3);
 AccessibilityProfile? _profileFromName(String name) {
   for (final profile in AccessibilityProfile.values) {
     if (profile.name == name) return profile;
-  }
-  return null;
-}
-
-AccessibilityField? _fieldFromName(String name) {
-  for (final field in AccessibilityField.values) {
-    if (field.name == name) return field;
   }
   return null;
 }
@@ -62,10 +54,6 @@ class MyPageScreen extends ConsumerWidget {
         .map(_profileFromName)
         .whereType<AccessibilityProfile>()
         .toList();
-    final fields = (user?.accessibilityFields ?? const [])
-        .map(_fieldFromName)
-        .whereType<AccessibilityField>()
-        .toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -82,7 +70,7 @@ class MyPageScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 20),
-          _buildAccessibilityCard(context, profiles, fields),
+          _buildAccessibilityCard(context, profiles),
           const SizedBox(height: 24),
           _buildSection(
             title: '내 설정',
@@ -128,7 +116,6 @@ class MyPageScreen extends ConsumerWidget {
   Widget _buildAccessibilityCard(
     BuildContext context,
     List<AccessibilityProfile> profiles,
-    List<AccessibilityField> fields,
   ) {
     return Container(
       width: double.infinity,
@@ -154,19 +141,8 @@ class MyPageScreen extends ConsumerWidget {
               '접근성 프로필이 설정되지 않았습니다.\n프로필을 수정하여 접근성 프로필을 생성해주세요.',
               style: TextStyle(fontSize: 16, color: _kGreyText, height: 1.4),
             )
-          else ...[
+          else
             for (final profile in profiles) _buildProfileRow(profile),
-            if (fields.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Padding(
-                padding: const EdgeInsets.only(left: 28),
-                child: Text(
-                  '${fields.map((f) => f.label).join(', ')} 필요',
-                  style: const TextStyle(fontSize: 16, color: _kGreyText),
-                ),
-              ),
-            ],
-          ],
           const SizedBox(height: 16),
           Align(
             alignment: Alignment.centerRight,

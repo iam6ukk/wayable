@@ -89,6 +89,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Center(
                   child: Hero(
                     tag: 'app_logo',
+                    curve: Curves.easeInOutCubic,
                     child: Image.asset('assets/images/wayable.png', width: 150),
                   ),
                 ),
@@ -231,7 +232,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         '비회원으로 진행하기',
                         style: TextStyle(
                           fontFamily: 'Pretendard',
-                          fontSize: 16,
+                          fontSize: 14,
                           fontWeight: FontWeight.w400,
                           color: const Color(0xFF697281),
                           decoration: TextDecoration.underline,
