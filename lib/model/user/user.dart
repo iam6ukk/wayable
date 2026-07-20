@@ -5,8 +5,14 @@ class AppUser {
   final String? nickname;
   final String? email;
   final String? provider; // 로그인 서비스
-  final List<String> accessibilityProfiles; // 접근성 프로필 (대분류)
-  final List<String> accessibilityFields; // 상세 무장애 정보 항목
+
+  /// 대분류명(AccessibilityProfile.name) -> 그 대분류에서 개별 선택한
+  /// 상세 필드명(AccessibilityField.name) 목록. 빈 리스트 = 그 대분류는 "전체" 선택.
+  /// 대분류별로 분리해서 저장해야 한다 — 지체장애/고령자동반처럼 필드가 겹치는
+  /// 대분류가 있어서, 하나의 flat 리스트로 합쳐버리면 어느 대분류의 선택이었는지
+  /// 복원할 수 없어진다 (accessibility_detail_screen.dart 참고).
+  final Map<String, List<String>> accessibilityFieldsByProfile;
+
   final DateTime createdAt; // 생성일
 
   AppUser({
@@ -14,10 +20,14 @@ class AppUser {
     this.nickname,
     this.email,
     required this.provider,
-    this.accessibilityProfiles = const [],
-    this.accessibilityFields = const [],
+    this.accessibilityFieldsByProfile = const {},
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
+
+  /// 선택된 접근성 프로필(대분류) 이름 목록. accessibilityFieldsByProfile의 키가
+  /// 곧 "선택된 대분류"라서 별도 필드로 중복 저장하지 않고 여기서 파생시킨다.
+  List<String> get accessibilityProfiles =>
+      accessibilityFieldsByProfile.keys.toList();
 
   // Firestore에 저장할 Map으로 변환 (Java의 toJson() 같은 역할)
   Map<String, dynamic> toFirestore() {
@@ -26,8 +36,7 @@ class AppUser {
       'nickname': nickname,
       'email': email,
       'provider': provider,
-      'accessibilityProfiles': accessibilityProfiles,
-      'accessibilityFields': accessibilityFields,
+      'accessibilityFieldsByProfile': accessibilityFieldsByProfile,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -40,12 +49,11 @@ class AppUser {
       nickname: data['nickname'] as String?,
       email: data['email'] as String?,
       provider: data['provider'] as String? ?? 'unknown',
-      accessibilityProfiles: List<String>.from(
-        data['accessibilityProfiles'] ?? [],
-      ),
-      accessibilityFields: List<String>.from(
-        data['accessibilityFields'] ?? [],
-      ),
+      accessibilityFieldsByProfile:
+          (data['accessibilityFieldsByProfile'] as Map<String, dynamic>? ?? {})
+              .map(
+                (key, value) => MapEntry(key, List<String>.from(value as List)),
+              ),
       createdAt: data['createdAt'] != null
           ? (data['createdAt'] as Timestamp).toDate()
           : DateTime.now(),
@@ -56,17 +64,15 @@ class AppUser {
   AppUser copyWith({
     String? nickname,
     String? email,
-    List<String>? accessibilityProfiles,
-    List<String>? accessibilityFields,
+    Map<String, List<String>>? accessibilityFieldsByProfile,
   }) {
     return AppUser(
       uid: uid,
       nickname: nickname ?? this.nickname,
       email: email ?? this.email,
       provider: provider,
-      accessibilityProfiles:
-          accessibilityProfiles ?? this.accessibilityProfiles,
-      accessibilityFields: accessibilityFields ?? this.accessibilityFields,
+      accessibilityFieldsByProfile:
+          accessibilityFieldsByProfile ?? this.accessibilityFieldsByProfile,
       createdAt: createdAt,
     );
   }

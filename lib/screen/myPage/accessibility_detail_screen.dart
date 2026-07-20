@@ -92,21 +92,18 @@ class _AccessibilityDetailScreenState
     return _selectedFields[profile]?.isNotEmpty ?? false;
   }
 
-  /// profile별로 개별 선택된 필드가 있으면 그 필드만, 없으면(전체 선택 혹은
-  /// 미선택) 해당 profile의 전체 필드를 저장 대상으로 확정한다.
-  List<AccessibilityField> _resolveFields(List<AccessibilityProfile> profiles) {
-    final resolved = <AccessibilityField>{};
-    for (final profile in profiles) {
-      final categoryFields =
-          AccessibilityFieldMapping.mapping[profile] ?? const [];
-      final individuallySelected = _selectedFields[profile] ?? const {};
-      if (individuallySelected.isNotEmpty) {
-        resolved.addAll(individuallySelected);
-      } else {
-        resolved.addAll(categoryFields);
-      }
-    }
-    return resolved.toList();
+  /// profile별로 개별 선택된 필드를 그대로 저장한다 (빈 리스트 = "전체").
+  /// 지체장애/고령자동반처럼 필드가 겹치는 profile이 있어서, 여기서 flat하게
+  /// 합쳐버리면 나중에 어느 profile의 선택이었는지 복원할 수 없어진다.
+  Map<String, List<String>> _resolveFieldsByProfile(
+    List<AccessibilityProfile> profiles,
+  ) {
+    return {
+      for (final profile in profiles)
+        profile.name: (_selectedFields[profile] ?? const {})
+            .map((f) => f.name)
+            .toList(),
+    };
   }
 
   Future<void> _handleSave(List<AccessibilityProfile> profiles) async {
@@ -133,8 +130,7 @@ class _AccessibilityDetailScreenState
     }
 
     final updatedUser = currentUser.copyWith(
-      accessibilityProfiles: profiles.map((p) => p.name).toList(),
-      accessibilityFields: _resolveFields(profiles).map((f) => f.name).toList(),
+      accessibilityFieldsByProfile: _resolveFieldsByProfile(profiles),
     );
 
     try {
