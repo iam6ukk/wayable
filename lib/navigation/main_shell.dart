@@ -64,26 +64,54 @@ class _MainShellState extends ConsumerState<MainShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        top: false,
-        bottom: false,
-        child: Column(
-          children: [
-            const TopLogoBanner(),
-            Expanded(
-              child: AnimatedSwitcher(
-                duration: _kTabTransitionDuration,
-                child: KeyedSubtree(
-                  key: ValueKey(_currentTab),
-                  child: _buildContent(),
+      // 기본값(true)이면 키보드가 열고 닫힐 때마다 이 셸 전체(배너+콘텐츠+
+      // 하단 탭바)가 매 프레임 리사이즈되면서, 탐색 화면의 하단 고정 스크롤
+      // 버튼(Positioned bottom)이 그 리사이즈를 따라 눈에 띄게 움직여 화면이
+      // 덜컥거리는 것처럼 보였다. 키보드 입력이 있는 화면은 탐색 탭 검색창
+      // 하나뿐이고 위쪽에 있어 키보드에 가려질 일도 없어서 꺼도 안전하다.
+      resizeToAvoidBottomInset: false,
+      // resizeToAvoidBottomInset만으로는 부족했다 — Scaffold body는 리사이즈
+      // 안 해도, 탐색 화면 검색창(TextField)이 포커스를 받으면 그 안의
+      // EditableText가 MediaQuery.viewInsets.bottom(키보드 높이)을 그대로
+      // 보고 "키보드에 안 가리게" 스스로 상위 스크롤뷰를 위로 스크롤시켜서,
+      // 검색 제출 시 화면이 살짝 올라갔다 내려오는 것처럼 보였다. 이 셸
+      // 아래로는 keyboard inset 자체를 안 보이게 없애서 그 자동 스크롤이
+      // 아예 발생하지 않게 한다.
+      body: MediaQuery.removeViewInsets(
+        context: context,
+        removeBottom: true,
+        child: SafeArea(
+          top: false,
+          bottom: false,
+          child: Column(
+            children: [
+              const TopLogoBanner(),
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: _kTabTransitionDuration,
+                  // AnimatedSwitcher의 기본 layoutBuilder는 Stack(alignment:
+                  // center)라서, 탭 콘텐츠가 이 Expanded 영역보다 짧으면(예:
+                  // 탐색 화면이 검색 전/결과 없음 상태일 때) 위쪽이 아니라
+                  // 세로 가운데로 정렬되어 배너 바로 아래에 큰 여백이 생기고,
+                  // 검색 결과가 생겨 콘텐츠가 길어지면 그 여백이 줄면서
+                  // 화면이 위로 올라가는 것처럼 보였다. 항상 위쪽 기준으로
+                  // 붙도록 정렬을 바꾼다.
+                  layoutBuilder: (currentChild, previousChildren) => Stack(
+                    alignment: Alignment.topCenter,
+                    children: [...previousChildren, ?currentChild],
+                  ),
+                  child: KeyedSubtree(
+                    key: ValueKey(_currentTab),
+                    child: _buildContent(),
+                  ),
                 ),
               ),
-            ),
-            BottomNavBar(
-              currentTab: _currentTab,
-              onTabSelected: _handleTabSelected,
-            ),
-          ],
+              BottomNavBar(
+                currentTab: _currentTab,
+                onTabSelected: _handleTabSelected,
+              ),
+            ],
+          ),
         ),
       ),
     );

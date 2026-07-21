@@ -327,7 +327,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       children: [
         SingleChildScrollView(
           controller: _scrollController,
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 36),
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 36),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -387,7 +387,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                         ),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
               // 재검색 중에도 검색하기 버튼 위쪽은 물론, 결과 영역 자체도 그대로
               // 유지한 채 로딩 오버레이만 덧씌운다. _isLoading으로 이 영역을
               // 통째로 껐다 켜면 높이가 순간적으로 사라졌다 돌아오면서 화면
@@ -537,11 +537,19 @@ class _AccessibilityProfileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: _kProfileOrder
-          .map((profile) => _buildIcon(profile, activeProfiles.contains(profile)))
-          .toList(),
+    // 피그마 실측 기준 아이콘 원 52px + 사이 간격 19px 고정. spaceBetween으로
+    // 화면 폭에 맞춰 늘리면 좌우 여백 값이 바뀔 때마다 간격이 따라 흔들려서
+    // 고정 간격으로 바꿨다.
+    return Center(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < _kProfileOrder.length; i++) ...[
+            if (i > 0) const SizedBox(width: 19),
+            _buildIcon(_kProfileOrder[i], activeProfiles.contains(_kProfileOrder[i])),
+          ],
+        ],
+      ),
     );
   }
 
@@ -549,31 +557,42 @@ class _AccessibilityProfileRow extends StatelessWidget {
     return GestureDetector(
       onTap: () => onToggle(profile),
       behavior: HitTestBehavior.opaque,
-      child: Column(
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isActive ? _kPrimaryBlue : _kInactiveCircleBg,
+      // 라벨 텍스트가 원(52px)보다 넓어서 그대로 두면 Column이 텍스트 폭만큼
+      // 늘어나 옆 아이콘과의 실제 간격이 19px보다 벌어진다. 폭을 52로 고정해
+      // 라벨이 필요하면 두 줄로 접히게 해서 원 기준 간격을 지킨다.
+      child: SizedBox(
+        width: 52,
+        child: Column(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isActive ? _kPrimaryBlue : _kInactiveCircleBg,
+              ),
+              child: Icon(
+                profile.icon,
+                size: 28,
+                color: isActive ? Colors.white : _kInactiveIconColor,
+              ),
             ),
-            child: Icon(
-              profile.icon,
-              size: 28,
-              color: isActive ? Colors.white : _kInactiveIconColor,
+            const SizedBox(height: 6),
+            Text(
+              // 라벨의 띄어쓰기 위치에서 무조건 줄바꿈되도록 강제한다. 폭 기준
+              // 자동 줄바꿈에 맡기면 한글은 띄어쓰기와 무관하게 아무 글자
+              // 사이에서나 잘려서, "유모차 동반"이 "유모차 동"/"반"처럼
+              // 단어 중간에서 갈라지는 문제가 있었다.
+              profile.label.replaceFirst(' ', '\n'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.black,
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            profile.label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: Colors.black,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

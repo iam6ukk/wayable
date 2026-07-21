@@ -15,7 +15,7 @@ extension AccessibilityProfileX on AccessibilityProfile {
     AccessibilityProfile.physicalAssist => '지체장애 보조',
     AccessibilityProfile.hearingAssist => '청각장애 보조',
     AccessibilityProfile.visionAssist => '시각장애 보조',
-    AccessibilityProfile.strollerCompanion => '유모차동반',
+    AccessibilityProfile.strollerCompanion => '유모차 동반',
     AccessibilityProfile.seniorCompanion => '고령자 동반',
   };
 
