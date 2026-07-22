@@ -34,3 +34,4 @@ export const kakaoCustomToken = functions.https.onCall(async (request) => {
 });
 
 export { dailyDeltaSync } from "./batch/dailyDeltaSync";
+export { dailyEventSync } from "./batch/dailyEventSync";

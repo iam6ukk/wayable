@@ -33,6 +33,7 @@ firebase_options.dart
 *.env
 functions/.env
 .env.backfill
+.env.backfill-events
 serviceAccountKey.json
 
 # Node.js (scripts/ 백필 스크립트용)

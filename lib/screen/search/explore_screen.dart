@@ -9,6 +9,7 @@ import '../../model/tour/tour_spot.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/tour/tour_spot_service.dart';
 import 'explore_filter_screen.dart';
+import 'spot_detail_screen.dart';
 
 const _kPrimaryBlue = Color(0xFF0065F4);
 const _kSearchBarBg = Color(0x80D9D9D9);
@@ -716,55 +717,61 @@ class _ResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AspectRatio(
-          aspectRatio: 172 / 113,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: spot.firstImage == null
-                ? _buildImagePlaceholder()
-                : Image.network(
-                    spot.firstImage!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(),
-                    loadingBuilder: (context, child, progress) {
-                      if (progress == null) return child;
-                      return _buildImagePlaceholder(loading: true);
-                    },
-                  ),
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => SpotDetailScreen(spot: spot)),
+      ),
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AspectRatio(
+            aspectRatio: 172 / 113,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: spot.firstImage == null
+                  ? _buildImagePlaceholder()
+                  : Image.network(
+                      spot.firstImage!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(),
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return _buildImagePlaceholder(loading: true);
+                      },
+                    ),
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          spot.title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          spot.addr1,
-          style: const TextStyle(fontSize: 13, color: _kAddressTextColor),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        if (spot.supportedProfiles.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          Row(
-            children: _kProfileOrder
-                .where((p) => spot.supportedProfiles.contains(p))
-                .map(
-                  (p) => Padding(
-                    padding: const EdgeInsets.only(right: 4),
-                    child: Icon(p.icon, size: 16, color: _kInactiveIconColor),
-                  ),
-                )
-                .toList(),
+          const SizedBox(height: 8),
+          Text(
+            spot.title,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
+          const SizedBox(height: 4),
+          Text(
+            spot.addr1,
+            style: const TextStyle(fontSize: 13, color: _kAddressTextColor),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (spot.supportedProfiles.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: _kProfileOrder
+                  .where((p) => spot.supportedProfiles.contains(p))
+                  .map(
+                    (p) => Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Icon(p.icon, size: 16, color: _kInactiveIconColor),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 
