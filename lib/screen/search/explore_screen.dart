@@ -325,103 +325,15 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        SingleChildScrollView(
-          controller: _scrollController,
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 36),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '맞춤 여행지 탐색',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black,
-                ),
-              ),
-              const SizedBox(height: 20),
-              _SearchBar(controller: _searchController, onSubmitted: (_) => _handleSearch()),
-              const SizedBox(height: 24),
-              _AccessibilityProfileRow(
-                activeProfiles: _activeProfiles,
-                onToggle: _toggleProfile,
-              ),
-              const SizedBox(height: 20),
-              _FilterSelectRow(onTap: _openFilterScreen),
-              const SizedBox(height: 6),
-              const Text(
-                '지역과 카테고리를 선택할 수 있어요',
-                style: TextStyle(fontSize: 12, color: _kHintTextColor),
-              ),
-              if (_activeFilterChips.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                _ActiveFilterChipsRow(chips: _activeFilterChips),
-              ],
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 53,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _handleSearch,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _kPrimaryBlue,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: _kPrimaryBlue.withValues(alpha: 0.6),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text(
-                          '검색하기',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                        ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              // 재검색 중에도 검색하기 버튼 위쪽은 물론, 결과 영역 자체도 그대로
-              // 유지한 채 로딩 오버레이만 덧씌운다. _isLoading으로 이 영역을
-              // 통째로 껐다 켜면 높이가 순간적으로 사라졌다 돌아오면서 화면
-              // 전체가 아래로 밀렸다 올라오는 것처럼 보이는 문제가 있었다.
-              Stack(
-                children: [
-                  Column(
-                    children: [
-                      if (!_hasSearched || _results.isEmpty)
-                        const _EmptyResultState()
-                      else ...[
-                        _ResultGrid(items: _pageItems),
-                        const SizedBox(height: 24),
-                        _PaginationBar(
-                          currentPage: _currentPage,
-                          totalPages: _totalPages,
-                          onPageSelected: _goToPage,
-                        ),
-                      ],
-                    ],
-                  ),
-                  if (_isLoading)
-                    Positioned.fill(
-                      child: Container(
-                        color: const Color(0xFFF8FCFF).withValues(alpha: 0.85),
-                        alignment: Alignment.center,
-                        child: const CircularProgressIndicator(color: _kPrimaryBlue),
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
+        // SingleChildScrollView를 non-positioned 자식으로 그대로 두면 이 Stack
+        // 자체의 높이가 "뷰포트 전체"가 아니라 "콘텐츠 실제 높이"만큼으로
+        // 정해진다(짧으면 줄고, 넘치면 뷰포트 한도까지 늘어남). 아래
+        // Positioned(bottom:20)인 상하단 이동 버튼은 그 가변적인 Stack 바닥을
+        // 기준으로 위치하다 보니, 필터 칩이 늘어 스크롤이 트리거될 때마다
+        // Stack이 커지면서 버튼도 같이 아래로 밀려 보였다. Positioned.fill로
+        // 감싸 이 자식을 Stack 크기 계산에서 빼면 Stack이 항상 뷰포트 전체
+        // 높이를 차지하게 되어, 버튼이 콘텐츠 길이와 무관하게 완전히 고정된다.
+        Positioned.fill(child: _buildScrollableContent()),
         Positioned(
           right: 20,
           bottom: 20,
@@ -435,6 +347,134 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  /// 검색어~검색하기 버튼까지, 결과 유무와 무관하게 항상 보이는 상단 콘텐츠.
+  List<Widget> _topContent() {
+    return [
+      const Text(
+        '맞춤 여행지 탐색',
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: Colors.black),
+      ),
+      const SizedBox(height: 20),
+      _SearchBar(controller: _searchController, onSubmitted: (_) => _handleSearch()),
+      const SizedBox(height: 24),
+      _AccessibilityProfileRow(activeProfiles: _activeProfiles, onToggle: _toggleProfile),
+      const SizedBox(height: 20),
+      _FilterSelectRow(onTap: _openFilterScreen),
+      const SizedBox(height: 6),
+      const Text(
+        '지역과 카테고리를 선택할 수 있어요',
+        style: TextStyle(fontSize: 12, color: _kHintTextColor),
+      ),
+      if (_activeFilterChips.isNotEmpty) ...[
+        const SizedBox(height: 10),
+        _ActiveFilterChipsRow(chips: _activeFilterChips),
+      ],
+      const SizedBox(height: 24),
+      SizedBox(
+        width: double.infinity,
+        height: 53,
+        child: ElevatedButton(
+          onPressed: _isLoading ? null : _handleSearch,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _kPrimaryBlue,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: _kPrimaryBlue.withValues(alpha: 0.6),
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+          child: _isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : const Text('검색하기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+        ),
+      ),
+    ];
+  }
+
+  Widget _loadingOverlay() {
+    return Positioned.fill(
+      child: Container(
+        color: const Color(0xFFF8FCFF).withValues(alpha: 0.85),
+        alignment: Alignment.center,
+        child: const CircularProgressIndicator(color: _kPrimaryBlue),
+      ),
+    );
+  }
+
+  Widget _buildScrollableContent() {
+    // 결과 그리드(_ResultGrid)는 내부적으로 GridView를 쓰는데, GridView 같은
+    // Viewport 기반 위젯은 IntrinsicHeight 조상 아래 있으면 "does not support
+    // returning intrinsic dimensions" 예외를 던지며 이 서브트리 전체가 렌더링에
+    // 실패한다(그래서 검색 결과가 있을 때 화면이 통째로 하얗게 비어 보였다).
+    // 그래서 결과가 없을 때(=GridView가 트리에 없을 때)만 IntrinsicHeight로
+    // 남은 공간을 계산해 정중앙 정렬하고, 결과가 있을 땐 그런 트릭 없이 원래
+    // 방식(그냥 스크롤 가능한 Column)으로 그린다.
+    if (!_hasSearched || _results.isEmpty) {
+      return LayoutBuilder(
+        builder: (context, viewportConstraints) {
+          const verticalPadding = 24.0 + 36.0;
+          return SingleChildScrollView(
+            controller: _scrollController,
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 36),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: viewportConstraints.maxHeight - verticalPadding,
+              ),
+              child: IntrinsicHeight(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ..._topContent(),
+                    const SizedBox(height: 24),
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          const Center(child: _EmptyResultState()),
+                          if (_isLoading) _loadingOverlay(),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    return SingleChildScrollView(
+      controller: _scrollController,
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 36),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ..._topContent(),
+          const SizedBox(height: 24),
+          Stack(
+            children: [
+              Column(
+                children: [
+                  _ResultGrid(items: _pageItems),
+                  const SizedBox(height: 24),
+                  _PaginationBar(
+                    currentPage: _currentPage,
+                    totalPages: _totalPages,
+                    onPageSelected: _goToPage,
+                  ),
+                ],
+              ),
+              if (_isLoading) _loadingOverlay(),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -627,20 +667,21 @@ class _EmptyResultState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset('assets/images/explore_empty_search.png', width: 68, height: 68),
-            const SizedBox(height: 24),
-            const Text(
-              '검색 결과가 없어요',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: _kEmptyTextColor),
-            ),
-          ],
-        ),
+    // 호출부(Expanded 안의 Center)가 이미 정중앙 정렬을 담당하므로, 여기서는
+    // 콘텐츠 폭만큼만 차지하면 된다. 상하 여백은 필터 칩이 한 줄 붙어도
+    // 남은 공간의 intrinsic 높이 계산에서 스크롤을 유발하지 않도록 작게 둔다.
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset('assets/images/explore_empty_search.png', width: 68, height: 68),
+          const SizedBox(height: 24),
+          const Text(
+            '검색 결과가 없어요',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: _kEmptyTextColor),
+          ),
+        ],
       ),
     );
   }
