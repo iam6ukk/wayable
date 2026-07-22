@@ -1,27 +1,54 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/auth_provider.dart';
+import '../screen/auth/login_screen.dart';
 import '../screen/home_screen.dart';
 import '../screen/myPage/mypage_screen.dart';
 import '../screen/saveSpot/saved_list_screen.dart';
 import '../screen/search/explore_screen.dart';
 import '../screen/search/map_screen.dart';
+import '../widgets/app_dialog.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/top_logo_banner.dart';
 
 const _kTabTransitionDuration = Duration(milliseconds: 200);
 
+/// 로그인한 회원만 접근 가능한 탭. 비회원이 누르면 탭 전환 대신 로그인 유도
+/// 다이얼로그를 띄운다.
+const _kMemberOnlyTabs = {BottomNavTab.myPage, BottomNavTab.savedList};
+
 /// 하단 탭 화면들의 공용 셸. 상단 배너와 하단 탭 바는 고정한 채
 /// 선택된 탭에 따라 콘텐츠 영역만 페이드 인/아웃으로 교체한다.
-class MainShell extends StatefulWidget {
+class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key, this.initialTab = BottomNavTab.home});
 
   final BottomNavTab initialTab;
 
   @override
-  State<MainShell> createState() => _MainShellState();
+  ConsumerState<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends ConsumerState<MainShell> {
   late BottomNavTab _currentTab = widget.initialTab;
+
+  Future<void> _handleTabSelected(BottomNavTab tab) async {
+    final isGuest = ref.read(authStateProvider).user == null;
+    if (isGuest && _kMemberOnlyTabs.contains(tab)) {
+      final goLogin = await showTwoButtonDialog(
+        context,
+        content: '회원에게만 제공되는 기능입니다.\n로그인 하시겠습니까?',
+        primaryLabel: '로그인',
+        secondaryLabel: '취소',
+      );
+      if (goLogin == true && context.mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      }
+      return;
+    }
+    setState(() => _currentTab = tab);
+  }
 
   Widget _buildContent() {
     return switch (_currentTab) {
@@ -37,26 +64,54 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        top: false,
-        bottom: false,
-        child: Column(
-          children: [
-            const TopLogoBanner(),
-            Expanded(
-              child: AnimatedSwitcher(
-                duration: _kTabTransitionDuration,
-                child: KeyedSubtree(
-                  key: ValueKey(_currentTab),
-                  child: _buildContent(),
+      // 기본값(true)이면 키보드가 열고 닫힐 때마다 이 셸 전체(배너+콘텐츠+
+      // 하단 탭바)가 매 프레임 리사이즈되면서, 탐색 화면의 하단 고정 스크롤
+      // 버튼(Positioned bottom)이 그 리사이즈를 따라 눈에 띄게 움직여 화면이
+      // 덜컥거리는 것처럼 보였다. 키보드 입력이 있는 화면은 탐색 탭 검색창
+      // 하나뿐이고 위쪽에 있어 키보드에 가려질 일도 없어서 꺼도 안전하다.
+      resizeToAvoidBottomInset: false,
+      // resizeToAvoidBottomInset만으로는 부족했다 — Scaffold body는 리사이즈
+      // 안 해도, 탐색 화면 검색창(TextField)이 포커스를 받으면 그 안의
+      // EditableText가 MediaQuery.viewInsets.bottom(키보드 높이)을 그대로
+      // 보고 "키보드에 안 가리게" 스스로 상위 스크롤뷰를 위로 스크롤시켜서,
+      // 검색 제출 시 화면이 살짝 올라갔다 내려오는 것처럼 보였다. 이 셸
+      // 아래로는 keyboard inset 자체를 안 보이게 없애서 그 자동 스크롤이
+      // 아예 발생하지 않게 한다.
+      body: MediaQuery.removeViewInsets(
+        context: context,
+        removeBottom: true,
+        child: SafeArea(
+          top: false,
+          bottom: false,
+          child: Column(
+            children: [
+              const TopLogoBanner(),
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: _kTabTransitionDuration,
+                  // AnimatedSwitcher의 기본 layoutBuilder는 Stack(alignment:
+                  // center)라서, 탭 콘텐츠가 이 Expanded 영역보다 짧으면(예:
+                  // 탐색 화면이 검색 전/결과 없음 상태일 때) 위쪽이 아니라
+                  // 세로 가운데로 정렬되어 배너 바로 아래에 큰 여백이 생기고,
+                  // 검색 결과가 생겨 콘텐츠가 길어지면 그 여백이 줄면서
+                  // 화면이 위로 올라가는 것처럼 보였다. 항상 위쪽 기준으로
+                  // 붙도록 정렬을 바꾼다.
+                  layoutBuilder: (currentChild, previousChildren) => Stack(
+                    alignment: Alignment.topCenter,
+                    children: [...previousChildren, ?currentChild],
+                  ),
+                  child: KeyedSubtree(
+                    key: ValueKey(_currentTab),
+                    child: _buildContent(),
+                  ),
                 ),
               ),
-            ),
-            BottomNavBar(
-              currentTab: _currentTab,
-              onTabSelected: (tab) => setState(() => _currentTab = tab),
-            ),
-          ],
+              BottomNavBar(
+                currentTab: _currentTab,
+                onTabSelected: _handleTabSelected,
+              ),
+            ],
+          ),
         ),
       ),
     );

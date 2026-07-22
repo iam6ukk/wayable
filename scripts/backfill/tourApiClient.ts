@@ -181,6 +181,30 @@ export class TourApiClient {
     return items[0] ?? null;
   }
 
+  /**
+   * ldongCode2 (법정동 코드 조회). lDongRegnCd를 안 넘기면 시/도 목록, 넘기면 그 시/도의
+   * 시군구 목록. areaCode2(구 지역코드)는 2025년 12월까지만 활용 가능해서 대신 이걸 쓴다.
+   * 정적 참조 데이터라 일회성으로만 호출하고 결과를 앱에 번들해서 쓴다 (fetchAreaCodes.ts 참고).
+   */
+  async fetchLdongCode2(lDongRegnCd?: string): Promise<{ code: string; name: string }[]> {
+    await this.guardAndDelay();
+    this.callCount++;
+
+    const data = await this.getWithRetry<TourApiResponse<{ code: string; name: string }>>(
+      `${config.baseUrl}/ldongCode2`,
+      {
+        ...this.baseParams(),
+        numOfRows: 100,
+        pageNo: 1,
+        ...(lDongRegnCd ? { lDongRegnCd } : {}),
+      },
+      `ldongCode2(lDongRegnCd=${lDongRegnCd ?? "전체"})`,
+    );
+
+    this.assertOk(data);
+    return this.normalizeItems(data.response.body);
+  }
+
   private assertOk(data: TourApiResponse<unknown>) {
     const code = data.response.header.resultCode;
     if (code !== "0000") {

@@ -1,4 +1,5 @@
 /// detailWithTour2 (무장애여행 조회) 응답 매핑 DTO
+library;
 
 class TourAccessibilityInfo {
   final String contentId;

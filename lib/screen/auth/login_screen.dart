@@ -104,7 +104,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         fontFamily: 'CalSans',
                         fontSize: 27,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF004EBC),
+                        color: Color(0xFF004EBC),
                       ),
                     ),
                   ),
