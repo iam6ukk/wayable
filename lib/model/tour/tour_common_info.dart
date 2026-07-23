@@ -61,7 +61,4 @@ class TourCommonInfo {
     final match = RegExp(r'href="([^"]+)"').firstMatch(html);
     return match?.group(1) ?? html;
   }
-
-  List<String> get images =>
-      [firstImage, firstImage2].whereType<String>().toList();
 }

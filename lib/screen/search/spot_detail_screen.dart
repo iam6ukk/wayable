@@ -1,24 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../model/accessibility/accessibility_field.dart';
 import '../../model/tour/tour_accessibility_info.dart';
 import '../../model/tour/tour_common_info.dart';
 import '../../model/tour/tour_intro_info.dart';
 import '../../model/tour/tour_spot.dart';
 import '../../services/tour/tour_detail_service.dart';
+import '../../theme/app_colors.dart';
 import '../../widgets/bottom_nav_bar.dart';
 import '../../widgets/top_logo_banner.dart';
-import 'tour_field_labels_debug.dart';
-
-const _kPrimaryBlue = Color(0xFF0065F4);
-const _kSectionTitleColor = Color(0xFF060606);
-const _kLabelTextColor = Color(0xFF3C3C3C);
-const _kValueTextColor = Color(0xFF868686);
-const _kEmptyValueColor = Color(0xFFACACAC);
-const _kDividerColor = Color(0xFFE3E3E3);
-const _kInactiveIconColor = Color(0xFF7D7D7D);
-const _kInactiveCircleBg = Color(0xFFF2F2F2);
-const _kTabInactiveBg = Color(0xFFF0F0F0);
-const _kTabBorderColor = Color(0xFF8F8F8F);
+import '../../model/tour/tour_facility_fields.dart';
 
 /// 여행지 상세 화면. 탐색 결과 카드를 눌렀을 때 진입하며, contentId를 기준으로
 /// 공통정보(detailCommon2)/소개정보(detailIntro2)/무장애정보(detailWithTour2)를
@@ -34,11 +25,9 @@ class SpotDetailScreen extends StatefulWidget {
 
 class _SpotDetailScreenState extends State<SpotDetailScreen> {
   final _service = TourDetailService();
-  final _imagePageController = PageController();
 
   bool _isLoading = true;
   bool _isBookmarked = false;
-  int _imagePage = 0;
   int _activeAccessibilityTab = 0;
 
   TourCommonInfo? _common;
@@ -49,12 +38,6 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
   void initState() {
     super.initState();
     _loadDetail();
-  }
-
-  @override
-  void dispose() {
-    _imagePageController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadDetail() async {
@@ -73,11 +56,10 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
     });
   }
 
+  // firstImage2(부가 이미지)는 깨져서 보이는 경우가 많아 원본 이미지(firstImage)만 보여준다.
   List<String> get _images {
-    final images = _common?.images ?? const <String>[];
-    if (images.isNotEmpty) return images;
-    final fallback = widget.spot.firstImage;
-    return fallback == null ? const [] : [fallback];
+    final original = _common?.firstImage ?? widget.spot.firstImage;
+    return original == null ? const [] : [original];
   }
 
   List<_AccessibilityTab> get _accessibilityTabs {
@@ -97,15 +79,6 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
           _infantFamilyEntries(accessibility.infantFamily),
         ),
     ];
-  }
-
-  void _goToImagePage(int delta) {
-    final target = (_imagePage + delta).clamp(0, _images.length - 1);
-    _imagePageController.animateToPage(
-      target,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
-    );
   }
 
   @override
@@ -142,7 +115,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                         color: Colors.white.withValues(alpha: 0.7),
                         alignment: Alignment.center,
                         child: const CircularProgressIndicator(
-                          color: _kPrimaryBlue,
+                          color: AppColors.primary,
                         ),
                       ),
                     ),
@@ -183,7 +156,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                 style: const TextStyle(
                   fontSize: 21,
                   fontWeight: FontWeight.bold,
-                  color: _kSectionTitleColor,
+                  color: AppColors.textTitle,
                 ),
               ),
             ),
@@ -193,7 +166,9 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
               child: Icon(
                 _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
                 size: 28,
-                color: _isBookmarked ? _kPrimaryBlue : _kInactiveIconColor,
+                color: _isBookmarked
+                    ? AppColors.accent
+                    : AppColors.iconInactive,
               ),
             ),
           ],
@@ -216,39 +191,11 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
         borderRadius: BorderRadius.circular(12),
         child: images.isEmpty
             ? _buildImagePlaceholder()
-            : Stack(
-                alignment: Alignment.center,
-                children: [
-                  PageView.builder(
-                    controller: _imagePageController,
-                    itemCount: images.length,
-                    onPageChanged: (page) => setState(() => _imagePage = page),
-                    itemBuilder: (context, index) => Image.network(
-                      images[index],
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          _buildImagePlaceholder(),
-                    ),
-                  ),
-                  if (images.length > 1) ...[
-                    Positioned(
-                      left: 8,
-                      child: _CarouselArrowButton(
-                        icon: Icons.chevron_left,
-                        onTap: _imagePage == 0 ? null : () => _goToImagePage(-1),
-                      ),
-                    ),
-                    Positioned(
-                      right: 8,
-                      child: _CarouselArrowButton(
-                        icon: Icons.chevron_right,
-                        onTap: _imagePage == images.length - 1
-                            ? null
-                            : () => _goToImagePage(1),
-                      ),
-                    ),
-                  ],
-                ],
+            : Image.network(
+                images.first,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                    _buildImagePlaceholder(),
               ),
       ),
     );
@@ -256,125 +203,137 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
 
   Widget _buildImagePlaceholder() {
     return Container(
-      color: _kInactiveCircleBg,
+      color: AppColors.surfaceCircle,
       alignment: Alignment.center,
       child: const Icon(
         Icons.image_not_supported_outlined,
-        color: _kInactiveIconColor,
+        color: AppColors.iconInactive,
       ),
     );
   }
 
-  // TODO(임시 디버그 뷰): 컨텐츠타입별로 시설정보에 어떤 필드를 보여줄지 아직
-  // 확정 전이라, detailCommon2/detailIntro2 원본 응답을 필드 단위로 전부
-  // 펼쳐서 보여준다. 항목이 확정되면 컨텐츠타입별 필드 매핑 표로 되돌리고
-  // tour_field_labels_debug.dart도 함께 정리한다.
+  /// contentTypeId에 맞는 시설정보 필드 목록(tour_facility_field_config.dart)을
+  /// 가져와 라벨/값 테이블로 보여준다. homepage는 항상 공통정보(detailCommon2)에서,
+  /// 나머지는 소개정보(detailIntro2) 원본 응답에서 필드명으로 직접 조회한다.
   Widget _buildFacilitySection() {
-    final commonRaw = _common?.raw ?? const {};
-    final introRaw = _intro?.raw ?? const {};
+    final fields = kFacilityFieldsByContentType[widget.spot.contentTypeId];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          '시설정보 (원본 데이터 확인용 임시 뷰)',
+          '시설정보',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: _kSectionTitleColor,
+            color: AppColors.textTitle,
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          'contentId: ${widget.spot.contentId} · contentTypeId: ${widget.spot.contentTypeId}',
-          style: const TextStyle(fontSize: 12, color: _kValueTextColor),
-        ),
-        const SizedBox(height: 16),
-        _rawSectionTitle('공통정보 원본 (detailCommon2)'),
-        const SizedBox(height: 8),
-        if (commonRaw.isEmpty)
-          _rawEmptyText()
+        const SizedBox(height: 12),
+        if (fields == null || fields.isEmpty)
+          const Text(
+            '등록된 시설정보가 없어요',
+            style: TextStyle(fontSize: 14, color: AppColors.textEmpty),
+          )
         else
-          ..._buildRawRows(commonRaw, kCommonFieldLabelsDebug),
-        const SizedBox(height: 20),
-        _rawSectionTitle('소개정보 원본 (detailIntro2)'),
-        const SizedBox(height: 8),
-        if (introRaw.isEmpty)
-          _rawEmptyText()
-        else
-          ..._buildRawRows(introRaw, kIntroFieldLabelsDebug),
+          Container(
+            // border는 foregroundDecoration으로 그려야 한다: 시설정보 라벨 칸의
+            // 불투명 배경색(surfaceLabelColumn)이 가장자리까지 꽉 차 있어서,
+            // decoration(배경)에 border를 두면 자식이 그 위에 덮어 그려져 좌측
+            // 테두리 선이 끊겨 보였다.
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
+            foregroundDecoration: BoxDecoration(
+              border: Border.all(color: AppColors.divider),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                for (var i = 0; i < fields.length; i++) ...[
+                  if (i > 0) const Divider(height: 1, color: AppColors.divider),
+                  _facilityFieldRow(fields[i]),
+                ],
+              ],
+            ),
+          ),
       ],
     );
   }
 
-  Widget _rawSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w700,
-        color: _kPrimaryBlue,
-      ),
+  String? _resolveFacilityValue(FacilityFieldSpec spec) {
+    if (spec.source == FacilityFieldSource.common) {
+      // homepage는 detailCommon2의 <a href="...">HTML을 순수 URL로 뽑아낸
+      // TourCommonInfo.homepage를 그대로 쓴다.
+      if (spec.fieldKey == 'homepage') return _common?.homepage;
+      return _stringOrNull(_common?.raw[spec.fieldKey]);
+    }
+    return _stringOrNull(_intro?.raw[spec.fieldKey]);
+  }
+
+  static String? _stringOrNull(dynamic value) {
+    if (value == null) return null;
+    final s = value.toString().replaceAll(
+      RegExp(r'<br\s*/?>', caseSensitive: false),
+      '\n',
     );
+    return s.isEmpty ? null : s;
   }
 
-  Widget _rawEmptyText() {
-    return const Text(
-      '조회된 데이터가 없어요',
-      style: TextStyle(fontSize: 13, color: _kEmptyValueColor),
-    );
-  }
+  static final _urlPattern = RegExp(r'^https?://', caseSensitive: false);
 
-  List<Widget> _buildRawRows(
-    Map<String, dynamic> raw,
-    Map<String, String> labels,
-  ) {
-    return [
-      for (final entry in raw.entries)
-        if (entry.key != 'contentid' && entry.key != 'contenttypeid')
-          _rawFieldRow(
-            entry.key,
-            labels[entry.key] ?? '(라벨 미확인)',
-            entry.value?.toString(),
-          ),
-    ];
-  }
+  Widget _facilityFieldRow(FacilityFieldSpec spec) {
+    final value = _resolveFacilityValue(spec);
+    final isEmpty = value == null;
+    final isUrl = !isEmpty && _urlPattern.hasMatch(value.trim());
 
-  Widget _rawFieldRow(String fieldName, String label, String? value) {
-    final isEmpty = value == null || value.isEmpty;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Text(
-                fieldName,
-                style: const TextStyle(fontSize: 11, color: _kValueTextColor),
+          Container(
+            width: 92,
+            color: AppColors.surfaceLabelColumn,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            alignment: Alignment.centerLeft,
+            child: Text(
+              spec.label,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textLabel,
               ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: _kLabelTextColor,
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            isEmpty ? '(빈값)' : value,
-            style: TextStyle(
-              fontSize: 13,
-              color: isEmpty ? _kEmptyValueColor : Colors.black,
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              child: isUrl
+                  ? GestureDetector(
+                      onTap: () => _openUrl(value.trim()),
+                      behavior: HitTestBehavior.opaque,
+                      child: Text(
+                        value,
+                        style: const TextStyle(fontSize: 13, color: Colors.black),
+                      ),
+                    )
+                  : Text(
+                      isEmpty ? '정보 없음' : value,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isEmpty ? AppColors.textEmpty : Colors.black,
+                      ),
+                    ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   Widget _buildAccessibilitySection() {
@@ -391,32 +350,36 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: _kSectionTitleColor,
+            color: AppColors.textTitle,
           ),
         ),
         const SizedBox(height: 12),
         if (tabs.isEmpty)
           const Text(
             '등록된 편의정보가 없어요',
-            style: TextStyle(fontSize: 14, color: _kEmptyValueColor),
+            style: TextStyle(fontSize: 14, color: AppColors.textEmpty),
           )
         else ...[
           Row(
             children: [
-              for (var i = 0; i < tabs.length; i++) ...[
-                if (i > 0) const SizedBox(width: 6),
-                _AccessibilityTabChip(
-                  label: tabs[i].label,
-                  isSelected: i == activeIndex,
-                  onTap: () => setState(() => _activeAccessibilityTab = i),
+              for (var i = 0; i < tabs.length; i++)
+                Expanded(
+                  child: _AccessibilityTabChip(
+                    label: tabs[i].label,
+                    isSelected: i == activeIndex,
+                    onTap: () => setState(() => _activeAccessibilityTab = i),
+                  ),
                 ),
-              ],
+              // 탭이 1개뿐일 때 가로 전체로 늘어나지 않도록, 나머지 절반을
+              // 빈 슬롯으로 채워 탭 폭을 2개 이상일 때와 동일하게(1/n) 맞춘다.
+              if (tabs.length == 1) const Expanded(child: SizedBox.shrink()),
             ],
           ),
-          const Divider(height: 1, thickness: 0.5, color: _kDividerColor),
+          const Divider(height: 1, thickness: 0.5, color: AppColors.divider),
           const SizedBox(height: 12),
           for (final entry in tabs[activeIndex].entries.entries)
-            if (entry.value != null) _accessibilityListItem(entry.key.label, entry.value!),
+            if (entry.value != null)
+              _accessibilityListItem(entry.key.label, entry.value!),
         ],
       ],
     );
@@ -434,7 +397,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
               width: 4,
               height: 4,
               decoration: const BoxDecoration(
-                color: _kValueTextColor,
+                color: AppColors.textValue,
                 shape: BoxShape.circle,
               ),
             ),
@@ -448,13 +411,16 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: _kLabelTextColor,
+                    color: AppColors.textLabel,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: const TextStyle(fontSize: 12, color: _kValueTextColor),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textValue,
+                  ),
                 ),
               ],
             ),
@@ -529,12 +495,14 @@ class _AccessibilityTabChip extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        height: 26,
+        height: 36,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isSelected ? _kPrimaryBlue : _kTabInactiveBg,
-          border: Border.all(color: _kTabBorderColor, width: 0.2),
+          color: isSelected
+              ? AppColors.primary
+              : AppColors.tabInactiveBackground,
+          border: Border.all(color: AppColors.tabBorder, width: 0.2),
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(10),
             topRight: Radius.circular(10),
@@ -545,7 +513,7 @@ class _AccessibilityTabChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: isSelected ? Colors.white : _kValueTextColor,
+            color: isSelected ? Colors.white : AppColors.textValue,
           ),
         ),
       ),
@@ -553,32 +521,3 @@ class _AccessibilityTabChip extends StatelessWidget {
   }
 }
 
-class _CarouselArrowButton extends StatelessWidget {
-  const _CarouselArrowButton({required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.25),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          size: 20,
-          color: onTap == null
-              ? Colors.white.withValues(alpha: 0.4)
-              : Colors.white,
-        ),
-      ),
-    );
-  }
-}
