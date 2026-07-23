@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-
-const _kBarColor = Color(0xFFD8EDFF);
-const _kUnselectedIconColor = Color(0xFFB7B7B7);
-const _kSelectedIconColor = Colors.black;
+import '../theme/app_colors.dart';
 
 enum BottomNavTab {
   explore, // 맞춤 여행지 탐색
@@ -42,7 +39,7 @@ class BottomNavBar extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      color: _kBarColor,
+      color: AppColors.bannerBackground,
       padding: EdgeInsets.only(bottom: bottomInset),
       child: SizedBox(
         height: kBottomNavigationBarHeight,
@@ -69,7 +66,7 @@ class BottomNavBar extends StatelessWidget {
           child: Icon(
             tab.icon,
             size: 28,
-            color: isSelected ? _kSelectedIconColor : _kUnselectedIconColor,
+            color: isSelected ? AppColors.navIconActive : AppColors.navIconInactive,
           ),
         ),
       ),
