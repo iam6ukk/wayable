@@ -19,16 +19,18 @@ class KakaoAuthService {
         token = await kakao.UserApi.instance.loginWithKakaoAccount();
       }
 
-      // 카카오 사용자 정보 가져오기 (닉네임 등)
-      kakao.User kakaoUser = await kakao.UserApi.instance.me();
-
-      // Cloud Functions 호출 -> Firebase Custom Token 받기
-      final callable = FirebaseFunctions.instance.httpsCallable(
-        'kakaoCustomToken',
-      );
-      final result = await callable.call({
+      // 카카오 사용자 정보(me) 조회와 Cloud Functions 커스텀 토큰 발급은
+      // 서로 결과값에 의존하지 않고 둘 다 accessToken만 있으면 되므로
+      // 동시에 실행해 대기 시간을 줄인다.
+      final meFuture = kakao.UserApi.instance.me();
+      final tokenFuture = FirebaseFunctions.instanceFor(
+        region: 'asia-northeast3',
+      ).httpsCallable('kakaoCustomToken').call({
         'kakaoAccessToken': token.accessToken,
       });
+
+      final kakaoUser = await meFuture;
+      final result = await tokenFuture;
 
       final firebaseToken = result.data['firebaseToken'];
 
