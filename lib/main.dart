@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:kakao_flutter_sdk_common/kakao_flutter_sdk_common.dart';
 import 'package:wayable/screen/auth/landing.dart';
 import 'firebase_options.dart';
@@ -37,15 +38,21 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: navigatorKey,
-      debugShowCheckedModeBanner: false,
-      scrollBehavior: _NoStretchScrollBehavior(),
-      theme: ThemeData(
-        fontFamily: 'Pretendard', // 한글 폰트 프리텐다드로 전역 지정
-        useMaterial3: true,
+    // 디자이너가 Figma 작업 기준으로 쓰는 프레임 크기(393x852, iPhone 16)를
+    // 그대로 기준 사이즈로 등록해 실제 안드로이드 기기 폭에 비례 스케일한다.
+    return ScreenUtilInit(
+      designSize: const Size(393, 852),
+      minTextAdapt: true,
+      builder: (context, child) => MaterialApp(
+        navigatorKey: navigatorKey,
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: _NoStretchScrollBehavior(),
+        theme: ThemeData(
+          fontFamily: 'Pretendard', // 한글 폰트 프리텐다드로 전역 지정
+          useMaterial3: true,
+        ),
+        home: const LandingPage(),
       ),
-      home: const LandingPage(),
     );
   }
 }

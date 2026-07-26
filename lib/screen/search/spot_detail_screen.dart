@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../model/accessibility/accessibility_field.dart';
 import '../../model/tour/tour_accessibility_info.dart';
@@ -95,16 +96,16 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
               child: Stack(
                 children: [
                   SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
+                    padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 36.h),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildHeader(),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16.h),
                         _buildImageCarousel(),
-                        const SizedBox(height: 28),
+                        SizedBox(height: 28.h),
                         _buildFacilitySection(),
-                        const SizedBox(height: 28),
+                        SizedBox(height: 28.h),
                         _buildAccessibilitySection(),
                       ],
                     ),
@@ -153,8 +154,8 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 21,
+                style: TextStyle(
+                  fontSize: 21.sp,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textTitle,
                 ),
@@ -165,7 +166,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
               behavior: HitTestBehavior.opaque,
               child: Icon(
                 _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                size: 28,
+                size: 28.r,
                 color: _isBookmarked
                     ? AppColors.accent
                     : AppColors.iconInactive,
@@ -173,10 +174,10 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: 6.h),
         Text(
           addr2 == null ? addr1 : '$addr1 $addr2',
-          style: const TextStyle(fontSize: 12, color: Colors.black),
+          style: TextStyle(fontSize: 12.sp, color: Colors.black),
         ),
       ],
     );
@@ -188,7 +189,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
     return AspectRatio(
       aspectRatio: 342 / 189,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
         child: images.isEmpty
             ? _buildImagePlaceholder()
             : Image.network(
@@ -221,19 +222,19 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           '시설정보',
           style: TextStyle(
-            fontSize: 18,
+            fontSize: 18.sp,
             fontWeight: FontWeight.w600,
             color: AppColors.textTitle,
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12.h),
         if (fields == null || fields.isEmpty)
-          const Text(
+          Text(
             '등록된 시설정보가 없어요',
-            style: TextStyle(fontSize: 14, color: AppColors.textEmpty),
+            style: TextStyle(fontSize: 14.sp, color: AppColors.textEmpty),
           )
         else
           Container(
@@ -241,10 +242,10 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
             // 불투명 배경색(surfaceLabelColumn)이 가장자리까지 꽉 차 있어서,
             // decoration(배경)에 border를 두면 자식이 그 위에 덮어 그려져 좌측
             // 테두리 선이 끊겨 보였다.
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(8.r)),
             foregroundDecoration: BoxDecoration(
               border: Border.all(color: AppColors.divider),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(8.r),
             ),
             clipBehavior: Clip.antiAlias,
             child: Column(
@@ -291,14 +292,14 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            width: 92,
+            width: 92.w,
             color: AppColors.surfaceLabelColumn,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
             alignment: Alignment.centerLeft,
             child: Text(
               spec.label,
-              style: const TextStyle(
-                fontSize: 13,
+              style: TextStyle(
+                fontSize: 13.sp,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textLabel,
               ),
@@ -306,20 +307,20 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
           ),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
               child: isUrl
                   ? GestureDetector(
                       onTap: () => _openUrl(value.trim()),
                       behavior: HitTestBehavior.opaque,
                       child: Text(
                         value,
-                        style: const TextStyle(fontSize: 13, color: Colors.black),
+                        style: TextStyle(fontSize: 13.sp, color: Colors.black),
                       ),
                     )
                   : Text(
                       isEmpty ? '정보 없음' : value,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 13.sp,
                         color: isEmpty ? AppColors.textEmpty : Colors.black,
                       ),
                     ),
@@ -345,19 +346,19 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           '편의정보',
           style: TextStyle(
-            fontSize: 18,
+            fontSize: 18.sp,
             fontWeight: FontWeight.w600,
             color: AppColors.textTitle,
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12.h),
         if (tabs.isEmpty)
-          const Text(
+          Text(
             '등록된 편의정보가 없어요',
-            style: TextStyle(fontSize: 14, color: AppColors.textEmpty),
+            style: TextStyle(fontSize: 14.sp, color: AppColors.textEmpty),
           )
         else ...[
           Row(
@@ -376,7 +377,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
             ],
           ),
           const Divider(height: 1, thickness: 0.5, color: AppColors.divider),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.h),
           for (final entry in tabs[activeIndex].entries.entries)
             if (entry.value != null)
               _accessibilityListItem(entry.key.label, entry.value!),
@@ -387,15 +388,15 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
 
   Widget _accessibilityListItem(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.only(bottom: 16.h),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(top: 7, right: 8),
+            padding: EdgeInsets.only(top: 7.h, right: 8.w),
             child: Container(
-              width: 4,
-              height: 4,
+              width: 4.r,
+              height: 4.r,
               decoration: const BoxDecoration(
                 color: AppColors.textValue,
                 shape: BoxShape.circle,
@@ -408,17 +409,17 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
-                    fontSize: 12,
+                  style: TextStyle(
+                    fontSize: 12.sp,
                     fontWeight: FontWeight.w500,
                     color: AppColors.textLabel,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4.h),
                 Text(
                   value,
-                  style: const TextStyle(
-                    fontSize: 12,
+                  style: TextStyle(
+                    fontSize: 12.sp,
                     color: AppColors.textValue,
                   ),
                 ),
@@ -495,23 +496,23 @@ class _AccessibilityTabChip extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+        height: 36.h,
+        padding: EdgeInsets.symmetric(horizontal: 14.w),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.primary
               : AppColors.tabInactiveBackground,
           border: Border.all(color: AppColors.tabBorder, width: 0.2),
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(10),
-            topRight: Radius.circular(10),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(10.r),
+            topRight: Radius.circular(10.r),
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 14.sp,
             fontWeight: FontWeight.w500,
             color: isSelected ? Colors.white : AppColors.textValue,
           ),
@@ -520,4 +521,3 @@ class _AccessibilityTabChip extends StatelessWidget {
     );
   }
 }
-

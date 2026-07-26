@@ -44,6 +44,7 @@ dependencies:
   cloud_functions: ^6.3.3
   geolocator: ^14.0.3
   url_launcher: ^6.3.2
+  flutter_screenutil: ^5.9.3
 
 dev_dependencies:
   flutter_test:

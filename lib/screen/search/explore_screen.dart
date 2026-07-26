@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../model/accessibility/accessibility_field.dart';
 import '../../model/accessibility/accessibility_field_mapping.dart';
 import '../../model/accessibility/accessibility_profile.dart';
@@ -386,13 +387,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             elevation: 0,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
-          child: _isLoading
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                )
-              : const Text('검색하기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+          // 로딩 애니메이션은 아래 결과 영역(_loadingOverlay)에서만 보여주면
+          // 충분해서, 버튼 자체는 로딩 중에도 항상 같은 텍스트를 유지한다
+          // (onPressed만 null로 막아 중복 탭은 방지).
+          child: const Text('검색하기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
         ),
       ),
     ];
@@ -578,15 +576,16 @@ class _AccessibilityProfileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 피그마 실측 기준 아이콘 원 52px + 사이 간격 19px 고정. spaceBetween으로
-    // 화면 폭에 맞춰 늘리면 좌우 여백 값이 바뀔 때마다 간격이 따라 흔들려서
-    // 고정 간격으로 바꿨다.
+    // 피그마 실측 기준 아이콘 원 52px + 사이 간격 19px. 393dp 기준 디자인
+    // 값이라 그대로 쓰면 5개(52*5 + 19*4 = 336)가 360dp 폭 기기(좌우 패딩
+    // 24*2 제외 가용폭 312)에서 24px 오버플로우한다. ScreenUtil로 실제
+    // 화면 폭 대비 비례 스케일해 좁은 기기에서도 넘치지 않게 한다.
     return Center(
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           for (var i = 0; i < _kProfileOrder.length; i++) ...[
-            if (i > 0) const SizedBox(width: 19),
+            if (i > 0) SizedBox(width: 19.w),
             _buildIcon(_kProfileOrder[i], activeProfiles.contains(_kProfileOrder[i])),
           ],
         ],
@@ -602,23 +601,23 @@ class _AccessibilityProfileRow extends StatelessWidget {
       // 늘어나 옆 아이콘과의 실제 간격이 19px보다 벌어진다. 폭을 52로 고정해
       // 라벨이 필요하면 두 줄로 접히게 해서 원 기준 간격을 지킨다.
       child: SizedBox(
-        width: 52,
+        width: 52.w,
         child: Column(
           children: [
             Container(
-              width: 52,
-              height: 52,
+              width: 52.w,
+              height: 52.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isActive ? _kPrimaryBlue : _kInactiveCircleBg,
               ),
               child: Icon(
                 profile.icon,
-                size: 28,
+                size: 28.w,
                 color: isActive ? Colors.white : _kInactiveIconColor,
               ),
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6.h),
             Text(
               // 라벨의 띄어쓰기 위치에서 무조건 줄바꿈되도록 강제한다. 폭 기준
               // 자동 줄바꿈에 맡기면 한글은 띄어쓰기와 무관하게 아무 글자
@@ -626,8 +625,8 @@ class _AccessibilityProfileRow extends StatelessWidget {
               // 단어 중간에서 갈라지는 문제가 있었다.
               profile.label.replaceFirst(' ', '\n'),
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 12,
+              style: TextStyle(
+                fontSize: 12.sp,
                 fontWeight: FontWeight.w500,
                 color: Colors.black,
               ),

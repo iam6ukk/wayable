@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../model/accessibility/accessibility_field.dart';
 import '../../model/accessibility/accessibility_field_mapping.dart';
 import '../../model/accessibility/accessibility_profile.dart';
@@ -46,7 +47,8 @@ class ExploreFilterScreen extends StatefulWidget {
   });
 
   final Set<AccessibilityProfile> activeProfiles;
-  final Map<AccessibilityProfile, Set<AccessibilityField>> initialSelectedFields;
+  final Map<AccessibilityProfile, Set<AccessibilityField>>
+  initialSelectedFields;
   final AreaCode? initialSido;
   final SigunguCode? initialSigungu;
   final Set<TourCategory> initialCategories;
@@ -68,7 +70,8 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
   void initState() {
     super.initState();
     _selectedFields = {
-      for (final entry in widget.initialSelectedFields.entries) entry.key: {...entry.value},
+      for (final entry in widget.initialSelectedFields.entries)
+        entry.key: {...entry.value},
     };
     _sido = widget.initialSido;
     _sigungu = widget.initialSigungu;
@@ -162,15 +165,20 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
               TabBar(
                 labelColor: Colors.black,
                 unselectedLabelColor: const Color(0xFF9D9D9D),
-                indicatorColor: _kPrimaryBlue,
-                labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                indicatorColor: Colors.black,
+                // 탭 인디케이터 각 탭이 차지하는 영역 전체 너비로 맞춤
+                indicatorSize: TabBarIndicatorSize.tab,
+                labelStyle: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                ),
                 tabs: [
                   Tab(text: _tabLabel('무장애정보', _accessibilitySelectionCount)),
                   Tab(text: _tabLabel('지역', _regionSelectionCount)),
                   Tab(text: _tabLabel('카테고리', _categories.length)),
                 ],
               ),
-              const Divider(height: 1, color: _kDividerColor),
+              Divider(height: 1, color: _kDividerColor),
               Expanded(
                 child: TabBarView(
                   children: [
@@ -191,18 +199,24 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
   int get _accessibilitySelectionCount =>
       _selectedFields.values.where((fields) => fields.isNotEmpty).length;
 
-  int get _regionSelectionCount => (_sido != null ? 1 : 0) + (_sigungu != null ? 1 : 0);
+  int get _regionSelectionCount =>
+      (_sido != null ? 1 : 0) + (_sigungu != null ? 1 : 0);
 
-  String _tabLabel(String label, int count) => count > 0 ? '$label $count' : label;
+  String _tabLabel(String label, int count) =>
+      count > 0 ? '$label $count' : label;
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 8, 0),
+      padding: EdgeInsets.fromLTRB(20.w, 12.h, 8.w, 0),
       child: Row(
         children: [
-          const Text(
+          Text(
             '통합필터선택',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFFB0B0B0)),
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFFB0B0B0),
+            ),
           ),
           const Spacer(),
           IconButton(
@@ -220,23 +234,24 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
         .toList();
 
     if (orderedProfiles.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: EdgeInsets.all(24.r),
           child: Text(
             '탐색 화면에서 접근성 대분류를 먼저 선택해주세요.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: Color(0xFF9D9D9D)),
+            style: TextStyle(fontSize: 14.sp, color: const Color(0xFF9D9D9D)),
           ),
         ),
       );
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20.r),
       itemCount: orderedProfiles.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 28),
-      itemBuilder: (context, index) => _buildProfileSection(orderedProfiles[index]),
+      separatorBuilder: (_, _) => SizedBox(height: 28.h),
+      itemBuilder: (context, index) =>
+          _buildProfileSection(orderedProfiles[index]),
     );
   }
 
@@ -249,20 +264,28 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
       children: [
         Row(
           children: [
-            Icon(profile.icon, size: 20, color: _kPrimaryBlue),
-            const SizedBox(width: 6),
+            Icon(profile.icon, size: 20.r, color: _kPrimaryBlue),
+            SizedBox(width: 6.w),
             Text(
               '무장애정보 > ${profile.label}',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black),
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12.h),
         Wrap(
-          spacing: 10,
-          runSpacing: 10,
+          spacing: 10.w,
+          runSpacing: 10.h,
           children: [
-            _chip(label: '전체', isSelected: selected.isEmpty, onTap: () => _selectAllFields(profile)),
+            _chip(
+              label: '전체',
+              isSelected: selected.isEmpty,
+              onTap: () => _selectAllFields(profile),
+            ),
             ...fields.map(
               (field) => _chip(
                 label: field.label,
@@ -282,16 +305,20 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
     }
 
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20.r),
       children: [
-        const Text(
+        Text(
           '시/도',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black),
+          style: TextStyle(
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12.h),
         Wrap(
-          spacing: 10,
-          runSpacing: 10,
+          spacing: 10.w,
+          runSpacing: 10.h,
           children: _areaCodes
               .map(
                 (area) => _chip(
@@ -303,15 +330,19 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
               .toList(),
         ),
         if (_sido != null) ...[
-          const SizedBox(height: 28),
-          const Text(
+          SizedBox(height: 28.h),
+          Text(
             '2차 지역',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black),
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+              color: Colors.black,
+            ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.h),
           Wrap(
-            spacing: 10,
-            runSpacing: 10,
+            spacing: 10.w,
+            runSpacing: 10.h,
             children: _sido!.sigungu
                 .map(
                   (sigungu) => _chip(
@@ -329,10 +360,10 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
 
   Widget _buildCategoryTab() {
     return Padding(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20.r),
       child: Wrap(
-        spacing: 10,
-        runSpacing: 10,
+        spacing: 10.w,
+        runSpacing: 10.h,
         children: TourCategory.values
             .map(
               (category) => _chip(
@@ -348,36 +379,49 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
 
   Widget _buildBottomBar() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 20.h),
       child: Row(
         children: [
           SizedBox(
-            height: 53,
+            height: 53.h,
             child: OutlinedButton.icon(
               onPressed: _handleReset,
-              icon: const Icon(Icons.refresh, size: 18, color: Colors.black),
-              label: const Text('초기화', style: TextStyle(fontSize: 15, color: Colors.black)),
+              icon: Icon(Icons.refresh, size: 18.r, color: Colors.black),
+              label: Text(
+                '초기화',
+                style: TextStyle(fontSize: 15.sp, color: Colors.black),
+              ),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Color(0xFFDDDDDD)),
                 backgroundColor: const Color(0xFFEFF1F4),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16.r),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12.w),
           Expanded(
             child: SizedBox(
-              height: 53,
+              height: 53.h,
               child: ElevatedButton(
                 onPressed: _handleSave,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _kPrimaryBlue,
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16.r),
+                  ),
                 ),
-                child: const Text('저장', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                child: Text(
+                  '저장',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
           ),
@@ -386,7 +430,11 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
     );
   }
 
-  Widget _chip({required String label, required bool isSelected, required VoidCallback onTap}) {
+  Widget _chip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
     // 선택 시 글자 굵기(w400->w600)만으로도 칩 너비가 늘어나서, 화면 폭이
     // 좁은 기기에서는 카테고리를 2개 이상 고를 때마다 Wrap 줄바꿈 위치가
     // 흔들리는 문제가 있었다. 보이지 않는 굵은 글씨를 밑에 깔아 항상 그
@@ -396,10 +444,10 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(20.r),
           border: Border.all(
             color: isSelected ? Colors.black : _kChipInactiveBorder,
             width: 1,
@@ -412,13 +460,13 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
               opacity: 0,
               child: Text(
                 label,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
               ),
             ),
             Text(
               label,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 14.sp,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 color: Colors.black,
               ),
