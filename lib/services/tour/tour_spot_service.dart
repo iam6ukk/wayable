@@ -25,4 +25,20 @@ class TourSpotService {
       return [];
     }
   }
+
+  /// [regionCode](TourSpot.lDongRegnCd, 시/도 코드)에 속하는 여행지를 콘텐츠
+  /// 타입 구분 없이 전부 서버 쿼리로 가져온다 (홈 화면 "이번 달 추천 도시" 배너용).
+  Future<List<TourSpot>> searchByRegion(String regionCode) async {
+    try {
+      final snapshot = await _collection
+          .where('basic.lDongRegnCd', isEqualTo: regionCode)
+          .get();
+      return snapshot.docs
+          .map((doc) => TourSpot.fromFirestore(doc.id, doc.data()))
+          .toList();
+    } catch (e) {
+      AppLogger.error('[TourSpotService] 지역별 여행지 조회 실패', error: e);
+      return [];
+    }
+  }
 }
