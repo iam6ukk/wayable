@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:wayable/screen/home_screen.dart';
 import '../../providers/auth_provider.dart';
 import '../../navigation/main_shell.dart';
 import '../myPage/accessibility_screen.dart';
@@ -28,8 +27,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _startEntrance() async {
-    // 랜딩페이지의 Hero 전환(500ms)이 끝난 직후 워드마크 페이드인 시작
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 550));
     if (!mounted) return;
     setState(() => _wordmarkVisible = true);
 
@@ -77,6 +75,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       backgroundColor: _bgColor,
+      // Stack + Positioned 구조 (overflow 에러가 발생하지 않는 원래 안정적인 구조로 복귀)
       body: Stack(
         children: [
           // 상단: 로고 + Wayable 워드마크 (화면 최상단에서 197px)
@@ -89,8 +88,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Center(
                   child: Hero(
                     tag: 'app_logo',
-                    curve: Curves.easeInOutCubic,
-                    child: Image.asset('assets/images/wayable.png', width: 150),
+                    child: Image.asset(
+                      'assets/images/wayable.png',
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
