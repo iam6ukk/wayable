@@ -9,6 +9,7 @@ import '../../model/tour/tour_spot.dart';
 import '../../services/tour/tour_detail_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/bottom_nav_bar.dart';
+import '../../widgets/image_placeholder.dart';
 import '../../widgets/top_logo_banner.dart';
 import '../../model/tour/tour_facility_fields.dart';
 
@@ -203,14 +204,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
   }
 
   Widget _buildImagePlaceholder() {
-    return Container(
-      color: AppColors.surfaceCircle,
-      alignment: Alignment.center,
-      child: const Icon(
-        Icons.image_not_supported_outlined,
-        color: AppColors.iconInactive,
-      ),
-    );
+    return ImagePlaceholder(iconSize: 32.r);
   }
 
   /// contentTypeId에 맞는 시설정보 필드 목록(tour_facility_field_config.dart)을

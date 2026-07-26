@@ -9,6 +9,7 @@ import '../../model/tour/tour_category.dart';
 import '../../model/tour/tour_spot.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/tour/tour_spot_service.dart';
+import '../../widgets/image_placeholder.dart';
 import 'explore_filter_screen.dart';
 import 'spot_detail_screen.dart';
 
@@ -337,13 +338,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         // 높이를 차지하게 되어, 버튼이 콘텐츠 길이와 무관하게 완전히 고정된다.
         Positioned.fill(child: _buildScrollableContent()),
         Positioned(
-          right: 20,
-          bottom: 20,
+          right: 20.w,
+          bottom: 20.h,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               _ScrollFab(icon: Icons.arrow_upward_rounded, onTap: _scrollToTop),
-              const SizedBox(height: 11),
+              SizedBox(height: 11.h),
               _ScrollFab(icon: Icons.arrow_downward_rounded, onTap: _scrollToBottom),
             ],
           ),
@@ -397,12 +398,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   }
 
   Widget _loadingOverlay() {
-    return Positioned.fill(
-      child: Container(
-        color: const Color(0xFFF8FCFF).withValues(alpha: 0.85),
-        alignment: Alignment.center,
-        child: const CircularProgressIndicator(color: _kPrimaryBlue),
-      ),
+    return const Positioned.fill(
+      child: Center(child: CircularProgressIndicator(color: _kPrimaryBlue)),
     );
   }
 
@@ -434,7 +431,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                     Expanded(
                       child: Stack(
                         children: [
-                          const Center(child: _EmptyResultState()),
+                          // 검색을 아직 한 번도 안 한 초기 상태와 로딩 중에는
+                          // "검색 결과가 없어요"를 보여주면 안 된다 — 그건
+                          // 실제로 검색을 마쳤는데 0건일 때만 맞는 문구다.
+                          if (_hasSearched && !_isLoading)
+                            const Center(child: _EmptyResultState()),
                           if (_isLoading) _loadingOverlay(),
                         ],
                       ),
@@ -775,17 +776,18 @@ class _ResultCard extends StatelessWidget {
   }
 
   Widget _buildImagePlaceholder({bool loading = false}) {
-    return Container(
-      color: _kInactiveCircleBg,
-      alignment: Alignment.center,
-      child: loading
-          ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : const Icon(Icons.image_not_supported_outlined, color: _kInactiveIconColor),
-    );
+    if (loading) {
+      return Container(
+        color: _kInactiveCircleBg,
+        alignment: Alignment.center,
+        child: SizedBox(
+          width: 20.r,
+          height: 20.r,
+          child: const CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+    return const ImagePlaceholder();
   }
 }
 
