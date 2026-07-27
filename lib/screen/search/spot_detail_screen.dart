@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../model/accessibility/accessibility_field.dart';
+import '../../model/accessibility/accessibility_field_mapping.dart';
+import '../../model/accessibility/accessibility_profile.dart';
 import '../../model/tour/tour_accessibility_info.dart';
 import '../../model/tour/tour_common_info.dart';
 import '../../model/tour/tour_intro_info.dart';
@@ -68,18 +70,26 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
     final accessibility = _accessibility;
     if (accessibility == null) return const [];
 
+    final seniorEntries = _seniorEntries(accessibility.physical);
+
     return [
-      if (!accessibility.visual.isEmpty)
-        _AccessibilityTab('시각장애', _visualEntries(accessibility.visual)),
       if (!accessibility.physical.isEmpty)
         _AccessibilityTab('지체장애', _physicalEntries(accessibility.physical)),
       if (!accessibility.hearing.isEmpty)
         _AccessibilityTab('청각장애', _hearingEntries(accessibility.hearing)),
+      if (!accessibility.visual.isEmpty)
+        _AccessibilityTab('시각장애', _visualEntries(accessibility.visual)),
       if (!accessibility.infantFamily.isEmpty)
         _AccessibilityTab(
-          '영유아가족',
+          '영유아',
           _infantFamilyEntries(accessibility.infantFamily),
         ),
+      // 고령자동반은 Firestore/TourAPI에 별도 데이터 그룹이 없고, 지체장애 필드 중
+      // 이동수단 관련 일부(주차/접근로/휠체어/출입통로/엘리베이터/화장실)를 그대로
+      // 공유해서 쓴다(AccessibilityFieldMapping.mapping 기준). 같은 값이 지체장애
+      // 탭과 중복 표시되더라도, 항목 자체를 공유하는 게 맞다는 판단으로 별도 탭을 둔다.
+      if (seniorEntries.values.any((v) => v != null))
+        _AccessibilityTab('고령자', seniorEntries),
     ];
   }
 
@@ -412,10 +422,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                 SizedBox(height: 4.h),
                 Text(
                   value,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: AppColors.textValue,
-                  ),
+                  style: TextStyle(fontSize: 12.sp, color: AppColors.textValue),
                 ),
               ],
             ),
@@ -440,6 +447,19 @@ Map<AccessibilityField, String?> _physicalEntries(PhysicalDisabilityInfo p) => {
   AccessibilityField.room: p.room,
   AccessibilityField.handicapEtc: p.handicapEtc,
 };
+
+// 고령자동반은 별도 응답 그룹이 없고 지체장애 필드의 부분집합을 그대로 쓰므로,
+// AccessibilityFieldMapping(공유 매핑 정의)에서 어떤 필드를 쓸지 가져와 지체장애
+// 데이터에서 해당 값만 추려낸다. 필드 목록을 여기서 다시 하드코딩하지 않는 이유는
+// 매핑이 바뀌었을 때 두 곳(탐색 화면의 supportedProfiles 계산과 여기)이 어긋나지
+// 않게 하기 위함이다.
+Map<AccessibilityField, String?> _seniorEntries(PhysicalDisabilityInfo p) {
+  final physicalEntries = _physicalEntries(p);
+  final seniorFields =
+      AccessibilityFieldMapping.mapping[AccessibilityProfile.seniorCompanion] ??
+      const <AccessibilityField>[];
+  return {for (final field in seniorFields) field: physicalEntries[field]};
+}
 
 Map<AccessibilityField, String?> _visualEntries(VisualDisabilityInfo v) => {
   AccessibilityField.braileBlock: v.braileBlock,
@@ -506,7 +526,7 @@ class _AccessibilityTabChip extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 14.sp,
+            fontSize: 12.sp,
             fontWeight: FontWeight.w500,
             color: isSelected ? Colors.white : AppColors.textValue,
           ),

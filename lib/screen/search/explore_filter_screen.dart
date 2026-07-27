@@ -15,7 +15,7 @@ const _kProfileOrder = [
   AccessibilityProfile.physicalAssist,
   AccessibilityProfile.hearingAssist,
   AccessibilityProfile.visionAssist,
-  AccessibilityProfile.strollerCompanion,
+  AccessibilityProfile.infantFamily,
   AccessibilityProfile.seniorCompanion,
 ];
 
@@ -359,20 +359,32 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
   }
 
   Widget _buildCategoryTab() {
+    const categories = TourCategory.values;
+    const crossAxisCount = 4;
+    final rows = <Widget>[];
+    for (var i = 0; i < categories.length; i += crossAxisCount) {
+      final rowCategories = categories.skip(i).take(crossAxisCount).toList();
+      if (i > 0) rows.add(SizedBox(height: 10.h));
+      rows.add(
+        Row(
+          children: [
+            for (var j = 0; j < rowCategories.length; j++) ...[
+              if (j > 0) SizedBox(width: 10.w),
+              _chip(
+                label: rowCategories[j].label,
+                isSelected: _categories.contains(rowCategories[j]),
+                onTap: () => _toggleCategory(rowCategories[j]),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
     return Padding(
       padding: EdgeInsets.all(20.r),
-      child: Wrap(
-        spacing: 10.w,
-        runSpacing: 10.h,
-        children: TourCategory.values
-            .map(
-              (category) => _chip(
-                label: category.label,
-                isSelected: _categories.contains(category),
-                onTap: () => _toggleCategory(category),
-              ),
-            )
-            .toList(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: rows,
       ),
     );
   }

@@ -182,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// GPS 동의 시: 좌표 → 카카오 역지오코딩으로 얻은 구에 있는 실제 여행지들을 후보로 한다.
   /// GPS 미동의/실패/해당 구에 매칭되는 여행지 없음: 전체 여행지를 후보로 한다.
   Future<void> _loadDiscoverySpot() async {
-    final spotsFuture = _tourSpotService.search();
+    final spotsFuture = _tourSpotService.fetchDiscoveryCandidates();
     final areaCodesFuture = _loadAreaCodeLookups();
     final positionFuture = _locationService.getCurrentPosition();
     final rawSpots = await spotsFuture;

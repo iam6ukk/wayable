@@ -13,7 +13,7 @@ const _kProfileOrder = [
   AccessibilityProfile.physicalAssist,
   AccessibilityProfile.visionAssist,
   AccessibilityProfile.hearingAssist,
-  AccessibilityProfile.strollerCompanion,
+  AccessibilityProfile.infantFamily,
   AccessibilityProfile.seniorCompanion,
 ];
 
@@ -78,9 +78,8 @@ class _AccessibilityDetailScreenState
   Future<void> _handleSkip(BuildContext context) async {
     final skip = await showTwoButtonDialog(
       context,
-      content:
-          '접근성 프로필을 설정하면 나에게 맞는 장소를 쉽게 찾을 수 있어요.\n'
-          '마이페이지에서 언제든 접근성 프로필을 수정할 수 있습니다.',
+      title: '접근성 프로필을 설정하면 나에게 맞는 장소를 쉽게 찾을 수 있어요.',
+      content: '마이페이지에서 언제든 접근성 프로필을 수정할 수 있습니다.',
       primaryLabel: '건너뛰기',
       secondaryLabel: '취소하기',
     );
@@ -139,7 +138,7 @@ class _AccessibilityDetailScreenState
       ref.read(authStateProvider.notifier).setUser(updatedUser);
     } catch (e) {
       if (!mounted) return;
-      await showInfoDialog(context, content: '저장에 실패했습니다. 다시 시도해주세요.');
+      await showInfoDialog(context, content: '저장에 실패했습니다.\n다시 시도해주세요.');
       return;
     }
 
@@ -248,7 +247,10 @@ class _AccessibilityDetailScreenState
               SizedBox(height: 6.h),
               Text(
                 '선택해주신 항목 기준으로 정보를 안내해드려요',
-                style: TextStyle(fontSize: 16.sp, color: const Color(0xFF6F6F6F)),
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: const Color(0xFF6F6F6F),
+                ),
               ),
               SizedBox(height: 24.h),
               Expanded(
@@ -275,7 +277,10 @@ class _AccessibilityDetailScreenState
                   ),
                   child: Text(
                     '저장하기',
-                    style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),

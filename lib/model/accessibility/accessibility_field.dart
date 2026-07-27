@@ -1,5 +1,5 @@
-/// TourAccessibilityInfo(TourAPI 무장애여행 응답)의 개별 편의시설 필드.
-/// 값 이름은 lib/model/tour_accessibility_info.dart의 필드명과 맞춘다.
+/// TourAccessibilityInfo(TourAPI 무장애여행 응답)의 개별 편의시설 필드
+/// 접근성 유형에 따른 무장애 편의시설 필드
 enum AccessibilityField {
   // 지체장애
   parking,

@@ -11,7 +11,7 @@ const _kProfileOrder = [
   AccessibilityProfile.physicalAssist,
   AccessibilityProfile.visionAssist,
   AccessibilityProfile.hearingAssist,
-  AccessibilityProfile.strollerCompanion,
+  AccessibilityProfile.infantFamily,
   AccessibilityProfile.seniorCompanion,
 ];
 
@@ -46,9 +46,8 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
   Future<void> _handleSkip(BuildContext context) async {
     final skip = await showTwoButtonDialog(
       context,
-      content:
-          '접근성 프로필을 설정하면 나에게 맞는 장소를 쉽게 찾을 수 있어요.\n'
-          '마이페이지에서 언제든 접근성 프로필을 수정할 수 있습니다.',
+      title: '접근성 프로필을 설정하면 나에게 맞는 장소를 쉽게 찾을 수 있어요.',
+      content: '마이페이지에서 언제든 접근성 프로필을 수정할 수 있습니다.',
       primaryLabel: '건너뛰기',
       secondaryLabel: '취소하기',
     );
@@ -120,7 +119,10 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
               SizedBox(height: 6.h),
               Text(
                 '선택해주신 관심유형에 맞춰 추천해드려요',
-                style: TextStyle(fontSize: 16.sp, color: const Color(0xFF6F6F6F)),
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: const Color(0xFF6F6F6F),
+                ),
               ),
               Expanded(
                 child: Center(
@@ -176,7 +178,10 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                   ),
                   child: Text(
                     '다음으로',
-                    style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),

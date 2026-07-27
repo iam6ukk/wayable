@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../providers/auth_provider.dart';
 import '../../navigation/main_shell.dart';
 import '../myPage/accessibility_screen.dart';
@@ -69,7 +70,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       } else if (next.errorMessage != null &&
           previous?.errorMessage != next.errorMessage) {
         // 로그인 실패
-        showInfoDialog(context, content: '로그인에 실패했습니다. 다시 시도해주세요.');
+        showInfoDialog(context, content: '로그인에 실패했습니다.\n다시 시도해주세요.');
       }
     });
 
@@ -80,7 +81,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         children: [
           // 상단: 로고 + Wayable 워드마크 (화면 최상단에서 197px)
           Positioned(
-            top: 197,
+            top: 197.h,
             left: 0,
             right: 0,
             child: Column(
@@ -90,24 +91,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     tag: 'app_logo',
                     child: Image.asset(
                       'assets/images/wayable.png',
-                      width: 120,
-                      height: 120,
+                      width: 120.r,
+                      height: 120.r,
                       fit: BoxFit.contain,
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16.h),
                 Center(
                   child: AnimatedOpacity(
                     duration: const Duration(milliseconds: 500),
                     opacity: _wordmarkVisible ? 1 : 0,
-                    child: const Text(
+                    child: Text(
                       'Wayable',
                       style: TextStyle(
                         fontFamily: 'CalSans',
-                        fontSize: 27,
+                        fontSize: 27.sp,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF004EBC),
+                        color: const Color(0xFF004EBC),
                       ),
                     ),
                   ),
@@ -118,9 +119,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
           // 하단: 로그인 버튼 + 비회원 텍스트
           Positioned(
-            bottom: 114,
-            left: 34,
-            right: 34,
+            bottom: 114.h,
+            left: 34.w,
+            right: 34.w,
             child: IgnorePointer(
               ignoring: !_buttonsVisible,
               child: AnimatedOpacity(
@@ -140,29 +141,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             },
                       child: Container(
                         width: double.infinity,
-                        height: 52,
+                        height: 52.h,
                         decoration: BoxDecoration(
                           color: const Color(0xFFFDDC3F),
-                          borderRadius: const BorderRadius.all(
-                            Radius.circular(8),
-                          ),
+                          borderRadius: BorderRadius.all(Radius.circular(8.r)),
                         ),
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
                             Positioned(
-                              left: 12,
+                              left: 12.w,
                               child: Image.asset(
                                 'assets/images/kakao.png',
-                                width: 35,
-                                height: 35,
+                                width: 35.r,
+                                height: 35.r,
                               ),
                             ),
-                            const Text(
+                            Text(
                               '카카오 로그인',
                               style: TextStyle(
                                 fontFamily: 'Pretendard',
-                                fontSize: 15,
+                                fontSize: 15.sp,
                                 fontWeight: FontWeight.w500,
                                 color: Colors.black,
                               ),
@@ -182,35 +181,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   .signInWithGoogle();
                             },
                       child: Container(
-                        margin: const EdgeInsets.only(top: 18),
+                        margin: EdgeInsets.only(top: 18.h),
                         width: double.infinity,
-                        height: 52,
+                        height: 52.h,
                         decoration: BoxDecoration(
                           color: const Color(0xFFFFFFFF),
                           border: Border.all(
                             color: const Color(0xFF747775),
                             width: 0.2,
                           ),
-                          borderRadius: const BorderRadius.all(
-                            Radius.circular(8),
-                          ),
+                          borderRadius: BorderRadius.all(Radius.circular(8.r)),
                         ),
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
                             Positioned(
-                              left: 10,
+                              left: 10.w,
                               child: Image.asset(
                                 'assets/images/google.png',
-                                width: 40,
-                                height: 40,
+                                width: 40.r,
+                                height: 40.r,
                               ),
                             ),
-                            const Text(
+                            Text(
                               'Google 계정으로 로그인',
                               style: TextStyle(
                                 fontFamily: 'Pretendard',
-                                fontSize: 15,
+                                fontSize: 15.sp,
                                 fontWeight: FontWeight.w500,
                                 color: Colors.black,
                               ),
@@ -235,7 +232,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         '비회원으로 진행하기',
                         style: TextStyle(
                           fontFamily: 'Pretendard',
-                          fontSize: 14,
+                          fontSize: 14.sp,
                           fontWeight: FontWeight.w400,
                           color: const Color(0xFF697281),
                           decoration: TextDecoration.underline,

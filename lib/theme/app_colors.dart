@@ -10,7 +10,7 @@ class AppColors {
   static const accent = Color(0xFFFFD166);
 
   // 텍스트 강조 단계: Primary > Secondary > Tertiary > Disabled 순으로 강조가 약해짐
-  static const textPrimary = Color(0xFF000000);
+  static const textPrimary = Color(0xFF444444);
   static const textSecondary = Color(0xFF3C3C3C);
   static const textTertiary = Color(0xFFA5A5A5);
   static const textDisabled = Color(0xFFF5F5F5);
