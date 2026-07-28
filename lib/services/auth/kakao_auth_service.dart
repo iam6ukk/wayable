@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' as kakao;
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,42 +9,53 @@ import 'package:wayable/utils/app_logger.dart';
 class KakaoAuthService {
   final _userService = UserService();
 
+  // 로그인
   Future<({AppUser? user, bool isNewUser})> signInWithKakao() async {
     try {
       kakao.OAuthToken token;
 
-      // 카카오톡 설치 여부 확인
+      // 1. 카카오톡 설치 여부 확인
       if (await kakao.isKakaoTalkInstalled()) {
-        token = await kakao.UserApi.instance.loginWithKakaoTalk();
+        try {
+          token = await kakao.UserApi.instance.loginWithKakaoTalk();
+        } catch (error) {
+          // 사용자가 명시적으로 취소한 경우는 폴백하지 않고 그대로 종료
+          if (error is PlatformException && error.code == 'CANCELED') {
+            AppLogger.debug('[Auth] 카카오톡 로그인 사용자 취소');
+            return (user: null, isNewUser: false);
+          }
+
+          // 카카오톡은 설치돼 있지만 계정 미연동(NotSupportError) 등으로
+          // Talk 로그인이 실패한 경우 카카오계정(웹) 로그인으로 폴백
+          AppLogger.debug('[Auth] 카카오톡 로그인 실패, 카카오계정 로그인으로 폴백: $error');
+          token = await kakao.UserApi.instance.loginWithKakaoAccount();
+        }
       } else {
         token = await kakao.UserApi.instance.loginWithKakaoAccount();
       }
 
-      // 카카오 사용자 정보(me) 조회와 Cloud Functions 커스텀 토큰 발급은
-      // 서로 결과값에 의존하지 않고 둘 다 accessToken만 있으면 되므로
-      // 동시에 실행해 대기 시간을 줄인다.
       final meFuture = kakao.UserApi.instance.me();
-      final tokenFuture = FirebaseFunctions.instanceFor(
-        region: 'asia-northeast3',
-      ).httpsCallable('kakaoCustomToken').call({
-        'kakaoAccessToken': token.accessToken,
-      });
+      final tokenFuture =
+          FirebaseFunctions.instanceFor(region: 'asia-northeast3')
+              .httpsCallable('kakaoCustomToken')
+              .call({'kakaoAccessToken': token.accessToken});
 
       final kakaoUser = await meFuture;
       final result = await tokenFuture;
 
       final firebaseToken = result.data['firebaseToken'];
 
-      // Firebase Custom Token으로 로그인
+      // 2. Firebase Custom Token으로 로그인
       final userCredential = await FirebaseAuth.instance.signInWithCustomToken(
         firebaseToken,
       );
 
       final uid = userCredential.user!.uid;
-      AppLogger.debug('[Auth] Kakao login success');
+      AppLogger.debug('[Auth] 카카오 로그인 성공');
 
       final exists = await _userService.userExists(uid);
 
+      // 3. 신규/기존 유저에 따라 분기 처리
       if (!exists) {
         final newUser = AppUser(
           uid: uid,
@@ -66,18 +78,41 @@ class KakaoAuthService {
         return (user: existingUser, isNewUser: false);
       }
     } catch (e) {
-      AppLogger.error('[Auth] Kakao login failed', error: e);
+      AppLogger.error('[Auth] 카카오 로그인 실패', error: e);
       AppLogger.debug('[Auth] 에러 타입: ${e.runtimeType}');
       return (user: null, isNewUser: false);
     }
   }
 
+  // 로그아웃
   Future<void> signOut() async {
     try {
       await kakao.UserApi.instance.logout();
       await FirebaseAuth.instance.signOut();
     } catch (e) {
-      AppLogger.error('[Auth] Kakao sign out failed', error: e);
+      AppLogger.error('[Auth] 카카오 로그아웃 실패', error: e);
+    }
+  }
+
+  // 회원탈퇴
+  // Firestore 유저 데이터 삭제 → Firebase 계정 삭제 → 카카오 연결 해제
+  Future<bool> deleteAccount() async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        await _userService.deleteUser(uid);
+      }
+
+      await FirebaseAuth.instance.currentUser?.delete();
+      await kakao.UserApi.instance.unlink();
+      // 카카오 unlink를 먼저 하면 세션은 남았는데 앱-계정 연결만 끊김
+      // 이후 재로그인 시 데이터 정리가 애매해져 마지막에 수행
+
+      AppLogger.info('[Auth] 카카오 회원탈퇴 완료');
+      return true;
+    } catch (e) {
+      AppLogger.error('[Auth] 카카오 회원탈퇴 실패', error: e);
+      return false;
     }
   }
 }

@@ -15,7 +15,7 @@ class AppColors {
   static const bottomSheetBackground = Color(0xFFF8FCFF); // 바텀 시트 배경색
   static const barrierBackground = Color(0x33363636);
 
-  // 텍스트 강조 단계: Primary > Secondary > Tertiary > Disabled 순으로 강조가 약해짐
+  // 텍스트 강조 단계: Primary > Secondary > Tertiary > Quaternary 순으로 강조가 약해짐
   static const textPrimary = Color(0xFF444444);
   static const textSecondary = Color(0xFF666666);
   static const textTertiary = Color(0xFF888888);
@@ -33,17 +33,17 @@ class AppColors {
   static const navIconInactive = Color(0xFFB7B7B7);
 
   // spot_detail_screen 전용 색상
-  static const textTitle = Color(0xFF060606);
-  static const textLabel = Color(0xFF3C3C3C);
-  static const textValue = Color(0xFF868686);
-  static const textEmpty = Color(0xFFACACAC);
+  // static const textTitle = Color(0xFF060606);
+  // static const textLabel = Color(0xFF3C3C3C);
+  // static const textValue = Color(0xFF868686);
+  // static const textEmpty = Color(0xFFACACAC);
 
-  static const divider = Color(0xFFE3E3E3);
-  static const iconInactive = Color(0xFF7D7D7D);
+  // static const divider = Color(0xFFE3E3E3);
+  // static const iconInactive = Color(0xFF7D7D7D);
 
-  static const surfaceCircle = Color(0xFFF2F2F2);
+  // static const surfaceCircle = Color(0xFFF2F2F2);
   static const surfaceLabelColumn = Color(0xFFF7F8FA);
 
-  static const tabInactiveBackground = Color(0xFFF0F0F0);
-  static const tabBorder = Color(0xFF8F8F8F);
+  // static const tabInactiveBackground = Color(0xFFF0F0F0);
+  // static const tabBorder = Color(0xFF8F8F8F);
 }
