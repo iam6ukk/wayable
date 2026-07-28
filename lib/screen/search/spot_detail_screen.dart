@@ -262,7 +262,8 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
           Container(
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(8.r)),
             foregroundDecoration: BoxDecoration(
-              border: Border.all(color: AppColors.faintDivider),
+              // border: Border.all(color: AppColors.faintDivider),
+              border: Border.all(color: AppColors.faintDivider, width: 0.5),
               borderRadius: BorderRadius.circular(8.r),
             ),
             clipBehavior: Clip.antiAlias,
@@ -314,7 +315,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
             width: 92.w,
             color: AppColors.surfaceLabelColumn,
             padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
-            alignment: Alignment.centerLeft,
+            alignment: Alignment.center,
             child: Text(
               spec.label,
               style: TextStyle(

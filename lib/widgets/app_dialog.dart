@@ -89,7 +89,7 @@ Future<bool?> showTwoButtonDialog(
         mainAxisSize: MainAxisSize.min,
         children: [
           _dialogBody(title: title, content: content),
-          Divider(height: 1, thickness: 1, color: AppColors.divider),
+          Divider(height: 1, thickness: 1, color: AppColors.faintDivider),
           IntrinsicHeight(
             child: Row(
               children: [
@@ -101,7 +101,7 @@ Future<bool?> showTwoButtonDialog(
                 VerticalDivider(
                   width: 1,
                   thickness: 1,
-                  color: AppColors.divider,
+                  color: AppColors.faintDivider,
                 ),
                 _footerButton(
                   label: primaryLabel,
@@ -139,7 +139,7 @@ Future<void> showInfoDialog(
         mainAxisSize: MainAxisSize.min,
         children: [
           _dialogBody(title: title, content: content),
-          Divider(height: 1, thickness: 1, color: AppColors.divider),
+          Divider(height: 1, thickness: 1, color: AppColors.faintDivider),
           InkWell(
             onTap: () => Navigator.of(dialogContext).pop(),
             child: SizedBox(

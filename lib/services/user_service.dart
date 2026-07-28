@@ -34,11 +34,6 @@ class UserService {
     try {
       AppLogger.debug('[UserService] Firestore 업데이트 시도 중...');
       final data = user.toFirestore();
-      // SetOptions.merge(true)는 accessibilityFieldsByProfile 같은 중첩 맵을
-      // 키 단위로 병합해버려서, 이번에 뺀 대분류의 예전 키가 안 지워지고
-      // 계속 남는 문제가 있었다. mergeFields로 최상위 필드 경로를 명시하면
-      // 그 필드는 통째로 덮어써져서, 상세히 안 건드린 다른 필드는 유지하면서
-      // accessibilityFieldsByProfile은 이번 값으로 완전히 교체된다.
       await _db
           .collection('users')
           .doc(user.uid)
@@ -59,6 +54,17 @@ class UserService {
     } catch (e) {
       AppLogger.error('[UserService] 유저 조회 실패', error: e);
       return null;
+    }
+  }
+
+  // 회원탈퇴 시 users/{uid} 문서 삭제
+  Future<void> deleteUser(String uid) async {
+    try {
+      await _db.collection('users').doc(uid).delete();
+      AppLogger.info('[UserService] 유저 문서 삭제 완료');
+    } catch (e) {
+      AppLogger.error('[UserService] 유저 문서 삭제 실패', error: e);
+      rethrow;
     }
   }
 }

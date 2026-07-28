@@ -111,4 +111,13 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
     await _googleAuthService.signOut();
     state = AuthState();
   }
+
+  // 카카오 회원탈퇴
+  Future<bool> deleteKakaoAccount() async {
+    final success = await _kakaoAuthService.deleteAccount();
+    if (success) {
+      state = AuthState();
+    }
+    return success;
+  }
 }
