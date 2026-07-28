@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:wayable/model/region/area_code.dart';
 import 'package:wayable/model/tour/tour_spot.dart';
 import 'package:wayable/services/location/location_service.dart';
@@ -182,7 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// GPS 동의 시: 좌표 → 카카오 역지오코딩으로 얻은 구에 있는 실제 여행지들을 후보로 한다.
   /// GPS 미동의/실패/해당 구에 매칭되는 여행지 없음: 전체 여행지를 후보로 한다.
   Future<void> _loadDiscoverySpot() async {
-    final spotsFuture = _tourSpotService.search();
+    final spotsFuture = _tourSpotService.fetchDiscoveryCandidates();
     final areaCodesFuture = _loadAreaCodeLookups();
     final positionFuture = _locationService.getCurrentPosition();
     final rawSpots = await spotsFuture;
@@ -334,22 +335,22 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeroBanner(),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
             child: _buildDiscoverySection(),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: const Text(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Text(
               '카테고리 별 추천 장소',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+              style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.w700),
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           _buildCategoryList(),
-          const SizedBox(height: 24),
+          SizedBox(height: 24.h),
         ],
       ),
     );
@@ -362,14 +363,14 @@ class _HomeScreenState extends State<HomeScreen> {
     if (featuredSpots == null || featuredSpots.isEmpty) {
       return SizedBox(
         width: double.infinity,
-        height: 173,
+        height: 173.h,
         child: _buildSkeletonBox(),
       );
     }
 
     return SizedBox(
       width: double.infinity,
-      height: 173,
+      height: 173.h,
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -405,18 +406,18 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           Positioned(
-            top: 12,
-            right: 16,
+            top: 12.h,
+            right: 16.w,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
               decoration: BoxDecoration(
                 color: _kPageBadgeBg,
-                borderRadius: BorderRadius.circular(17),
+                borderRadius: BorderRadius.circular(17.r),
               ),
               child: Text(
                 '${_heroPage + 1}/${featuredSpots.length}',
-                style: const TextStyle(
-                  fontSize: 10,
+                style: TextStyle(
+                  fontSize: 10.sp,
                   fontWeight: FontWeight.w600,
                   color: _kPageBadgeText,
                 ),
@@ -424,27 +425,27 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           Positioned(
-            left: 16,
-            right: 16,
-            bottom: 20,
+            left: 16.w,
+            right: 16.w,
+            bottom: 20.h,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
                   featuredSpots[_heroPage].regionName,
                   textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    fontSize: 15,
+                  style: TextStyle(
+                    fontSize: 15.sp,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4.h),
                 Text(
                   featuredSpots[_heroPage].title,
                   textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    fontSize: 20,
+                  style: TextStyle(
+                    fontSize: 20.sp,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                   ),
@@ -460,7 +461,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildDiscoverySection() {
     final spot = _discoverySpot;
     return SizedBox(
-      height: 213,
+      height: 213.h,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -473,53 +474,56 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
+                    Text(
                       '오늘 발견',
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: 24.sp,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const Text(
+                        Text(
                           '여행지',
                           style: TextStyle(
-                            fontSize: 24,
+                            fontSize: 24.sp,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(width: 4),
+                        SizedBox(width: 4.w),
                         GestureDetector(
                           onTap: _refreshDiscoverySpot,
                           child: Image.asset(
                             'assets/images/refresh.png',
-                            width: 22,
-                            height: 22,
+                            width: 22.r,
+                            height: 22.r,
                           ),
                         ),
                       ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.location_on_outlined,
-                      size: 20,
+                      size: 20.r,
                       color: _kLocationTextColor,
                     ),
-                    const SizedBox(width: 4),
+                    SizedBox(width: 4.w),
                     Expanded(
                       child: spot == null
-                          ? _buildSkeletonBox(height: 24, widthFraction: 0.7)
+                          ? _buildSkeletonBox(
+                              height: 24.h,
+                              widthFraction: 0.7,
+                            )
                           : Text(
                               spot.location,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 16,
+                              style: TextStyle(
+                                fontSize: 16.sp,
                                 fontWeight: FontWeight.w600,
                                 color: _kLocationTextColor,
                               ),
@@ -533,9 +537,9 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             flex: 241,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(16.r),
               child: SizedBox(
-                height: 213,
+                height: 213.h,
                 child: spot == null
                     ? _buildSkeletonBox()
                     : Stack(
@@ -559,16 +563,16 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           Positioned(
-                            left: 12,
-                            right: 16,
-                            top: 16,
+                            left: 12.w,
+                            right: 16.w,
+                            top: 16.h,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
                                   spot.name,
-                                  style: const TextStyle(
-                                    fontSize: 21,
+                                  style: TextStyle(
+                                    fontSize: 21.sp,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.white,
                                   ),
@@ -593,7 +597,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final box = DecoratedBox(
       decoration: BoxDecoration(
         color: _kSkeletonColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(8.r),
       ),
       child: SizedBox(height: height, width: double.infinity),
     );
@@ -607,13 +611,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // 사진 URL은 있는데 네트워크 로드 자체가 실패했을 때 쓰는 대체 UI
   Widget _buildImageErrorPlaceholder() {
-    return const DecoratedBox(
-      decoration: BoxDecoration(color: _kSkeletonColor),
+    return DecoratedBox(
+      decoration: const BoxDecoration(color: _kSkeletonColor),
       child: Center(
         child: Icon(
           Icons.image_not_supported_outlined,
           color: Colors.black26,
-          size: 32,
+          size: 32.r,
         ),
       ),
     );
@@ -621,12 +625,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildCategoryList() {
     return SizedBox(
-      height: 190,
+      height: 190.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
         itemCount: _categorySpots.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 12),
+        separatorBuilder: (_, _) => SizedBox(width: 12.w),
         itemBuilder: (context, index) =>
             _buildCategoryCard(_categorySpots[index]),
       ),
@@ -636,10 +640,10 @@ class _HomeScreenState extends State<HomeScreen> {
   // TO-DO : 카테고리별 추천 장소는 제공하기 어려운 이슈로 보류
   Widget _buildCategoryCard(_CategorySpot spot) {
     return Container(
-      width: 140,
+      width: 140.w,
       decoration: BoxDecoration(
         gradient: spot.background,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -654,11 +658,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.only(left: 12, bottom: 10),
+            padding: EdgeInsets.only(left: 12.w, bottom: 10.h),
             child: Text(
               spot.label,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 16.sp,
                 fontWeight: FontWeight.w700,
                 color: spot.labelColor,
               ),

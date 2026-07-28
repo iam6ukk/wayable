@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../model/accessibility/accessibility_profile.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/app_dialog.dart';
@@ -10,7 +11,7 @@ const _kProfileOrder = [
   AccessibilityProfile.physicalAssist,
   AccessibilityProfile.visionAssist,
   AccessibilityProfile.hearingAssist,
-  AccessibilityProfile.strollerCompanion,
+  AccessibilityProfile.infantFamily,
   AccessibilityProfile.seniorCompanion,
 ];
 
@@ -45,9 +46,8 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
   Future<void> _handleSkip(BuildContext context) async {
     final skip = await showTwoButtonDialog(
       context,
-      content:
-          '접근성 프로필을 설정하면 나에게 맞는 장소를 쉽게 찾을 수 있어요.\n'
-          '마이페이지에서 언제든 접근성 프로필을 수정할 수 있습니다.',
+      title: '접근성 프로필을 설정하면 나에게 맞는 장소를 쉽게 찾을 수 있어요.',
+      content: '마이페이지에서 언제든 접근성 프로필을 수정할 수 있습니다.',
       primaryLabel: '건너뛰기',
       secondaryLabel: '취소하기',
     );
@@ -63,22 +63,22 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: EdgeInsets.symmetric(horizontal: 24.w),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 16),
-              const SizedBox(height: 24),
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
+              SizedBox(height: 24.h),
+              SizedBox(height: 16.h),
               Row(
                 children: [
                   RichText(
-                    text: const TextSpan(
-                      style: TextStyle(fontSize: 16, color: Colors.black),
+                    text: TextSpan(
+                      style: TextStyle(fontSize: 16.sp, color: Colors.black),
                       children: [
                         TextSpan(
                           text: '$_kCurrentStep',
-                          style: TextStyle(color: Color(0xFF0065F4)),
+                          style: const TextStyle(color: Color(0xFF0065F4)),
                         ),
                         TextSpan(text: '/$_kTotalSteps'),
                       ],
@@ -93,33 +93,36 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    child: const Text('건너뛰기', style: TextStyle(fontSize: 12)),
+                    child: Text('건너뛰기', style: TextStyle(fontSize: 12.sp)),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8.h),
               ClipRRect(
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(2.r),
                 child: LinearProgressIndicator(
                   value: _kCurrentStep / _kTotalSteps,
-                  minHeight: 4,
+                  minHeight: 4.h,
                   backgroundColor: const Color(0xFFE3E3E3),
                   valueColor: const AlwaysStoppedAnimation(Color(0xFF0065F4)),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24.h),
               Text(
                 '$nickname님의 관심유형을 선택해주세요',
-                style: const TextStyle(
-                  fontSize: 20,
+                style: TextStyle(
+                  fontSize: 20.sp,
                   fontWeight: FontWeight.w500,
                   color: Colors.black,
                 ),
               ),
-              const SizedBox(height: 6),
-              const Text(
+              SizedBox(height: 6.h),
+              Text(
                 '선택해주신 관심유형에 맞춰 추천해드려요',
-                style: TextStyle(fontSize: 16, color: Color(0xFF6F6F6F)),
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: const Color(0xFF6F6F6F),
+                ),
               ),
               Expanded(
                 child: Center(
@@ -133,7 +136,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                           _buildOption(_kProfileOrder[1]),
                         ],
                       ),
-                      const SizedBox(height: 32),
+                      SizedBox(height: 32.h),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
@@ -141,7 +144,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                           _buildOption(_kProfileOrder[3]),
                         ],
                       ),
-                      const SizedBox(height: 32),
+                      SizedBox(height: 32.h),
                       _buildOption(_kProfileOrder[4]),
                     ],
                   ),
@@ -149,7 +152,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
               ),
               SizedBox(
                 width: double.infinity,
-                height: 53,
+                height: 53.h,
                 child: ElevatedButton(
                   onPressed: () {
                     if (_selectedProfiles.isEmpty) {
@@ -170,16 +173,19 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(16.r),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     '다음으로',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24.h),
             ],
           ),
         ),
@@ -194,13 +200,13 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
       onTap: () => _toggleSelection(profile),
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: 110,
+        width: 110.w,
         child: Column(
           children: [
             AnimatedContainer(
               duration: const Duration(milliseconds: 150),
-              width: 90,
-              height: 90,
+              width: 90.r,
+              height: 90.r,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isSelected
@@ -209,15 +215,15 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
               ),
               child: Icon(
                 profile.icon,
-                size: 48,
+                size: 48.r,
                 color: isSelected ? Colors.white : const Color(0xFF7D7D7D),
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.h),
             Text(
               profile.label,
-              style: const TextStyle(
-                fontSize: 16,
+              style: TextStyle(
+                fontSize: 16.sp,
                 fontWeight: FontWeight.w500,
                 color: Colors.black,
               ),

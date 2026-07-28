@@ -6,8 +6,8 @@ enum AccessibilityProfile {
   physicalAssist, // 지체장애 필드군 전체
   hearingAssist, // 청각장애 필드군
   visionAssist, // 시각장애 필드군
-  strollerCompanion, // 영유아가족 필드군
-  seniorCompanion, // 지체장애 필드군 중 일부 재사용
+  infantFamily, // 영유아가족 필드군
+  seniorCompanion, // 고령자 동반 필드군 (지체장애 필드군 중 일부 재사용)
 }
 
 extension AccessibilityProfileX on AccessibilityProfile {
@@ -15,7 +15,7 @@ extension AccessibilityProfileX on AccessibilityProfile {
     AccessibilityProfile.physicalAssist => '지체장애 보조',
     AccessibilityProfile.hearingAssist => '청각장애 보조',
     AccessibilityProfile.visionAssist => '시각장애 보조',
-    AccessibilityProfile.strollerCompanion => '유모차 동반',
+    AccessibilityProfile.infantFamily => '영유아 가족',
     AccessibilityProfile.seniorCompanion => '고령자 동반',
   };
 
@@ -23,7 +23,7 @@ extension AccessibilityProfileX on AccessibilityProfile {
     AccessibilityProfile.physicalAssist => Icons.accessible,
     AccessibilityProfile.hearingAssist => Icons.hearing_disabled,
     AccessibilityProfile.visionAssist => Icons.visibility_off,
-    AccessibilityProfile.strollerCompanion => Icons.child_care,
+    AccessibilityProfile.infantFamily => Icons.child_care,
     AccessibilityProfile.seniorCompanion => Icons.elderly,
   };
 }

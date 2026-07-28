@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../theme/app_colors.dart';
 
 enum BottomNavTab {
@@ -39,7 +40,7 @@ class BottomNavBar extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      color: AppColors.bannerBackground,
+      color: AppColors.background,
       padding: EdgeInsets.only(bottom: bottomInset),
       child: SizedBox(
         height: kBottomNavigationBarHeight,
@@ -60,13 +61,15 @@ class BottomNavBar extends StatelessWidget {
       onTap: () => onTabSelected(tab),
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: 48,
+        width: 48.w,
         height: kBottomNavigationBarHeight,
         child: Center(
           child: Icon(
             tab.icon,
-            size: 28,
-            color: isSelected ? AppColors.navIconActive : AppColors.navIconInactive,
+            size: 28.r,
+            color: isSelected
+                ? AppColors.navIconActive
+                : AppColors.navIconInactive,
           ),
         ),
       ),

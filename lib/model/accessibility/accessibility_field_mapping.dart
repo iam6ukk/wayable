@@ -36,7 +36,7 @@ class AccessibilityFieldMapping {
       AccessibilityField.guideSystem,
       AccessibilityField.blindHandicapEtc,
     ],
-    AccessibilityProfile.strollerCompanion: [
+    AccessibilityProfile.infantFamily: [
       AccessibilityField.stroller,
       AccessibilityField.lactationRoom,
       AccessibilityField.babySpareChair,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../model/accessibility/accessibility_field.dart';
 import '../../model/accessibility/accessibility_field_mapping.dart';
 import '../../model/accessibility/accessibility_profile.dart';
@@ -12,7 +13,7 @@ const _kProfileOrder = [
   AccessibilityProfile.physicalAssist,
   AccessibilityProfile.visionAssist,
   AccessibilityProfile.hearingAssist,
-  AccessibilityProfile.strollerCompanion,
+  AccessibilityProfile.infantFamily,
   AccessibilityProfile.seniorCompanion,
 ];
 
@@ -77,9 +78,8 @@ class _AccessibilityDetailScreenState
   Future<void> _handleSkip(BuildContext context) async {
     final skip = await showTwoButtonDialog(
       context,
-      content:
-          '접근성 프로필을 설정하면 나에게 맞는 장소를 쉽게 찾을 수 있어요.\n'
-          '마이페이지에서 언제든 접근성 프로필을 수정할 수 있습니다.',
+      title: '접근성 프로필을 설정하면 나에게 맞는 장소를 쉽게 찾을 수 있어요.',
+      content: '마이페이지에서 언제든 접근성 프로필을 수정할 수 있습니다.',
       primaryLabel: '건너뛰기',
       secondaryLabel: '취소하기',
     );
@@ -138,7 +138,7 @@ class _AccessibilityDetailScreenState
       ref.read(authStateProvider.notifier).setUser(updatedUser);
     } catch (e) {
       if (!mounted) return;
-      await showInfoDialog(context, content: '저장에 실패했습니다. 다시 시도해주세요.');
+      await showInfoDialog(context, content: '저장에 실패했습니다.\n다시 시도해주세요.');
       return;
     }
 
@@ -162,13 +162,13 @@ class _AccessibilityDetailScreenState
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: EdgeInsets.symmetric(horizontal: 24.w),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
               SizedBox(
-                height: 24,
+                height: 24.h,
                 child: Row(
                   children: [
                     TextButton(
@@ -179,15 +179,15 @@ class _AccessibilityDetailScreenState
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.arrow_back_ios_new, size: 16),
-                          SizedBox(width: 4),
+                          Icon(Icons.arrow_back_ios_new, size: 16.r),
+                          SizedBox(width: 4.w),
                           Text(
                             '이전',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 14.sp,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -197,16 +197,16 @@ class _AccessibilityDetailScreenState
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
               Row(
                 children: [
                   RichText(
-                    text: const TextSpan(
-                      style: TextStyle(fontSize: 16, color: Colors.black),
+                    text: TextSpan(
+                      style: TextStyle(fontSize: 16.sp, color: Colors.black),
                       children: [
                         TextSpan(
                           text: '$_kCurrentStep',
-                          style: TextStyle(color: Color(0xFF0065F4)),
+                          style: const TextStyle(color: Color(0xFF0065F4)),
                         ),
                         TextSpan(text: '/$_kTotalSteps'),
                       ],
@@ -221,47 +221,50 @@ class _AccessibilityDetailScreenState
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    child: const Text('건너뛰기', style: TextStyle(fontSize: 12)),
+                    child: Text('건너뛰기', style: TextStyle(fontSize: 12.sp)),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8.h),
               ClipRRect(
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(2.r),
                 child: LinearProgressIndicator(
                   value: _kCurrentStep / _kTotalSteps,
-                  minHeight: 4,
+                  minHeight: 4.h,
                   backgroundColor: const Color(0xFFE3E3E3),
                   valueColor: const AlwaysStoppedAnimation(Color(0xFF0065F4)),
                 ),
               ),
-              const SizedBox(height: 24),
-              const Text(
+              SizedBox(height: 24.h),
+              Text(
                 '필요하신 무장애 정보를 선택해주세요',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 20.sp,
                   fontWeight: FontWeight.w500,
                   color: Colors.black,
                 ),
               ),
-              const SizedBox(height: 6),
-              const Text(
+              SizedBox(height: 6.h),
+              Text(
                 '선택해주신 항목 기준으로 정보를 안내해드려요',
-                style: TextStyle(fontSize: 16, color: Color(0xFF6F6F6F)),
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: const Color(0xFF6F6F6F),
+                ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24.h),
               Expanded(
                 child: ListView.separated(
                   itemCount: orderedProfiles.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 28),
+                  separatorBuilder: (_, _) => SizedBox(height: 28.h),
                   itemBuilder: (context, index) =>
                       _buildSection(orderedProfiles[index]),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
               SizedBox(
                 width: double.infinity,
-                height: 53,
+                height: 53.h,
                 child: ElevatedButton(
                   onPressed: () => _handleSave(orderedProfiles),
                   style: ElevatedButton.styleFrom(
@@ -269,16 +272,19 @@ class _AccessibilityDetailScreenState
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(16.r),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     '저장하기',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24.h),
             ],
           ),
         ),
@@ -294,22 +300,22 @@ class _AccessibilityDetailScreenState
       children: [
         Row(
           children: [
-            Icon(profile.icon, size: 20, color: const Color(0xFF0065F4)),
-            const SizedBox(width: 6),
+            Icon(profile.icon, size: 20.r, color: const Color(0xFF0065F4)),
+            SizedBox(width: 6.w),
             Text(
               profile.label,
-              style: const TextStyle(
-                fontSize: 16,
+              style: TextStyle(
+                fontSize: 16.sp,
                 fontWeight: FontWeight.w600,
                 color: Colors.black,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12.h),
         Wrap(
-          spacing: 10,
-          runSpacing: 10,
+          spacing: 10.w,
+          runSpacing: 10.h,
           children: [
             _buildAllChip(profile),
             ...fields.map((field) => _buildChip(profile, field)),
@@ -346,15 +352,15 @@ class _AccessibilityDetailScreenState
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF0065F4) : const Color(0xFFF2F2F2),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(20.r),
         ),
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 14.sp,
             fontWeight: FontWeight.w500,
             color: isSelected ? Colors.white : const Color(0xFF7D7D7D),
           ),

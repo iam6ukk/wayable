@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:wayable/screen/auth/login_screen.dart';
+import 'package:wayable/theme/app_colors.dart';
 
 // Hero flight(위치/크기 보간)에 easeInOutCubic 커브를 적용해 축소 움직임을 매끄럽게 만듦
 class _EasedRectTween extends Tween<Rect?> {
@@ -27,8 +29,8 @@ class _LandingPageState extends State<LandingPage> {
 
   // 전환 애니메이션 지속시간 (아래 _startExit의 대기시간과 반드시 일치시킬 것)
   static const _exitDuration = Duration(milliseconds: 550);
-  static const _bgColor = Color(0xFFEAF4FF);
-  static const _titleColor = Color(0xFF052A5F);
+  // static const _bgColor = Color(0xFFEAF4FF);
+  // static const _titleColor = Color(0xFF052A5F);
 
   @override
   void initState() {
@@ -80,7 +82,7 @@ class _LandingPageState extends State<LandingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Center(
           child: Column(
@@ -96,38 +98,38 @@ class _LandingPageState extends State<LandingPage> {
                       _EasedRectTween(begin: begin, end: end),
                   child: Image.asset(
                     'assets/images/wayable.png',
-                    width: 140,
-                    height: 140,
+                    width: 140.r,
+                    height: 140.r,
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: 32.h),
 
               // 대제목 - exit 시 슬라이드 없이 제자리에서 페이드아웃만
               _buildFadeText(
                 visible: _titleVisible,
-                child: const Text(
+                child: Text(
                   '가고 싶은 곳, 갈 수 있는 길',
                   style: TextStyle(
                     fontFamily: 'Pretendard',
                     fontWeight: FontWeight.w700,
-                    fontSize: 27,
-                    color: _titleColor,
+                    fontSize: 27.sp,
+                    color: AppColors.catchPhrase,
                   ),
                 ),
               ),
-              const SizedBox(height: 6),
+              SizedBox(height: 6.h),
 
               // 소제목 - 마찬가지로 제자리에서 페이드아웃만
               _buildFadeText(
                 visible: _subtitleVisible,
-                child: const Text(
+                child: Text(
                   '장벽 없이 나답게 떠나는 여행',
                   style: TextStyle(
                     fontFamily: 'Pretendard',
                     fontWeight: FontWeight.w300,
-                    fontSize: 20,
-                    color: _titleColor,
+                    fontSize: 20.sp,
+                    color: AppColors.catchPhrase,
                   ),
                 ),
               ),

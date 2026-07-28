@@ -1,16 +1,68 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-const _kDialogRadius = 20.0;
-const _kButtonRadius = 12.0;
-const _kPrimaryColor = Color(0xFF0065F4);
-const _kSecondaryColor = Color(0xFFE6E5EA);
-const _kSecondaryTextColor = Color(0xFF26272B);
+import '../theme/app_colors.dart';
 
-RoundedRectangleBorder _dialogShape() =>
-    RoundedRectangleBorder(borderRadius: BorderRadius.circular(_kDialogRadius));
+/// 폴더 삭제 확인 다이얼로그 기준 노드(Figma 393px 프레임, 앱 전역 ScreenUtil
+/// 기준 프레임과 동일)에서 측정한 좌우 마진 평균값. 카드 너비를 고정하지
+/// 않고 이 마진만큼만 비워두는 방식이라 화면 폭에 비례해 자동으로 커진다.
+const _kOuterMarginPx = 40.5;
+const _kDialogRadius = 24.0;
+const _kFooterHeight = 63.0;
 
-RoundedRectangleBorder _buttonShape() =>
-    RoundedRectangleBorder(borderRadius: BorderRadius.circular(_kButtonRadius));
+RoundedRectangleBorder _dialogShape() => RoundedRectangleBorder(
+  borderRadius: BorderRadius.circular(_kDialogRadius.r),
+);
+
+TextStyle _bodyTextStyle(FontWeight weight) => TextStyle(
+  fontSize: 14.sp,
+  fontWeight: weight,
+  color: AppColors.textPrimary,
+  height: 1.5,
+);
+
+TextStyle _actionTextStyle(Color color) =>
+    TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: color);
+
+/// title이 있으면 title(세미볼드)/content(라이트)로 구분되고, title 없이
+/// content 하나만 쓰는 다이얼로그(로그인 유도, 안내, 원버튼 등)는 세미볼드로
+/// 통일한다.
+Widget _dialogBody({required String? title, required String content}) {
+  final hasTitle = title != null;
+  return Padding(
+    padding: EdgeInsets.fromLTRB(30.w, 28.h, 30.w, 24.h),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (hasTitle) ...[
+          Text(title, style: _bodyTextStyle(FontWeight.w600)),
+          SizedBox(height: 4.h),
+        ],
+        Text(
+          content,
+          style: _bodyTextStyle(hasTitle ? FontWeight.w300 : FontWeight.w600),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _footerButton({
+  required String label,
+  required Color color,
+  required VoidCallback onTap,
+}) {
+  return Expanded(
+    child: InkWell(
+      onTap: onTap,
+      child: SizedBox(
+        height: _kFooterHeight.h,
+        child: Center(child: Text(label, style: _actionTextStyle(color))),
+      ),
+    ),
+  );
+}
 
 /// 버튼 2개(보조/주 액션)짜리 컨펌 다이얼로그. 좌우로 배치되며 좌측이 보조
 /// 액션, 우측이 주 액션이다. 주 액션을 누르면 true, 보조 액션이나 다이얼로그
@@ -24,49 +76,43 @@ Future<bool?> showTwoButtonDialog(
 }) {
   return showDialog<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    barrierColor: AppColors.barrierBackground,
+    builder: (dialogContext) => Dialog(
       shape: _dialogShape(),
-      title: title == null
-          ? null
-          : Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-      content: Text(content),
-      actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-      actions: [
-        Row(
-          children: [
-            Expanded(
-              child: SizedBox(
-                height: 44,
-                child: TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(false),
-                  style: TextButton.styleFrom(
-                    backgroundColor: _kSecondaryColor,
-                    foregroundColor: _kSecondaryTextColor,
-                    shape: _buttonShape(),
-                  ),
-                  child: Text(secondaryLabel),
+      clipBehavior: Clip.antiAlias,
+      backgroundColor: Colors.white,
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: _kOuterMarginPx.w,
+        vertical: 24.h,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _dialogBody(title: title, content: content),
+          Divider(height: 1, thickness: 1, color: AppColors.divider),
+          IntrinsicHeight(
+            child: Row(
+              children: [
+                _footerButton(
+                  label: secondaryLabel,
+                  color: AppColors.textPrimary,
+                  onTap: () => Navigator.of(dialogContext).pop(false),
                 ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: SizedBox(
-                height: 44,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(true),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _kPrimaryColor,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: _buttonShape(),
-                  ),
-                  child: Text(primaryLabel),
+                VerticalDivider(
+                  width: 1,
+                  thickness: 1,
+                  color: AppColors.divider,
                 ),
-              ),
+                _footerButton(
+                  label: primaryLabel,
+                  color: AppColors.primary,
+                  onTap: () => Navigator.of(dialogContext).pop(true),
+                ),
+              ],
             ),
-          ],
-        ),
-      ],
+          ),
+        ],
+      ),
     ),
   );
 }
@@ -80,29 +126,35 @@ Future<void> showInfoDialog(
 }) {
   return showDialog<void>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    barrierColor: AppColors.barrierBackground,
+    builder: (dialogContext) => Dialog(
       shape: _dialogShape(),
-      title: title == null
-          ? null
-          : Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-      content: Text(content),
-      actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-      actions: [
-        SizedBox(
-          width: double.infinity,
-          height: 44,
-          child: ElevatedButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _kPrimaryColor,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: _buttonShape(),
+      clipBehavior: Clip.antiAlias,
+      backgroundColor: Colors.white,
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: _kOuterMarginPx.w,
+        vertical: 24.h,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _dialogBody(title: title, content: content),
+          Divider(height: 1, thickness: 1, color: AppColors.divider),
+          InkWell(
+            onTap: () => Navigator.of(dialogContext).pop(),
+            child: SizedBox(
+              width: double.infinity,
+              height: _kFooterHeight.h,
+              child: Center(
+                child: Text(
+                  confirmLabel,
+                  style: _actionTextStyle(AppColors.primary),
+                ),
+              ),
             ),
-            child: Text(confirmLabel),
           ),
-        ),
-      ],
+        ],
+      ),
     ),
   );
 }
