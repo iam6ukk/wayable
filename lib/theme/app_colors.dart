@@ -4,16 +4,29 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  // 메인 컬러: 기본 버튼/핵심 액션, 선택 배경/안내 영역, 추천·저장·강조 정보
-  static const primary = Color(0xFF2563EB);
-  static const bannerBackground = Color(0xFFEAF4FE);
-  static const accent = Color(0xFFFFD166);
+  // 메인 컬러
+  static const primary = Color(0xFF0067FD); // 기본 버튼, 핵심 액션
+  static const background = Color(0xFFE5F4FF); // 선택 배경,안내 영역
+  static const accent = Color(0xFFFFCD21); // 추천, 저장, 강조 정보
+
+  // 배경
+  static const whiteBackground = Colors.white;
+  static const blackBackground = Colors.black;
+  static const bottomSheetBackground = Color(0xFFF8FCFF); // 바텀 시트 배경색
+  static const barrierBackground = Color(0x33363636);
 
   // 텍스트 강조 단계: Primary > Secondary > Tertiary > Disabled 순으로 강조가 약해짐
   static const textPrimary = Color(0xFF444444);
-  static const textSecondary = Color(0xFF3C3C3C);
-  static const textTertiary = Color(0xFFA5A5A5);
-  static const textDisabled = Color(0xFFF5F5F5);
+  static const textSecondary = Color(0xFF666666);
+  static const textTertiary = Color(0xFF888888);
+  static const textQuaternary = Color(0xFFABABAB);
+
+  static const textByBlackBackground = Color(0xFFCCCCCC);
+  static const catchPhrase = Color(0xFF052A5F);
+
+  // 선
+  static const faintDivider = Color(0xFFD6D6D6);
+  static const boldDivider = Color(0xFF8F8F8F);
 
   // 하단 네비게이션 바 아이콘
   static const navIconActive = Color(0xFF656565);

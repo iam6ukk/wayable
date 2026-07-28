@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:wayable/screen/auth/login_screen.dart';
+import 'package:wayable/theme/app_colors.dart';
 
 // Hero flight(위치/크기 보간)에 easeInOutCubic 커브를 적용해 축소 움직임을 매끄럽게 만듦
 class _EasedRectTween extends Tween<Rect?> {
@@ -28,8 +29,8 @@ class _LandingPageState extends State<LandingPage> {
 
   // 전환 애니메이션 지속시간 (아래 _startExit의 대기시간과 반드시 일치시킬 것)
   static const _exitDuration = Duration(milliseconds: 550);
-  static const _bgColor = Color(0xFFEAF4FF);
-  static const _titleColor = Color(0xFF052A5F);
+  // static const _bgColor = Color(0xFFEAF4FF);
+  // static const _titleColor = Color(0xFF052A5F);
 
   @override
   void initState() {
@@ -81,7 +82,7 @@ class _LandingPageState extends State<LandingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Center(
           child: Column(
@@ -113,7 +114,7 @@ class _LandingPageState extends State<LandingPage> {
                     fontFamily: 'Pretendard',
                     fontWeight: FontWeight.w700,
                     fontSize: 27.sp,
-                    color: _titleColor,
+                    color: AppColors.catchPhrase,
                   ),
                 ),
               ),
@@ -128,7 +129,7 @@ class _LandingPageState extends State<LandingPage> {
                     fontFamily: 'Pretendard',
                     fontWeight: FontWeight.w300,
                     fontSize: 20.sp,
-                    color: _titleColor,
+                    color: AppColors.catchPhrase,
                   ),
                 ),
               ),

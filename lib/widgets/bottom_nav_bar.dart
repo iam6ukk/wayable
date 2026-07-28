@@ -40,7 +40,7 @@ class BottomNavBar extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      color: AppColors.bannerBackground,
+      color: AppColors.background,
       padding: EdgeInsets.only(bottom: bottomInset),
       child: SizedBox(
         height: kBottomNavigationBarHeight,
@@ -67,7 +67,9 @@ class BottomNavBar extends StatelessWidget {
           child: Icon(
             tab.icon,
             size: 28.r,
-            color: isSelected ? AppColors.navIconActive : AppColors.navIconInactive,
+            color: isSelected
+                ? AppColors.navIconActive
+                : AppColors.navIconInactive,
           ),
         ),
       ),

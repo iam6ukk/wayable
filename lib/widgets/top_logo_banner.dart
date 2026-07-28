@@ -14,7 +14,7 @@ class TopLogoBanner extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      color: AppColors.bannerBackground,
+      color: AppColors.background,
       padding: EdgeInsets.only(top: topInset),
       child: SizedBox(
         height: kToolbarHeight,

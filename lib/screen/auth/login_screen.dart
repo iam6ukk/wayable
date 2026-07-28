@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:wayable/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../navigation/main_shell.dart';
 import '../myPage/accessibility_screen.dart';
@@ -17,9 +18,6 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _wordmarkVisible = false;
   bool _buttonsVisible = false;
-
-  // 랜딩페이지와 동일한 배경색 (전환이 끊기지 않고 이어지도록)
-  static const _bgColor = Color(0xFFE8F4FF);
 
   @override
   void initState() {
@@ -75,7 +73,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     return Scaffold(
-      backgroundColor: _bgColor,
+      backgroundColor: AppColors.background,
       // Stack + Positioned 구조 (overflow 에러가 발생하지 않는 원래 안정적인 구조로 복귀)
       body: Stack(
         children: [
@@ -108,7 +106,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         fontFamily: 'CalSans',
                         fontSize: 27.sp,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF004EBC),
+                        color: AppColors.primary,
                       ),
                     ),
                   ),
@@ -187,7 +185,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         decoration: BoxDecoration(
                           color: const Color(0xFFFFFFFF),
                           border: Border.all(
-                            color: const Color(0xFF747775),
+                            color: AppColors.boldDivider,
+                            // color: const Color(0xFF747775),
                             width: 0.2,
                           ),
                           borderRadius: BorderRadius.all(Radius.circular(8.r)),
@@ -234,11 +233,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           fontFamily: 'Pretendard',
                           fontSize: 14.sp,
                           fontWeight: FontWeight.w400,
-                          color: const Color(0xFF697281),
+                          color: AppColors.textSecondary,
                           decoration: TextDecoration.underline,
-                          decorationColor: const Color(
-                            0xFF697281,
-                          ).withValues(alpha: 0.3),
+                          decorationColor: AppColors.textSecondary.withValues(
+                            alpha: 0.3,
+                          ),
                         ),
                       ),
                     ),

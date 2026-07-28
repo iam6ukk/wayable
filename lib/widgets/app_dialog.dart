@@ -9,10 +9,10 @@ import '../theme/app_colors.dart';
 const _kOuterMarginPx = 40.5;
 const _kDialogRadius = 24.0;
 const _kFooterHeight = 63.0;
-const _kBarrierColor = Color(0x33363636);
 
-RoundedRectangleBorder _dialogShape() =>
-    RoundedRectangleBorder(borderRadius: BorderRadius.circular(_kDialogRadius.r));
+RoundedRectangleBorder _dialogShape() => RoundedRectangleBorder(
+  borderRadius: BorderRadius.circular(_kDialogRadius.r),
+);
 
 TextStyle _bodyTextStyle(FontWeight weight) => TextStyle(
   fontSize: 14.sp,
@@ -76,7 +76,7 @@ Future<bool?> showTwoButtonDialog(
 }) {
   return showDialog<bool>(
     context: context,
-    barrierColor: _kBarrierColor,
+    barrierColor: AppColors.barrierBackground,
     builder: (dialogContext) => Dialog(
       shape: _dialogShape(),
       clipBehavior: Clip.antiAlias,
@@ -98,7 +98,11 @@ Future<bool?> showTwoButtonDialog(
                   color: AppColors.textPrimary,
                   onTap: () => Navigator.of(dialogContext).pop(false),
                 ),
-                VerticalDivider(width: 1, thickness: 1, color: AppColors.divider),
+                VerticalDivider(
+                  width: 1,
+                  thickness: 1,
+                  color: AppColors.divider,
+                ),
                 _footerButton(
                   label: primaryLabel,
                   color: AppColors.primary,
@@ -122,7 +126,7 @@ Future<void> showInfoDialog(
 }) {
   return showDialog<void>(
     context: context,
-    barrierColor: _kBarrierColor,
+    barrierColor: AppColors.barrierBackground,
     builder: (dialogContext) => Dialog(
       shape: _dialogShape(),
       clipBehavior: Clip.antiAlias,
@@ -142,7 +146,10 @@ Future<void> showInfoDialog(
               width: double.infinity,
               height: _kFooterHeight.h,
               child: Center(
-                child: Text(confirmLabel, style: _actionTextStyle(AppColors.primary)),
+                child: Text(
+                  confirmLabel,
+                  style: _actionTextStyle(AppColors.primary),
+                ),
               ),
             ),
           ),
