@@ -4,7 +4,7 @@ import '../providers/auth_provider.dart';
 import '../screen/auth/login_screen.dart';
 import '../screen/home_screen.dart';
 import '../screen/myPage/mypage_screen.dart';
-import '../screen/saveSpot/saved_list_screen.dart';
+import '../screen/bookmark/bookmark_screen.dart';
 import '../screen/search/explore_screen.dart';
 import '../screen/search/map_screen.dart';
 import '../widgets/app_dialog.dart';
@@ -41,9 +41,9 @@ class _MainShellState extends ConsumerState<MainShell> {
         secondaryLabel: '취소',
       );
       if (goLogin == true && context.mounted) {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
       }
       return;
     }
