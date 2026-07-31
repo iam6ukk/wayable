@@ -17,10 +17,20 @@ class TourDetailService {
     String operation,
     Map<String, String> params,
   ) async {
+    final items = await _fetchItems(operation, params, numOfRows: 1);
+    return items.isEmpty ? null : items.first;
+  }
+
+  /// item이 여러 건(리스트) 내려오는 오퍼레이션(예: detailImage2)용 조회.
+  Future<List<Map<String, dynamic>>> _fetchItems(
+    String operation,
+    Map<String, String> params, {
+    required int numOfRows,
+  }) async {
     final serviceKey = dotenv.env['TOUR_API_SERVICE_KEY'];
     if (serviceKey == null || serviceKey.isEmpty) {
       AppLogger.error('TOUR_API_SERVICE_KEY가 .env에 없습니다.');
-      return null;
+      return const [];
     }
 
     final uri = Uri.https(_baseUrl, '$_basePath/$operation', {
@@ -28,7 +38,7 @@ class TourDetailService {
       'MobileOS': 'ETC',
       'MobileApp': 'WayAble',
       '_type': 'json',
-      'numOfRows': '1',
+      'numOfRows': numOfRows.toString(),
       'pageNo': '1',
       ...params,
     });
@@ -37,7 +47,7 @@ class TourDetailService {
       final response = await http.get(uri);
       if (response.statusCode != 200) {
         AppLogger.error('$operation 요청 실패 (HTTP ${response.statusCode})');
-        return null;
+        return const [];
       }
 
       final decoded = jsonDecode(response.body);
@@ -50,18 +60,19 @@ class TourDetailService {
 
       final items = decoded['response']?['body']?['items'];
       // 결과가 없으면 items가 빈 문자열("")로 내려오는 경우가 있다.
-      if (items == null || items is! Map) return null;
+      if (items == null || items is! Map) return const [];
 
       final item = items['item'];
-      if (item == null || item is! Map && item is! List) return null;
-      if (item is List && item.isEmpty) return null;
-
-      final itemMap = item is List ? item.first : item;
-      return Map<String, dynamic>.from(itemMap as Map);
+      if (item == null) return const [];
+      if (item is Map) return [Map<String, dynamic>.from(item)];
+      if (item is List) {
+        return item.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      }
+      return const [];
     } catch (e, stackTrace) {
       AppLogger.error('$operation 조회 중 예외 발생', error: e);
       AppLogger.debug('stackTrace: $stackTrace');
-      return null;
+      return const [];
     }
   }
 
@@ -99,5 +110,25 @@ class TourDetailService {
     });
     if (json == null) return null;
     return TourAccessibilityInfo.fromJson(json);
+  }
+
+  /// 상세 이미지 갤러리 조회(이미지 캐러셀용). 등록된 사진이 없으면 빈
+  /// 리스트를 반환하고, 그 경우 호출부는 detailCommon2의 firstimage로
+  /// 대체해서 보여준다.
+  Future<List<String>> fetchImages(String contentId) async {
+    final items = await _fetchItems('detailImage2', {
+      'contentId': contentId,
+      'imageYN': 'Y',
+    }, numOfRows: 20);
+
+    return items
+        .map(
+          (item) =>
+              item['originimgurl'] as String? ??
+              item['smallimageurl'] as String?,
+        )
+        .whereType<String>()
+        .where((url) => url.isNotEmpty)
+        .toList();
   }
 }

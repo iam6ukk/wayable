@@ -9,7 +9,9 @@ import '../../model/tour/tour_category.dart';
 import '../../model/tour/tour_spot.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/tour/tour_spot_service.dart';
+import '../../theme/app_colors.dart';
 import '../../widgets/image_placeholder.dart';
+import '../../widgets/scroll_fab.dart';
 import 'explore_filter_screen.dart';
 import 'spot_detail_screen.dart';
 
@@ -65,6 +67,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   /// 서버(Cloud Function)가 검색어/필터를 다 적용해서 돌려준 현재 배치
   /// (최대 _kBatchSize건). [_pageItems]가 이 안에서 _kPageSize씩 잘라 보여준다.
   List<TourSpot> _currentBatch = const [];
+
   /// 지금 [_currentBatch]가 몇 번째 배치인지(1-based). _goToPage에서 이미
   /// 캐시된 배치 범위 안이면 재요청 없이 즉시 페이지만 바꾼다.
   int _loadedBatchNumber = 0;
@@ -363,9 +366,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _ScrollFab(icon: Icons.arrow_upward_rounded, onTap: _scrollToTop),
+              ScrollFab(icon: Icons.arrow_upward_rounded, onTap: _scrollToTop),
               SizedBox(height: 11.h),
-              _ScrollFab(
+              ScrollFab(
                 icon: Icons.arrow_downward_rounded,
                 onTap: _scrollToBottom,
               ),
@@ -505,7 +508,31 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           Stack(
             children: [
               Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text.rich(
+                    TextSpan(
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                        height: 1.0,
+                      ),
+                      children: [
+                        const TextSpan(text: '검색 결과 '),
+                        TextSpan(
+                          text: '$_totalCount건',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                    strutStyle: StrutStyle(
+                      fontSize: 14.sp,
+                      height: 1.0,
+                      forceStrutHeight: true,
+                    ),
+                  ),
+                  SizedBox(height: 6.h),
                   _ResultGrid(items: _pageItems),
                   const SizedBox(height: 24),
                   _PaginationBar(
@@ -762,6 +789,11 @@ class _ResultGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
+      // padding을 안 주면 GridView가 MediaQuery.padding(상태바 높이 등)을
+      // 자기 sliver의 상하 padding으로 자동으로 넣어버려서, 위에 있는
+      // "검색 결과 N건" 텍스트와의 여백을 아무리 줄여도 그 위에 상태바
+      // 높이만큼의 여백이 그대로 남아 있었다.
+      padding: EdgeInsets.zero,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: items.length,
@@ -989,31 +1021,6 @@ class _NavTextButton extends StatelessWidget {
           ),
           if (trailingIcon != null) Icon(trailingIcon, size: 16, color: color),
         ],
-      ),
-    );
-  }
-}
-
-class _ScrollFab extends StatelessWidget {
-  const _ScrollFab({required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: const Color(0xFFF0F4F8),
-      shape: const CircleBorder(),
-      elevation: 0,
-      child: InkWell(
-        onTap: onTap,
-        customBorder: const CircleBorder(),
-        child: SizedBox(
-          width: 40,
-          height: 40,
-          child: Icon(icon, size: 20, color: _kInactiveIconColor),
-        ),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../model/accessibility/accessibility_field.dart';
@@ -8,30 +9,35 @@ import '../../model/tour/tour_accessibility_info.dart';
 import '../../model/tour/tour_common_info.dart';
 import '../../model/tour/tour_intro_info.dart';
 import '../../model/tour/tour_spot.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/bookmark_provider.dart';
 import '../../services/tour/tour_detail_service.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/app_dialog.dart';
 import '../../widgets/bottom_nav_bar.dart';
 import '../../widgets/image_placeholder.dart';
 import '../../widgets/top_logo_banner.dart';
+import '../../widgets/toast.dart';
 import '../../model/tour/tour_facility_fields.dart';
+import '../auth/login_screen.dart';
+import '../bookmark/save_to_folder_sheet.dart';
 
 /// 여행지 상세 화면. 탐색 결과 카드를 눌렀을 때 진입하며, contentId를 기준으로
 /// 공통정보(detailCommon2)/소개정보(detailIntro2)/무장애정보(detailWithTour2)를
 /// 조회해 시설정보와 편의정보(장애유형별 탭)를 보여준다.
-class SpotDetailScreen extends StatefulWidget {
+class SpotDetailScreen extends ConsumerStatefulWidget {
   const SpotDetailScreen({super.key, required this.spot});
 
   final TourSpot spot;
 
   @override
-  State<SpotDetailScreen> createState() => _SpotDetailScreenState();
+  ConsumerState<SpotDetailScreen> createState() => _SpotDetailScreenState();
 }
 
-class _SpotDetailScreenState extends State<SpotDetailScreen> {
+class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
   final _service = TourDetailService();
 
   bool _isLoading = true;
-  bool _isBookmarked = false;
 
   /// 편의정보 카테고리별 드롭다운 펼침 상태(인덱스 집합).
   Set<int> _expandedCategoryIndices = {};
@@ -39,6 +45,10 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
   TourCommonInfo? _common;
   TourIntroInfo? _intro;
   TourAccessibilityInfo? _accessibility;
+  List<String>? _galleryImages;
+
+  final _imagePageController = PageController();
+  int _currentImageIndex = 0;
 
   @override
   void initState() {
@@ -46,11 +56,18 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
     _loadDetail();
   }
 
+  @override
+  void dispose() {
+    _imagePageController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadDetail() async {
     final results = await Future.wait([
       _service.fetchCommonInfo(widget.spot.contentId),
       _service.fetchIntroInfo(widget.spot.contentId, widget.spot.contentTypeId),
       _service.fetchAccessibilityInfo(widget.spot.contentId),
+      _service.fetchImages(widget.spot.contentId),
     ]);
 
     if (!mounted) return;
@@ -58,6 +75,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
       _common = results[0] as TourCommonInfo?;
       _intro = results[1] as TourIntroInfo?;
       _accessibility = results[2] as TourAccessibilityInfo?;
+      _galleryImages = results[3] as List<String>;
       _isLoading = false;
 
       // 편의정보 중 가장 먼저인 카테고리를 기본으로 펼쳐서 보여줌
@@ -65,9 +83,15 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
     });
   }
 
+  /// 썸네일(detailCommon2의 firstimage)을 맨 앞에 두고, detailImage2로 받아온
+  /// 갤러리에서 썸네일과 겹치는 걸 제외한 뒤 최대 3장까지 채운다(썸네일이
+  /// 갤러리에도 그대로 들어있는 경우가 있어 중복 제거가 필요하다).
   List<String> get _images {
-    final original = _common?.firstImage ?? widget.spot.firstImage;
-    return original == null ? const [] : [original];
+    final thumbnail = _common?.firstImage ?? widget.spot.firstImage;
+    final extras = (_galleryImages ?? const [])
+        .where((url) => url != thumbnail)
+        .toList();
+    return [?thumbnail, ...extras].take(3).toList();
   }
 
   List<_AccessibilityCategory> get _accessibilityCategories {
@@ -167,6 +191,36 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
     );
   }
 
+  /// 비회원이 북마크를 누르면 마이페이지/저장목록 탭과 동일한 로그인 유도
+  /// 다이얼로그를 띄운다 — 북마크는 저장목록과 마찬가지로 회원 전용 기능이다.
+  Future<void> _handleBookmarkTap(
+    bool isBookmarked,
+    TourSpot resolvedSpot,
+  ) async {
+    final isGuest = ref.read(authStateProvider).user == null;
+    if (isGuest) {
+      final goLogin = await showTwoButtonDialog(
+        context,
+        content: '회원에게만 제공되는 기능입니다.\n로그인 하시겠습니까?',
+        primaryLabel: '로그인',
+        secondaryLabel: '취소',
+      );
+      if (goLogin == true && context.mounted) {
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
+      }
+      return;
+    }
+
+    if (isBookmarked) {
+      ref.read(bookmarkProvider.notifier).unsaveSpot(widget.spot.contentId);
+      showAndroidToast(context, '북마크가 해제되었습니다.');
+    } else {
+      showSaveToFolderSheet(context, ref, resolvedSpot);
+    }
+  }
+
   Widget _buildHeader() {
     final title = _common?.title.isNotEmpty == true
         ? _common!.title
@@ -175,6 +229,25 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
         ? _common!.addr1
         : widget.spot.addr1;
     final addr2 = _common?.addr2;
+    final isBookmarked = ref.watch(
+      bookmarkProvider.select((state) => state.isSaved(widget.spot.contentId)),
+    );
+    final images = _images;
+    final resolvedSpot = TourSpot(
+      contentId: widget.spot.contentId,
+      title: title,
+      addr1: addr1,
+      addr2: addr2,
+      firstImage: images.isEmpty ? null : images.first,
+      // 상세화면에서 스와이프로 보여준 나머지 이미지들도 그대로 저장해서,
+      // 저장목록 화면의 3장짜리 썸네일 줄에 각각 다른 사진이 보이게 한다.
+      galleryImages: images.length > 1 ? images.sublist(1) : const [],
+      contentTypeId: widget.spot.contentTypeId,
+      lDongRegnCd: widget.spot.lDongRegnCd,
+      lDongSignguCd: widget.spot.lDongSignguCd,
+      supportedProfiles: widget.spot.supportedProfiles,
+      populatedFields: widget.spot.populatedFields,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,12 +266,12 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
               ),
             ),
             GestureDetector(
-              onTap: () => setState(() => _isBookmarked = !_isBookmarked),
+              onTap: () => _handleBookmarkTap(isBookmarked, resolvedSpot),
               behavior: HitTestBehavior.opaque,
               child: Icon(
-                _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                isBookmarked ? Icons.bookmark : Icons.bookmark_border,
                 size: 28.r,
-                color: _isBookmarked ? AppColors.accent : AppColors.boldDivider,
+                color: isBookmarked ? AppColors.accent : AppColors.boldDivider,
               ),
             ),
           ],
@@ -221,11 +294,47 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
         borderRadius: BorderRadius.circular(12.r),
         child: images.isEmpty
             ? _buildImagePlaceholder()
-            : Image.network(
-                images.first,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    _buildImagePlaceholder(),
+            : Stack(
+                children: [
+                  Positioned.fill(
+                    child: PageView.builder(
+                      controller: _imagePageController,
+                      itemCount: images.length,
+                      onPageChanged: (index) =>
+                          setState(() => _currentImageIndex = index),
+                      itemBuilder: (context, index) => Image.network(
+                        images[index],
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            _buildImagePlaceholder(),
+                      ),
+                    ),
+                  ),
+                  if (images.length > 1)
+                    Positioned(
+                      bottom: 10.h,
+                      left: 0,
+                      right: 0,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(images.length, (index) {
+                          final isActive = index == _currentImageIndex;
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            margin: EdgeInsets.symmetric(horizontal: 3.w),
+                            width: isActive ? 16.w : 6.w,
+                            height: 6.h,
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? Colors.white
+                                  : Colors.white.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(3.r),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                ],
               ),
       ),
     );
@@ -262,7 +371,6 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
           Container(
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(8.r)),
             foregroundDecoration: BoxDecoration(
-              // border: Border.all(color: AppColors.faintDivider),
               border: Border.all(color: AppColors.faintDivider, width: 0.5),
               borderRadius: BorderRadius.circular(8.r),
             ),
@@ -271,7 +379,11 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
               children: [
                 for (var i = 0; i < fields.length; i++) ...[
                   if (i > 0)
-                    const Divider(height: 1, color: AppColors.faintDivider),
+                    const Divider(
+                      height: 1,
+                      thickness: 0.5,
+                      color: AppColors.faintDivider,
+                    ),
                   _facilityFieldRow(fields[i]),
                 ],
               ],

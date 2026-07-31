@@ -117,6 +117,110 @@ Future<bool?> showTwoButtonDialog(
   );
 }
 
+/// 인풋 박스 하나 + 버튼 2개(취소/주 액션)짜리 다이얼로그. 폴더 이름 변경,
+/// 새 폴더 추가 등 "이름을 입력받아 확정"하는 흐름에서 공통으로 재사용한다.
+/// 주 액션을 누르면 입력값(trim)을, 취소하거나 다이얼로그 바깥을 누르면
+/// null을 반환한다. 입력값이 비어 있으면 주 액션을 눌러도 닫히지 않는다.
+Future<String?> showFolderNameInputDialog(
+  BuildContext context, {
+  required String title,
+  required String primaryLabel,
+  String initialName = '',
+  String hintText = '폴더 이름을 입력해주세요',
+}) {
+  final controller = TextEditingController(text: initialName);
+  return showDialog<String>(
+    context: context,
+    barrierColor: AppColors.barrierBackground,
+    builder: (dialogContext) => Dialog(
+      shape: _dialogShape(),
+      clipBehavior: Clip.antiAlias,
+      backgroundColor: Colors.white,
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: _kOuterMarginPx.w,
+        vertical: 24.h,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(30.w, 28.h, 30.w, 24.h),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: _bodyTextStyle(FontWeight.w600),
+                ),
+                SizedBox(height: 16.h),
+                Container(
+                  height: 51.h,
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: AppColors.faintDivider,
+                      width: 0.5,
+                    ),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextField(
+                      controller: controller,
+                      autofocus: true,
+                      maxLength: 10,
+                      style: TextStyle(
+                        fontSize: 17.sp,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textPrimary,
+                      ),
+                      decoration: InputDecoration.collapsed(
+                        hintText: hintText,
+                        hintStyle: TextStyle(
+                          fontSize: 17.sp,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFFA8A8A8),
+                        ),
+                      ).copyWith(counterText: ''),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 1, thickness: 1, color: AppColors.faintDivider),
+          IntrinsicHeight(
+            child: Row(
+              children: [
+                _footerButton(
+                  label: '취소',
+                  color: AppColors.textPrimary,
+                  onTap: () => Navigator.of(dialogContext).pop(),
+                ),
+                VerticalDivider(
+                  width: 1,
+                  thickness: 1,
+                  color: AppColors.faintDivider,
+                ),
+                _footerButton(
+                  label: primaryLabel,
+                  color: AppColors.primary,
+                  onTap: () {
+                    final value = controller.text.trim();
+                    if (value.isEmpty) return;
+                    Navigator.of(dialogContext).pop(value);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 /// 확인 버튼 1개짜리 안내 다이얼로그.
 Future<void> showInfoDialog(
   BuildContext context, {

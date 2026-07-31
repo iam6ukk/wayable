@@ -6,8 +6,8 @@ enum BottomNavTab {
   explore, // 맞춤 여행지 탐색
   map, // 지도 기반 탐색
   home, // 메인
+  bookmark, // 북마크(저장목록)
   myPage, // 마이페이지
-  savedList, // 저장목록
 }
 
 extension _BottomNavTabX on BottomNavTab {
@@ -15,8 +15,8 @@ extension _BottomNavTabX on BottomNavTab {
     BottomNavTab.explore => Icons.search_outlined,
     BottomNavTab.map => Icons.pin_drop_outlined,
     BottomNavTab.home => Icons.home_outlined,
+    BottomNavTab.bookmark => Icons.bookmark_border,
     BottomNavTab.myPage => Icons.person_outlined,
-    BottomNavTab.savedList => Icons.bookmark_outlined,
   };
 }
 

@@ -9,6 +9,13 @@ AccessibilityField? _fieldFromName(String name) {
   return null;
 }
 
+AccessibilityProfile? _profileFromName(String name) {
+  for (final profile in AccessibilityProfile.values) {
+    if (profile.name == name) return profile;
+  }
+  return null;
+}
+
 /// Firestore tourSpots/{contentId} 문서를 탐색 화면 카드에 필요한 형태로 매핑한 모델.
 /// 문서 구조는 functions/src/model/index.ts의 FirestoreTourSpotDoc과 대응한다.
 class TourSpot {
@@ -17,6 +24,11 @@ class TourSpot {
   final String addr1;
   final String? addr2;
   final String? firstImage;
+
+  /// 상세화면에서 detailImage2로 추가 조회한 이미지(썸네일 제외, 최대 2장).
+  /// firstImage와 합쳐서 저장목록 화면의 3장짜리 썸네일 줄에 그대로 쓰인다.
+  final List<String> galleryImages;
+
   final String contentTypeId;
 
   /// 법정동 지역코드/시군구코드 (ldongCode2 체계). assets/data/area_codes.json의
@@ -38,6 +50,7 @@ class TourSpot {
     required this.addr1,
     this.addr2,
     this.firstImage,
+    this.galleryImages = const [],
     this.contentTypeId = '',
     this.lDongRegnCd,
     this.lDongSignguCd,
@@ -78,6 +91,52 @@ class TourSpot {
       contentTypeId: (basic['contentTypeId'] as String?) ?? '',
       lDongRegnCd: basic['lDongRegnCd'] as String?,
       lDongSignguCd: basic['lDongSignguCd'] as String?,
+      supportedProfiles: supportedProfiles,
+      populatedFields: populatedFields,
+    );
+  }
+
+  /// 저장목록(북마크) 문서 형태(users/{uid}/bookmarks/{folderId}/spots/{spotId})로
+  /// 복제 저장할 때 쓰는 평평한 맵. tourSpots 원본 문서의 raw 필드가 아니라,
+  /// 저장목록 카드 렌더링에 필요한 만큼만(이 클래스가 이미 정규화해둔 필드) 담는다.
+  Map<String, dynamic> toBookmarkDoc() {
+    return {
+      'contentId': contentId,
+      'title': title,
+      'addr1': addr1,
+      if (addr2 != null) 'addr2': addr2,
+      if (firstImage != null) 'firstImage': firstImage,
+      if (galleryImages.isNotEmpty) 'galleryImages': galleryImages,
+      'contentTypeId': contentTypeId,
+      if (lDongRegnCd != null) 'lDongRegnCd': lDongRegnCd,
+      if (lDongSignguCd != null) 'lDongSignguCd': lDongSignguCd,
+      'supportedProfiles': supportedProfiles.map((p) => p.name).toList(),
+      'populatedFields': populatedFields.map((f) => f.name).toList(),
+    };
+  }
+
+  factory TourSpot.fromBookmarkDoc(Map<String, dynamic> data) {
+    final supportedProfiles = ((data['supportedProfiles'] as List?) ?? const [])
+        .map((name) => _profileFromName(name as String))
+        .whereType<AccessibilityProfile>()
+        .toSet();
+    final populatedFields = ((data['populatedFields'] as List?) ?? const [])
+        .map((name) => _fieldFromName(name as String))
+        .whereType<AccessibilityField>()
+        .toSet();
+
+    return TourSpot(
+      contentId: data['contentId'] as String,
+      title: (data['title'] as String?) ?? '',
+      addr1: (data['addr1'] as String?) ?? '',
+      addr2: data['addr2'] as String?,
+      firstImage: data['firstImage'] as String?,
+      galleryImages: ((data['galleryImages'] as List?) ?? const [])
+          .map((e) => e as String)
+          .toList(),
+      contentTypeId: (data['contentTypeId'] as String?) ?? '',
+      lDongRegnCd: data['lDongRegnCd'] as String?,
+      lDongSignguCd: data['lDongSignguCd'] as String?,
       supportedProfiles: supportedProfiles,
       populatedFields: populatedFields,
     );
