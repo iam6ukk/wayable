@@ -84,16 +84,6 @@ class KakaoAuthService {
     }
   }
 
-  // 로그아웃
-  Future<void> signOut() async {
-    try {
-      await kakao.UserApi.instance.logout();
-      await FirebaseAuth.instance.signOut();
-    } catch (e) {
-      AppLogger.error('[Auth] 카카오 로그아웃 실패', error: e);
-    }
-  }
-
   // 회원탈퇴
   // Firestore 유저 데이터 삭제 → Firebase 계정 삭제 → 카카오 연결 해제
   Future<bool> deleteAccount() async {
@@ -112,6 +102,20 @@ class KakaoAuthService {
       return true;
     } catch (e) {
       AppLogger.error('[Auth] 카카오 회원탈퇴 실패', error: e);
+      return false;
+    }
+  }
+
+  // 로그아웃
+  Future<bool> logout() async {
+    try {
+      await kakao.UserApi.instance.logout();
+      await FirebaseAuth.instance.signOut();
+
+      AppLogger.info('[Auth] 카카오 로그아웃 완료');
+      return true;
+    } catch (e) {
+      AppLogger.error('[Auth] 카카오 로그아웃 실패', error: e);
       return false;
     }
   }

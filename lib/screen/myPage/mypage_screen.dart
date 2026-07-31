@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../model/accessibility/accessibility_profile.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/app_logger.dart';
+import '../../widgets/app_dialog.dart';
 import '../../widgets/toast.dart';
 import '../auth/login_screen.dart';
 import 'accessibility_screen.dart';
@@ -39,12 +41,79 @@ class MyPageScreen extends ConsumerWidget {
   }
 
   Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
-    await ref.read(authStateProvider.notifier).signOut();
+    // TODO: 로그아웃 확인 다이얼로그. 일단 주석 처리.
+    // final confirmed = await showTwoButtonDialog(
+    //   context,
+    //   title: '로그아웃',
+    //   content: '로그아웃하시겠습니까?',
+    //   primaryLabel: '로그아웃',
+    //   secondaryLabel: '취소',
+    // );
+    // if (confirmed != true) {
+    //   AppLogger.debug('[Auth] 로그아웃 취소');
+    //   return;
+    // }
+
+    final provider = ref.read(authStateProvider).user?.provider;
+    final notifier = ref.read(authStateProvider.notifier);
+    AppLogger.debug('[Auth] 로그아웃 시도 (provider=$provider)');
+
+    final success = switch (provider) {
+      'kakao' => await notifier.logoutKakao(),
+      'google' => await notifier.logoutGoogle(),
+      _ => false,
+    };
+
     if (!context.mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
+
+    if (success) {
+      AppLogger.info('[Auth] 로그아웃 완료 (provider=$provider)');
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    } else {
+      AppLogger.warning('[Auth] 로그아웃 실패 (provider=$provider)');
+      showAndroidToast(context, '로그아웃에 실패했습니다. 다시 시도해주세요.');
+    }
+  }
+
+  Future<void> _handleDeleteAccount(BuildContext context, WidgetRef ref) async {
+    // TODO: 회원탈퇴 확인 다이얼로그. 일단 주석 처리.
+    // final confirmed = await showTwoButtonDialog(
+    //   context,
+    //   title: '회원탈퇴',
+    //   content: '탈퇴 시 계정 정보와 이용 기록이 모두 삭제되며 복구할 수 없습니다.\n탈퇴하시겠습니까?',
+    //   primaryLabel: '탈퇴',
+    //   secondaryLabel: '취소',
+    // );
+    // if (confirmed != true) {
+    //   AppLogger.debug('[Auth] 회원탈퇴 취소');
+    //   return;
+    // }
+
+    final provider = ref.read(authStateProvider).user?.provider;
+    final notifier = ref.read(authStateProvider.notifier);
+    AppLogger.debug('[Auth] 회원탈퇴 시도 (provider=$provider)');
+
+    final success = switch (provider) {
+      'kakao' => await notifier.deleteKakaoAccount(),
+      'google' => await notifier.deleteGoogleAccount(),
+      _ => false,
+    };
+
+    if (!context.mounted) return;
+
+    if (success) {
+      AppLogger.info('[Auth] 회원탈퇴 완료 (provider=$provider)');
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    } else {
+      AppLogger.warning('[Auth] 회원탈퇴 실패 (provider=$provider)');
+      showAndroidToast(context, '회원탈퇴에 실패했습니다. 다시 시도해주세요.');
+    }
   }
 
   @override
@@ -105,7 +174,10 @@ class MyPageScreen extends ConsumerWidget {
             children: [
               _buildTextAction('로그아웃', () => _handleLogout(context, ref)),
               SizedBox(width: 48.w),
-              _buildTextAction('회원탈퇴', () => _showNotReady(context)),
+              _buildTextAction(
+                '회원탈퇴',
+                () => _handleDeleteAccount(context, ref),
+              ),
             ],
           ),
           SizedBox(height: 24.h),

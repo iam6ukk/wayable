@@ -74,8 +74,58 @@ class GoogleAuthService {
     }
   }
 
-  Future<void> signOut() async {
-    await _googleSignIn.signOut();
-    await _auth.signOut();
+  // 회원탈퇴
+  // Firestore 유저 데이터 삭제 → Firebase 계정 삭제 → 구글 연결 해제
+  Future<bool> deleteAccount() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final uid = user?.uid;
+
+      if (uid != null) {
+        await _userService.deleteUser(uid);
+      }
+
+      try {
+        await user?.delete();
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'requires-recent-login') {
+          await _reauthenticateGoogle(user);
+          await user?.delete();
+        } else {
+          rethrow;
+        }
+      }
+
+      await GoogleSignIn.instance.disconnect();
+
+      AppLogger.info('[Auth] 구글 회원탈퇴 완료');
+      return true;
+    } catch (e) {
+      AppLogger.error('[Auth] 구글 회원탈퇴 실패', error: e);
+      return false;
+    }
+  }
+
+  Future<void> _reauthenticateGoogle(User? user) async {
+    final googleUser = await GoogleSignIn.instance.authenticate();
+    final googleAuth = googleUser.authentication;
+    final credential = GoogleAuthProvider.credential(
+      idToken: googleAuth.idToken,
+    );
+    await user?.reauthenticateWithCredential(credential);
+  }
+
+  // 구글 로그아웃
+  Future<bool> logout() async {
+    try {
+      await FirebaseAuth.instance.signOut();
+      await GoogleSignIn.instance.signOut();
+
+      AppLogger.info('[Auth] 구글 로그아웃 완료');
+      return true;
+    } catch (e) {
+      AppLogger.error('[Auth] 구글 로그아웃 실패', error: e);
+      return false;
+    }
   }
 }
