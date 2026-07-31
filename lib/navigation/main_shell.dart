@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
+import '../providers/bookmark_provider.dart';
 import '../screen/auth/login_screen.dart';
 import '../screen/home_screen.dart';
 import '../screen/myPage/mypage_screen.dart';
@@ -15,7 +16,7 @@ const _kTabTransitionDuration = Duration(milliseconds: 200);
 
 /// 로그인한 회원만 접근 가능한 탭. 비회원이 누르면 탭 전환 대신 로그인 유도
 /// 다이얼로그를 띄운다.
-const _kMemberOnlyTabs = {BottomNavTab.myPage, BottomNavTab.savedList};
+const _kMemberOnlyTabs = {BottomNavTab.myPage, BottomNavTab.bookmark};
 
 /// 하단 탭 화면들의 공용 셸. 상단 배너와 하단 탭 바는 고정한 채
 /// 선택된 탭에 따라 콘텐츠 영역만 페이드 인/아웃으로 교체한다.
@@ -56,12 +57,19 @@ class _MainShellState extends ConsumerState<MainShell> {
       BottomNavTab.map => const MapScreen(),
       BottomNavTab.home => const HomeScreen(),
       BottomNavTab.myPage => const MyPageScreen(),
-      BottomNavTab.savedList => const SavedListScreen(),
+      BottomNavTab.bookmark => const SavedListScreen(),
     };
   }
 
   @override
   Widget build(BuildContext context) {
+    // 저장목록 탭은 아직 선택하지 않았어도 로그인 상태라면 여기서 미리
+    // 구독을 시작해둔다 — 탭을 처음 누르는 순간부터 Firestore 왕복(폴더
+    // 목록/여행지 목록 조회)을 시작하면 그동안 화면이 비어 보이므로, 다른
+    // 탭을 보고 있는 동안 미리 받아둬서 탭을 눌렀을 때는 이미 준비된 값을
+    // 바로 보여줄 수 있게 한다.
+    ref.watch(bookmarkProvider);
+
     return Scaffold(
       backgroundColor: Colors.white,
       // 기본값(true)이면 키보드가 열고 닫힐 때마다 이 셸 전체(배너+콘텐츠+

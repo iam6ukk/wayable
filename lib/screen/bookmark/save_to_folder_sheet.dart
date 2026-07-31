@@ -71,9 +71,11 @@ Future<void> showSaveToFolderSheet(
       .read(bookmarkProvider)
       .folders
       .firstWhere((f) => f.id == result);
-  await ref.read(bookmarkProvider.notifier).saveSpotToFolder(folder.id, spot);
-  if (!context.mounted) return;
-  showAndroidToast(context, "저장되었습니다. '${folder.name}'에 추가되었습니다.");
+  // Firestore 저장 왕복을 기다렸다가 토스트를 띄우면, 북마크 해제(즉시
+  // 토스트가 뜨는 unsaveSpot 경로)와 다르게 저장 쪽만 유독 늦게 뜬 것처럼
+  // 보인다 — 여기도 기다리지 않고 바로 토스트를 띄운다.
+  ref.read(bookmarkProvider.notifier).saveSpotToFolder(folder.id, spot);
+  showAndroidToast(context, "'${folder.name}'에 추가되었습니다.");
 }
 
 class _SaveToFolderSheet extends StatefulWidget {
@@ -145,12 +147,12 @@ class _SaveToFolderSheetState extends State<_SaveToFolderSheet> {
             height: listHeight,
             child: ListView(
               controller: _scrollController,
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
               children: widget.folders.map(_buildFolderRow).toList(),
             ),
           ),
           Padding(
-            padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 20.h),
+            padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 20.h),
             child: _buildConfirmButton(),
           ),
         ],
@@ -160,7 +162,7 @@ class _SaveToFolderSheetState extends State<_SaveToFolderSheet> {
 
   Widget _buildHeader() {
     return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 12.h),
+      padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 12.h),
       child: Row(
         children: [
           Expanded(
@@ -212,7 +214,7 @@ class _SaveToFolderSheetState extends State<_SaveToFolderSheet> {
                 onTap: () => Navigator.of(context).pop(),
                 child: Icon(
                   Icons.close,
-                  size: 20.r,
+                  size: 26.r,
                   color: AppColors.navIconInactive,
                 ),
               ),

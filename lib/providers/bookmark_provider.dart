@@ -73,7 +73,19 @@ class BookmarkState {
 
 class BookmarkNotifier extends StateNotifier<BookmarkState> {
   BookmarkNotifier(this._uid)
-    : super(BookmarkState(folders: const [], spotsByFolderId: const {})) {
+    : super(
+        BookmarkState(
+          // Firestore 왕복이 끝나기 전에도 저장목록 화면이 탭 구조를 바로
+          // 그릴 수 있도록 '기본 폴더'를 낙관적으로 미리 채워둔다. 기본
+          // 폴더는 모든 유저에게 항상 존재하는 게 보장되므로 이 자리표시자가
+          // 틀릴 일은 없고, 실제 폴더 목록이 도착하면 그 값으로 바로
+          // 교체된다.
+          folders: _uid == null
+              ? const []
+              : [BookmarkFolder(id: 'default', name: '기본 폴더')],
+          spotsByFolderId: const {},
+        ),
+      ) {
     final uid = _uid;
     if (uid != null) _start(uid);
   }
@@ -83,9 +95,16 @@ class BookmarkNotifier extends StateNotifier<BookmarkState> {
   StreamSubscription<List<BookmarkFolder>>? _foldersSub;
   final Map<String, StreamSubscription<List<TourSpot>>> _spotsSubs = {};
 
-  Future<void> _start(String uid) async {
-    await _service.ensureDefaultFolder(uid);
+  void _start(String uid) {
+    // ensureDefaultFolder(존재 확인 후 없으면 생성) 왕복을 다 기다린 다음에야
+    // watchFolders 구독을 시작하면, 화면이 뜨는 데만 순차적으로 왕복 두 번이
+    // 필요해진다. 두 요청을 동시에 시작해서 하나로 줄인다 — 기본 폴더
+    // 생성이 아직 서버에 반영되기 전에 컬렉션이 비어 있는 스냅샷이 먼저
+    // 도착할 수 있는데, 그 빈 상태로 위 낙관적 기본 폴더 탭을 지워버리면
+    // 탭이 잠깐 사라졌다 다시 생기는 것처럼 보이므로 무시한다.
+    unawaited(_service.ensureDefaultFolder(uid));
     _foldersSub = _service.watchFolders(uid).listen((folders) {
+      if (folders.isEmpty && state.folders.isNotEmpty) return;
       state = state.copyWith(folders: folders);
       _syncSpotSubscriptions(uid, folders);
     });
@@ -154,8 +173,34 @@ class BookmarkNotifier extends StateNotifier<BookmarkState> {
     return _service.renameFolder(_requireUid(), folder.id, newName);
   }
 
-  Future<void> deleteFolder(BookmarkFolder folder) {
-    return _service.deleteFolder(_requireUid(), folder.id);
+  /// 삭제 확인 다이얼로그에서 확인을 누른 즉시 화면에서 지워져야 자연스러운데,
+  /// 실제 삭제는 하위 spots 문서를 먼저 조회한 뒤 배치 삭제하는 왕복이 있어
+  /// 그 응답을 기다리면 잠깐 화면에 그대로 남아 있는 것처럼 보인다. 그래서
+  /// Firestore 작업을 기다리지 않고 로컬 상태부터 먼저 지운다.
+  Future<void> deleteFolder(BookmarkFolder folder) async {
+    final uid = _requireUid();
+    final folders = state.folders.where((f) => f.id != folder.id).toList();
+    final spotsByFolderId = {...state.spotsByFolderId}..remove(folder.id);
+    final loadedFolderIds = {...state.loadedFolderIds}..remove(folder.id);
+    state = state.copyWith(
+      folders: folders,
+      spotsByFolderId: spotsByFolderId,
+      loadedFolderIds: loadedFolderIds,
+    );
+    _spotsSubs.remove(folder.id)?.cancel();
+
+    await _service.deleteFolder(uid, folder.id);
+  }
+
+  /// 드래그로 정한 새 순서를 바로 화면에 반영하고, 실제 저장(Firestore 배치
+  /// 업데이트)은 백그라운드로 진행한다 — 손을 뗀 순간 그 위치에 고정되어야
+  /// 자연스럽다.
+  Future<void> reorderFolders(List<BookmarkFolder> newOrder) async {
+    state = state.copyWith(folders: newOrder);
+    await _service.reorderFolders(
+      _requireUid(),
+      newOrder.map((f) => f.id).toList(),
+    );
   }
 
   /// 같은 여행지를 다른 폴더로 옮겨 저장하는 경우까지 포함해, 먼저 기존

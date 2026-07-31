@@ -9,14 +9,17 @@ import '../../model/tour/tour_accessibility_info.dart';
 import '../../model/tour/tour_common_info.dart';
 import '../../model/tour/tour_intro_info.dart';
 import '../../model/tour/tour_spot.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/bookmark_provider.dart';
 import '../../services/tour/tour_detail_service.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/app_dialog.dart';
 import '../../widgets/bottom_nav_bar.dart';
 import '../../widgets/image_placeholder.dart';
 import '../../widgets/top_logo_banner.dart';
 import '../../widgets/toast.dart';
 import '../../model/tour/tour_facility_fields.dart';
+import '../auth/login_screen.dart';
 import '../bookmark/save_to_folder_sheet.dart';
 
 /// 여행지 상세 화면. 탐색 결과 카드를 눌렀을 때 진입하며, contentId를 기준으로
@@ -188,6 +191,36 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
     );
   }
 
+  /// 비회원이 북마크를 누르면 마이페이지/저장목록 탭과 동일한 로그인 유도
+  /// 다이얼로그를 띄운다 — 북마크는 저장목록과 마찬가지로 회원 전용 기능이다.
+  Future<void> _handleBookmarkTap(
+    bool isBookmarked,
+    TourSpot resolvedSpot,
+  ) async {
+    final isGuest = ref.read(authStateProvider).user == null;
+    if (isGuest) {
+      final goLogin = await showTwoButtonDialog(
+        context,
+        content: '회원에게만 제공되는 기능입니다.\n로그인 하시겠습니까?',
+        primaryLabel: '로그인',
+        secondaryLabel: '취소',
+      );
+      if (goLogin == true && context.mounted) {
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
+      }
+      return;
+    }
+
+    if (isBookmarked) {
+      ref.read(bookmarkProvider.notifier).unsaveSpot(widget.spot.contentId);
+      showAndroidToast(context, '북마크가 해제되었습니다.');
+    } else {
+      showSaveToFolderSheet(context, ref, resolvedSpot);
+    }
+  }
+
   Widget _buildHeader() {
     final title = _common?.title.isNotEmpty == true
         ? _common!.title
@@ -233,16 +266,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
               ),
             ),
             GestureDetector(
-              onTap: () {
-                if (isBookmarked) {
-                  ref
-                      .read(bookmarkProvider.notifier)
-                      .unsaveSpot(widget.spot.contentId);
-                  showAndroidToast(context, '북마크가 해제되었습니다.');
-                } else {
-                  showSaveToFolderSheet(context, ref, resolvedSpot);
-                }
-              },
+              onTap: () => _handleBookmarkTap(isBookmarked, resolvedSpot),
               behavior: HitTestBehavior.opaque,
               child: Icon(
                 isBookmarked ? Icons.bookmark : Icons.bookmark_border,

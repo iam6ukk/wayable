@@ -8,21 +8,11 @@ import '../../model/tour/tour_spot.dart';
 import '../../providers/bookmark_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/image_placeholder.dart';
+import '../../widgets/scroll_fab.dart';
 import '../../widgets/toast.dart';
 import '../search/spot_detail_screen.dart';
 import 'folder_edit_screen.dart';
 
-const _kTabUnselectedColor = Color(0xFFA0A0A0);
-const _kSpotTextColor = Color(0xFF1C1C1C);
-const _kEditButtonColor = Color(0xFF7D7D7D);
-
-/// 여행지 저장 목록 화면. 폴더별로 탭을 두고 폴더 안에 저장된 여행지를
-/// 보여준다. 폴더/저장된 여행지 모두 [bookmarkProvider]가 들고 있어서, 여행지
-/// 상세화면의 저장 바텀시트나 폴더 편집 화면에서 바꾼 내용이 바로 반영된다.
-///
-/// '편집'을 누르면 페이지 전환(Navigator.push) 대신 이 화면의 콘텐츠 영역만
-/// 폴더 편집 화면으로 갈아끼운다 — 상단 배너/하단 탭바는 이 화면을 감싸는
-/// MainShell이 항상 그리고 있으므로 다시 그릴 필요가 없다.
 class SavedListScreen extends ConsumerStatefulWidget {
   const SavedListScreen({super.key});
 
@@ -40,12 +30,47 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
   bool _showFolderEdit = false;
   int _lastFolderCount = 0;
 
+  // 상하단 이동 버튼은 현재 보이는 탭의 목록을 스크롤해야 하는데, 탭마다
+  // ListView(및 그 ScrollController)를 소유한 _FolderSpotList가 각각 독립된
+  // State라서 부모가 직접 만들 수 없다. 대신 각 _FolderSpotList가 자기
+  // ScrollController를 만든 다음 폴더 id로 등록해주면, 버튼은 현재 탭 인덱스에
+  // 해당하는 폴더 id로 컨트롤러를 찾아 스크롤만 시킨다.
+  final Map<String, ScrollController> _folderScrollControllers = {};
+
   @override
   void initState() {
     super.initState();
     _lastFolderCount = ref.read(bookmarkProvider).folders.length;
     _tabController = TabController(length: _lastFolderCount, vsync: this);
   }
+
+  void _registerFolderScrollController(
+    String folderId,
+    ScrollController controller,
+  ) {
+    _folderScrollControllers[folderId] = controller;
+  }
+
+  void _unregisterFolderScrollController(String folderId) {
+    _folderScrollControllers.remove(folderId);
+  }
+
+  void _scrollActiveTab(double Function(ScrollController controller) target) {
+    final folders = ref.read(bookmarkProvider).folders;
+    if (folders.isEmpty) return;
+    final activeIndex = _tabController.index.clamp(0, folders.length - 1);
+    final controller = _folderScrollControllers[folders[activeIndex].id];
+    if (controller == null || !controller.hasClients) return;
+    controller.animateTo(
+      target(controller),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
+  }
+
+  void _scrollToTop() => _scrollActiveTab((_) => 0);
+
+  void _scrollToBottom() => _scrollActiveTab((c) => c.position.maxScrollExtent);
 
   @override
   void dispose() {
@@ -86,20 +111,52 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
             ref.read(bookmarkProvider.notifier).deleteFolder(folder),
         onAddFolder: (name) =>
             ref.read(bookmarkProvider.notifier).addFolder(name),
+        onReorderFolders: (newOrder) =>
+            ref.read(bookmarkProvider.notifier).reorderFolders(newOrder),
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Stack(
       children: [
-        _buildHeader(folders),
-        Divider(height: 1, thickness: 1, color: AppColors.faintDivider),
-        Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: folders
-                .map((folder) => _FolderSpotList(folder: folder))
-                .toList(),
+        Positioned.fill(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(folders),
+              Divider(height: 1, thickness: 1, color: AppColors.faintDivider),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: folders
+                      .map(
+                        (folder) => _FolderSpotList(
+                          key: ValueKey(folder.id),
+                          folder: folder,
+                          onScrollControllerReady:
+                              _registerFolderScrollController,
+                          onScrollControllerDisposed:
+                              _unregisterFolderScrollController,
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Positioned(
+          right: 20.w,
+          bottom: 20.h,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ScrollFab(icon: Icons.arrow_upward_rounded, onTap: _scrollToTop),
+              SizedBox(height: 11.h),
+              ScrollFab(
+                icon: Icons.arrow_downward_rounded,
+                onTap: _scrollToBottom,
+              ),
+            ],
           ),
         ),
       ],
@@ -118,7 +175,7 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
                 child: Text(
                   '여행지 저장 목록',
                   style: TextStyle(
-                    fontSize: 20.sp,
+                    fontSize: 19.sp,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textPrimary,
                   ),
@@ -134,7 +191,7 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
             tabAlignment: TabAlignment.start,
             padding: EdgeInsets.zero,
             labelColor: AppColors.textPrimary,
-            unselectedLabelColor: _kTabUnselectedColor,
+            unselectedLabelColor: AppColors.textQuaternary,
             indicatorColor: AppColors.textPrimary,
             indicatorSize: TabBarIndicatorSize.tab,
             indicatorWeight: 3,
@@ -188,7 +245,11 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
               style: TextStyle(fontSize: 12.sp, color: const Color(0xFF3C3C3C)),
             ),
             SizedBox(width: 4.w),
-            Icon(Icons.edit_outlined, size: 16.r, color: _kEditButtonColor),
+            Icon(
+              Icons.edit_outlined,
+              size: 16.r,
+              color: AppColors.navIconInactive,
+            ),
           ],
         ),
       ),
@@ -204,9 +265,20 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
 /// 탭을 벗어났다 다시 들어왔을 때(=이 위젯이 새로 만들어질 때)에만 지워진
 /// 항목이 빠진 채로 다시 보인다.
 class _FolderSpotList extends ConsumerStatefulWidget {
-  const _FolderSpotList({required this.folder});
+  const _FolderSpotList({
+    super.key,
+    required this.folder,
+    required this.onScrollControllerReady,
+    required this.onScrollControllerDisposed,
+  });
 
   final BookmarkFolder folder;
+
+  /// 이 폴더 목록의 ScrollController가 준비되면 부모에게 폴더 id로 등록해준다
+  /// — 상하단 이동 버튼이 "현재 보이는 탭"의 목록을 스크롤할 때 쓴다.
+  final void Function(String folderId, ScrollController controller)
+  onScrollControllerReady;
+  final void Function(String folderId) onScrollControllerDisposed;
 
   @override
   ConsumerState<_FolderSpotList> createState() => _FolderSpotListState();
@@ -219,10 +291,12 @@ class _FolderSpotListState extends ConsumerState<_FolderSpotList> {
   List<TourSpot>? _spots;
   ProviderSubscription<BookmarkState>? _loadSubscription;
   final Set<String> _unsavedContentIds = {};
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    widget.onScrollControllerReady(widget.folder.id, _scrollController);
     final current = ref.read(bookmarkProvider);
     if (current.loadedFolderIds.contains(widget.folder.id)) {
       _spots = current.spotsIn(widget.folder.id);
@@ -238,6 +312,8 @@ class _FolderSpotListState extends ConsumerState<_FolderSpotList> {
 
   @override
   void dispose() {
+    widget.onScrollControllerDisposed(widget.folder.id);
+    _scrollController.dispose();
     _loadSubscription?.close();
     super.dispose();
   }
@@ -281,6 +357,7 @@ class _FolderSpotListState extends ConsumerState<_FolderSpotList> {
     }
 
     return ListView.separated(
+      controller: _scrollController,
       padding: EdgeInsets.zero,
       itemCount: spots.length,
       separatorBuilder: (_, _) =>
@@ -329,29 +406,29 @@ class _SavedSpotCard extends StatelessWidget {
                       Text(
                         spot.title,
                         style: TextStyle(
-                          fontSize: 15.sp,
+                          fontSize: 14.sp,
                           fontWeight: FontWeight.bold,
-                          color: _kSpotTextColor,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       SizedBox(height: 8.h),
                       Row(
                         children: [
-                          Text(
-                            '1.5km',
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w600,
-                              color: _kSpotTextColor,
-                            ),
-                          ),
-                          SizedBox(width: 8.w),
+                          // Text(
+                          //   '1.5km',
+                          //   style: TextStyle(
+                          //     fontSize: 12.sp,
+                          //     fontWeight: FontWeight.w600,
+                          //     color: _kSpotTextColor,
+                          //   ),
+                          // ),
+                          // SizedBox(width: 8.w),
                           Expanded(
                             child: Text(
                               spot.addr1,
                               style: TextStyle(
                                 fontSize: 12.sp,
-                                color: _kSpotTextColor,
+                                color: AppColors.textSecondary,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -369,7 +446,7 @@ class _SavedSpotCard extends StatelessWidget {
                                   child: Icon(
                                     profile.icon,
                                     size: 16.r,
-                                    color: _kEditButtonColor,
+                                    color: AppColors.navIconActive,
                                   ),
                                 ),
                               )
@@ -401,35 +478,44 @@ class _SavedSpotCard extends StatelessWidget {
   }
 
   Widget _buildThumbnailRow() {
-    // 썸네일 + detailImage2로 받아온 추가 이미지까지 최대 3장
+    // 썸네일 + detailImage2로 받아온 추가 이미지까지 최대 3장. 개수가 3장이
+    // 안 되더라도 카드 한 장의 크기는 항상 "3장 기준" 크기로 고정하고, 없는
+    // 칸은 그만큼 빈 여백으로 남긴다(placeholder 카드로 채우지 않음) — 그래서
+    // 실제 있는 이미지 개수만큼만 카드를 그리고, 각 카드 크기를 Expanded 대신
+    // 화면 폭 기준 고정 폭(gap 2개 뺀 나머지의 1/3)으로 계산한다.
     final images = [
       spot.firstImage,
       ...spot.galleryImages,
     ].whereType<String>().toList();
+    if (images.isEmpty) return const SizedBox.shrink();
 
-    return Row(
-      children: List.generate(3, (index) {
-        final imageUrl = index < images.length ? images[index] : null;
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(right: index == 2 ? 0 : 8.w),
-            child: AspectRatio(
-              aspectRatio: 115 / 88,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12.r),
-                child: imageUrl == null
-                    ? const ImagePlaceholder()
-                    : Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const ImagePlaceholder(),
-                      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final gap = 8.w;
+        final cardWidth = (constraints.maxWidth - gap * 2) / 3;
+        final cardHeight = cardWidth * 88 / 115;
+
+        return Row(
+          children: [
+            for (var i = 0; i < images.length; i++) ...[
+              if (i > 0) SizedBox(width: gap),
+              SizedBox(
+                width: cardWidth,
+                height: cardHeight,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12.r),
+                  child: Image.network(
+                    images[i],
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const ImagePlaceholder(),
+                  ),
+                ),
               ),
-            ),
-          ),
+            ],
+          ],
         );
-      }),
+      },
     );
   }
 }

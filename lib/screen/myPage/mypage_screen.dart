@@ -65,7 +65,7 @@ class MyPageScreen extends ConsumerWidget {
           Text(
             '안녕하세요, $nickname님!',
             style: TextStyle(
-              fontSize: 20.sp,
+              fontSize: 19.sp,
               fontWeight: FontWeight.w500,
               color: const Color(0xFF060606),
             ),
@@ -80,7 +80,6 @@ class MyPageScreen extends ConsumerWidget {
                 '접근성 프로필 설정',
                 () => _openAccessibilitySetting(context),
               ),
-              _MenuEntry('앱 접근성 설정', () => _showNotReady(context)),
             ],
           ),
           _buildSection(
@@ -95,7 +94,7 @@ class MyPageScreen extends ConsumerWidget {
           _buildSection(
             title: '참여 및 문의',
             items: [
-              _MenuEntry('접근성 정보 제보', () => _showNotReady(context)),
+              _MenuEntry('FAQ', () => _showNotReady(context)),
               _MenuEntry('문의하기', () => _showNotReady(context)),
             ],
           ),

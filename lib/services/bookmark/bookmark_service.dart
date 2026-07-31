@@ -16,17 +16,24 @@ class BookmarkService {
     String folderId,
   ) => _foldersRef(uid).doc(folderId).collection('spots');
 
-  /// 폴더 목록 실시간 구독. 'default'(기본 폴더)는 생성 순서와 무관하게 항상
-  /// 맨 앞에 오도록 클라이언트에서 재배치한다.
+  /// 폴더 목록 실시간 구독. 정렬 기준은 사용자가 드래그로 정한 order
+  /// 필드인데, order가 없는 문서를 대상으로 orderBy('order')를 걸면
+  /// Firestore가 그 문서들을 아예 결과에서 빼버리므로(한 번도 순서를 안 바꾼
+  /// 폴더가 통째로 사라짐), 항상 존재하는 createdAt으로 전체를 받아온 뒤
+  /// order는 클라이언트에서 정렬 키로만 쓴다.
   Stream<List<BookmarkFolder>> watchFolders(String uid) {
     return _foldersRef(uid).orderBy('createdAt').snapshots().map((snapshot) {
       final folders = snapshot.docs
           .map((doc) => BookmarkFolder.fromFirestore(doc.id, doc.data()))
           .toList();
-      final defaultIndex = folders.indexWhere((f) => f.id == 'default');
-      if (defaultIndex > 0) {
-        folders.insert(0, folders.removeAt(defaultIndex));
-      }
+      // order가 없는(아직 순서를 안 바꾼) 폴더는 지금 이 생성순 목록에서의
+      // 위치를 그대로 정렬 키로 쓴다 — List.sort는 안정 정렬을 보장하지
+      // 않으므로, 매번 결정적으로 같은 순서가 나오도록 인덱스를 직접 넣는다.
+      final sortKeys = <String, int>{
+        for (var i = 0; i < folders.length; i++)
+          folders[i].id: folders[i].order ?? i,
+      };
+      folders.sort((a, b) => sortKeys[a.id]!.compareTo(sortKeys[b.id]!));
       return folders;
     });
   }
@@ -53,14 +60,30 @@ class BookmarkService {
     await ref.set({'name': '기본 폴더', 'createdAt': FieldValue.serverTimestamp()});
   }
 
+  /// doc id는 클라이언트가 즉시 만들어내므로(서버 왕복 불필요), set()이
+  /// 실제 서버 ack까지 왕복하는 걸 기다리지 않고 바로 반환한다 — 기다리면
+  /// 폴더 추가 후 바텀시트가 다시 뜨는 데만 왕복 시간만큼 지연된다. 쓰기는
+  /// 백그라운드로 계속 진행되고, watchFolders 구독은 로컬 캐시 갱신을 통해
+  /// 서버 응답을 기다리지 않고도 거의 즉시 새 폴더를 반영한다.
   Future<BookmarkFolder> addFolder(String uid, String name) async {
     final doc = _foldersRef(uid).doc();
-    await doc.set({'name': name, 'createdAt': FieldValue.serverTimestamp()});
+    doc.set({'name': name, 'createdAt': FieldValue.serverTimestamp()});
     return BookmarkFolder(id: doc.id, name: name);
   }
 
   Future<void> renameFolder(String uid, String folderId, String newName) {
     return _foldersRef(uid).doc(folderId).update({'name': newName});
+  }
+
+  /// 드래그로 정한 새 순서(폴더 id 순서대로)를 그대로 0..n-1 정수로 다시
+  /// 매겨서 저장한다 — 기본 폴더도 포함해서 전부 다시 매기므로, 이후에는
+  /// order 필드만으로 순서가 결정된다.
+  Future<void> reorderFolders(String uid, List<String> orderedFolderIds) async {
+    final batch = FirebaseFirestore.instance.batch();
+    for (var i = 0; i < orderedFolderIds.length; i++) {
+      batch.update(_foldersRef(uid).doc(orderedFolderIds[i]), {'order': i});
+    }
+    await batch.commit();
   }
 
   /// Firestore는 상위 문서를 지워도 서브컬렉션이 같이 지워지지 않으므로,
