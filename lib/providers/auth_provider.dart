@@ -106,15 +106,36 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(user: user);
   }
 
-  Future<void> signOut() async {
-    await _kakaoAuthService.signOut();
-    await _googleAuthService.signOut();
-    state = AuthState();
+  // 카카오 로그아웃
+  Future<bool> logoutKakao() async {
+    final success = await _kakaoAuthService.logout();
+    if (success) {
+      state = AuthState();
+    }
+    return success;
+  }
+
+  // 구글 로그아웃
+  Future<bool> logoutGoogle() async {
+    final success = await _googleAuthService.logout();
+    if (success) {
+      state = AuthState();
+    }
+    return success;
   }
 
   // 카카오 회원탈퇴
   Future<bool> deleteKakaoAccount() async {
     final success = await _kakaoAuthService.deleteAccount();
+    if (success) {
+      state = AuthState();
+    }
+    return success;
+  }
+
+  // 구글 회원탈퇴
+  Future<bool> deleteGoogleAccount() async {
+    final success = await _googleAuthService.deleteAccount();
     if (success) {
       state = AuthState();
     }

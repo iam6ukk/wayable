@@ -14,6 +14,7 @@ const _kLocationTextColor = Color(0xFFBFBFBF);
 const _kPageBadgeBg = Color(0xCCFFFFFF);
 const _kPageBadgeText = Color(0xCC2D2D2D);
 const _kSkeletonColor = Color(0xFFEDEDED);
+const _kHeroLoopMultiplier = 1000;
 
 const _kCultureCardColor = Color(0xFF548389);
 const _kRestaurantCardGradient = [Color(0xFFE5B081), Color(0xFFE9C6A8)];
@@ -104,7 +105,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _heroController = PageController();
+  PageController _heroController = PageController();
   int _heroPage = 0;
   // null이면 로딩 중 → _buildHeroBanner()가 스켈레톤을 보여준다.
   List<_FeaturedSpot>? _featuredSpots;
@@ -322,10 +323,16 @@ class _HomeScreenState extends State<HomeScreen> {
         .toList();
 
     if (!mounted) return;
+    final oldController = _heroController;
+    final centerVirtualPage = featured.isEmpty
+        ? 0
+        : (featured.length * _kHeroLoopMultiplier) ~/ 2;
     setState(() {
       _featuredSpots = featured;
       _heroPage = 0;
+      _heroController = PageController(initialPage: centerVirtualPage);
     });
+    oldController.dispose();
   }
 
   @override
@@ -376,10 +383,11 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           PageView.builder(
             controller: _heroController,
-            itemCount: featuredSpots.length,
-            onPageChanged: (index) => setState(() => _heroPage = index),
+            itemCount: featuredSpots.length * _kHeroLoopMultiplier,
+            onPageChanged: (index) =>
+                setState(() => _heroPage = index % featuredSpots.length),
             itemBuilder: (context, index) {
-              final spot = featuredSpots[index];
+              final spot = featuredSpots[index % featuredSpots.length];
               return Stack(
                 fit: StackFit.expand,
                 children: [
@@ -515,10 +523,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     SizedBox(width: 4.w),
                     Expanded(
                       child: spot == null
-                          ? _buildSkeletonBox(
-                              height: 24.h,
-                              widthFraction: 0.7,
-                            )
+                          ? _buildSkeletonBox(height: 24.h, widthFraction: 0.7)
                           : Text(
                               spot.location,
                               overflow: TextOverflow.ellipsis,
