@@ -45,6 +45,7 @@ dependencies:
   geolocator: ^14.0.3
   url_launcher: ^6.3.2
   flutter_screenutil: ^5.9.3
+  lottie: ^3.5.0
 
 dev_dependencies:
   flutter_test:
@@ -71,6 +72,7 @@ flutter:
     - assets/images/
     - assets/data/
     - assets/images/home/
+    - assets/animations/
     - .env
 
   fonts:

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -15,11 +16,37 @@ const _kPageBadgeBg = Color(0xCCFFFFFF);
 const _kPageBadgeText = Color(0xCC2D2D2D);
 const _kSkeletonColor = Color(0xFFEDEDED);
 const _kHeroLoopMultiplier = 1000;
+const _kHeroAutoPlayInterval = Duration(seconds: 5);
 
 const _kCultureCardColor = Color(0xFF548389);
 const _kRestaurantCardGradient = [Color(0xFFE5B081), Color(0xFFE9C6A8)];
 const _kLodgingCardGradient = [Color(0xFFFFEADC), Color(0xFFFFBBA2)];
 const _kDarkLabelColor = Color(0xFF444444);
+
+/// 3~5월 봄, 6~8월 여름, 9~11월 가을, 12~2월 겨울.
+enum _Season { spring, summer, fall, winter }
+
+_Season _seasonForMonth(int month) {
+  if (month >= 3 && month <= 5) return _Season.spring;
+  if (month >= 6 && month <= 8) return _Season.summer;
+  if (month >= 9 && month <= 11) return _Season.fall;
+  return _Season.winter; // 12, 1, 2
+}
+
+// TO-DO: 실제 계절별 안내형 슬라이드 디자인으로 교체
+const _kSeasonGuideColors = {
+  _Season.spring: Color(0xFF7CB342),
+  _Season.summer: Color(0xFF039BE5),
+  _Season.fall: Color(0xFFEF6C00),
+  _Season.winter: Color(0xFF5C6BC0),
+};
+
+const _kSeasonLabels = {
+  _Season.spring: '봄',
+  _Season.summer: '여름',
+  _Season.fall: '가을',
+  _Season.winter: '겨울',
+};
 
 class _FeaturedSpot {
   const _FeaturedSpot({
@@ -31,6 +58,15 @@ class _FeaturedSpot {
   final String title;
   final String regionName;
   final String imageUrl;
+}
+
+class _HeroSlide {
+  const _HeroSlide.guide() : spot = null;
+  const _HeroSlide.spot(this.spot);
+
+  final _FeaturedSpot? spot;
+
+  bool get isGuide => spot == null;
 }
 
 class _DiscoverySpot {
@@ -61,7 +97,8 @@ class _CategorySpot {
   final Alignment imageAlignment;
 }
 
-final _kRegionRotationAnchor = DateTime(2026, 7, 1);
+// 이 시즌(2025년 봄)에 통합필터선택 지역 목록의 첫 번째(서울)가 걸리도록 잡은 기준점.
+final _kRegionRotationAnchor = DateTime(2025, 3, 1);
 
 final _categorySpots = [
   _CategorySpot(
@@ -109,6 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _heroPage = 0;
   // null이면 로딩 중 → _buildHeroBanner()가 스켈레톤을 보여준다.
   List<_FeaturedSpot>? _featuredSpots;
+  Timer? _heroAutoPlayTimer;
 
   final _locationService = LocationService();
   final _kakaoLocalService = KakaoLocalService();
@@ -135,8 +173,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _heroAutoPlayTimer?.cancel();
     _heroController.dispose();
     super.dispose();
+  }
+
+  void _startHeroAutoPlay() {
+    _heroAutoPlayTimer?.cancel();
+    _heroAutoPlayTimer = Timer.periodic(_kHeroAutoPlayInterval, (_) {
+      if (!_heroController.hasClients) return;
+      _heroController.nextPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
+    });
   }
 
   Future<void> _loadAreaCodeLookups() async {
@@ -268,13 +318,17 @@ class _HomeScreenState extends State<HomeScreen> {
   /// 지역 순환도 기기 로컬 시간이 아니라 KST 기준으로 맞춰야 한다.
   DateTime _nowInKst() => DateTime.now().toUtc().add(const Duration(hours: 9));
 
-  /// 통합필터선택 지역 목록의 순서처럼 시/도를 한 달에 하나씩 순환한다.
-  AreaCode _pickThisMonthsRegion(List<AreaCode> areaCodes) {
+  int _seasonOrdinal(DateTime date) {
+    final bucketYear = date.month == 12 ? date.year + 1 : date.year;
+    return bucketYear * 4 + _seasonForMonth(date.month).index;
+  }
+
+  /// 통합필터선택 지역 목록의 순서(서울 → 전남광주 → ... → 세종)대로 계절마다 하나씩 순환한다.
+  AreaCode _pickThisSeasonsRegion(List<AreaCode> areaCodes) {
     final nowKst = _nowInKst();
-    final monthDiff =
-        (nowKst.year - _kRegionRotationAnchor.year) * 12 +
-        (nowKst.month - _kRegionRotationAnchor.month);
-    final index = monthDiff % areaCodes.length;
+    final seasonDiff =
+        _seasonOrdinal(nowKst) - _seasonOrdinal(_kRegionRotationAnchor);
+    final index = seasonDiff % areaCodes.length;
     return areaCodes[index < 0 ? index + areaCodes.length : index];
   }
 
@@ -291,7 +345,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadFeaturedSpots() async {
     final areaCodes = await AreaCodeRepository.load();
-    final region = _pickThisMonthsRegion(areaCodes);
+    final region = _pickThisSeasonsRegion(areaCodes);
 
     final spots = await _tourSpotService.searchByRegion(region.code);
     final withImages =
@@ -304,8 +358,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final shuffled = List<TourSpot>.from(withImages)
       ..shuffle(Random(dailySeed));
 
+    final season = _seasonForMonth(_nowInKst().month);
     AppLogger.debug(
-      '[HeroBanner] 이번달 지역=${region.name}(${region.code}) '
+      '[HeroBanner] 이번시즌=${_kSeasonLabels[season]} 지역=${region.name}(${region.code}) '
       '전체 스팟=${spots.length}건 사진있음=${withImages.length}건 '
       '일별시드=$dailySeed',
     );
@@ -324,15 +379,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (!mounted) return;
     final oldController = _heroController;
-    final centerVirtualPage = featured.isEmpty
+    // +1은 맨 앞에 고정으로 붙는 안내형 슬라이드
+    final totalSlideCount = featured.isEmpty ? 0 : featured.length + 1;
+    final centerVirtualPage = totalSlideCount == 0
         ? 0
-        : (featured.length * _kHeroLoopMultiplier) ~/ 2;
+        : (totalSlideCount * _kHeroLoopMultiplier) ~/ 2;
     setState(() {
       _featuredSpots = featured;
       _heroPage = 0;
       _heroController = PageController(initialPage: centerVirtualPage);
     });
     oldController.dispose();
+    if (totalSlideCount > 0) _startHeroAutoPlay();
   }
 
   @override
@@ -375,6 +433,13 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
+    // 맨 앞은 무조건 안내형 슬라이드, 그 뒤로 추천 여행지가 이어진다.
+    final slides = [
+      const _HeroSlide.guide(),
+      ...featuredSpots.map(_HeroSlide.spot),
+    ];
+    final currentSlide = slides[_heroPage];
+
     return SizedBox(
       width: double.infinity,
       height: 173.h,
@@ -383,11 +448,17 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           PageView.builder(
             controller: _heroController,
-            itemCount: featuredSpots.length * _kHeroLoopMultiplier,
-            onPageChanged: (index) =>
-                setState(() => _heroPage = index % featuredSpots.length),
+            itemCount: slides.length * _kHeroLoopMultiplier,
+            onPageChanged: (index) {
+              setState(() => _heroPage = index % slides.length);
+              // 페이지가 바뀐 시점부터 다시 5초를 카운트.
+              _startHeroAutoPlay();
+            },
             itemBuilder: (context, index) {
-              final spot = featuredSpots[index % featuredSpots.length];
+              final slide = slides[index % slides.length];
+              if (slide.isGuide) return _buildGuideSlide();
+
+              final spot = slide.spot!;
               return Stack(
                 fit: StackFit.expand,
                 children: [
@@ -423,7 +494,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: BorderRadius.circular(17.r),
               ),
               child: Text(
-                '${_heroPage + 1}/${featuredSpots.length}',
+                '${_heroPage + 1}/${slides.length}',
                 style: TextStyle(
                   fontSize: 10.sp,
                   fontWeight: FontWeight.w600,
@@ -432,35 +503,36 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          Positioned(
-            left: 16.w,
-            right: 16.w,
-            bottom: 20.h,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  featuredSpots[_heroPage].regionName,
-                  textAlign: TextAlign.right,
-                  style: TextStyle(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+          if (!currentSlide.isGuide)
+            Positioned(
+              left: 16.w,
+              right: 16.w,
+              bottom: 20.h,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    currentSlide.spot!.regionName,
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  featuredSpots[_heroPage].title,
-                  textAlign: TextAlign.right,
-                  style: TextStyle(
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                  SizedBox(height: 4.h),
+                  Text(
+                    currentSlide.spot!.title,
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -611,6 +683,24 @@ class _HomeScreenState extends State<HomeScreen> {
       alignment: Alignment.centerLeft,
       widthFactor: widthFraction,
       child: box,
+    );
+  }
+
+  // TO-DO: 실제 계절별 안내형 슬라이드 디자인으로 교체
+  Widget _buildGuideSlide() {
+    final season = _seasonForMonth(_nowInKst().month);
+    return DecoratedBox(
+      decoration: BoxDecoration(color: _kSeasonGuideColors[season]),
+      child: Center(
+        child: Text(
+          '웨이어블 ${_kSeasonLabels[season]} 이용 안내',
+          style: TextStyle(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+      ),
     );
   }
 

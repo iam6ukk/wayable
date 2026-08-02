@@ -7,6 +7,7 @@ import '../../navigation/main_shell.dart';
 import '../myPage/accessibility_screen.dart';
 import '../../navigation/navigator_key.dart';
 import '../../widgets/app_dialog.dart';
+import 'login_loading_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -44,10 +45,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     // 신규 유저는 접근성 프로필 설정 화면을 거쳐 홈으로, 기존 유저는 바로 홈으로 이동한다.
     ref.listen(authStateProvider, (previous, next) {
       if (next.user != null && previous?.user == null) {
-        // 로그인 성공
+        // 로그인 성공: 로딩 화면 + 로그인 화면을 걷어내고 다음 화면으로 교체
         if (next.isNewUser) {
-          Navigator.pushReplacement(
-            context,
+          navigatorKey.currentState?.pushAndRemoveUntil(
             MaterialPageRoute(
               builder: (_) => AccessibilityScreen(
                 onComplete: () {
@@ -58,16 +58,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 },
               ),
             ),
+            (route) => false,
           );
         } else {
-          Navigator.pushReplacement(
-            context,
+          navigatorKey.currentState?.pushAndRemoveUntil(
             MaterialPageRoute(builder: (_) => const MainShell()),
+            (route) => false,
           );
         }
       } else if (next.errorMessage != null &&
           previous?.errorMessage != next.errorMessage) {
-        // 로그인 실패
+        // 로그인 실패: 떠 있던 로딩 화면을 닫고 에러 다이얼로그 표시
+        if (navigatorKey.currentState?.canPop() ?? false) {
+          navigatorKey.currentState?.pop();
+        }
         showInfoDialog(context, content: '로그인에 실패했습니다.\n다시 시도해주세요.');
       }
     });
@@ -106,7 +110,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         fontFamily: 'CalSans',
                         fontSize: 27.sp,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
+                        color: AppColors.catchPhrase,
                       ),
                     ),
                   ),
@@ -133,6 +137,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       onTap: authState.isLoading
                           ? null
                           : () async {
+                              Navigator.push(
+                                context,
+                                PageRouteBuilder(
+                                  opaque: false,
+                                  pageBuilder: (_, _, _) =>
+                                      const LoginLoadingScreen(),
+                                ),
+                              );
                               await ref
                                   .read(authStateProvider.notifier)
                                   .signInWithKakao();
@@ -174,6 +186,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       onTap: authState.isLoading
                           ? null
                           : () async {
+                              Navigator.push(
+                                context,
+                                PageRouteBuilder(
+                                  opaque: false,
+                                  pageBuilder: (_, _, _) =>
+                                      const LoginLoadingScreen(),
+                                ),
+                              );
                               await ref
                                   .read(authStateProvider.notifier)
                                   .signInWithGoogle();
