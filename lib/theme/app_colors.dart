@@ -51,4 +51,37 @@ class AppColors {
 
   // static const surfaceCircle = Color(0xFFF2F2F2);
   static const surfaceLabelColumn = Color(0xFFF7F7F7);
+
+  // 화면별로 흩어져 있던 로컬 색상 상수를 모아둔 것들. 여러 화면이 함께 쓰는
+  // 값도 있고 한 화면 전용인 값도 있지만, 새로 만들 때 파일마다 다시
+  // 선언하지 말고 여기부터 확인한다.
+  static const primaryAlt = Color(0xFF0065F4); // 통합필터/탐색 화면 버튼·강조 아이콘
+  static const mutedDivider = Color(0xFFE3E3E3); // 통합필터/마이페이지 구분선
+  static const chipInactiveBorder = Color(0xFFC8C8C8); // 통합필터 칩 미선택 테두리
+  static const searchBarBackground = Color(0x80D9D9D9); // 탐색 화면 검색창 배경
+  static const inactiveSurface = Color(0xFFF2F2F2); // 탐색 화면 비활성 원형 배경
+  static const addressText = Color(0xFF5B5B5B); // 탐색 화면 카드 주소 텍스트
+  static const emptyStateText = Color(0xFFACACAC); // 탐색 화면 빈 결과 안내 텍스트
+  static const locationText = Color(0xFFBFBFBF); // 홈 화면 위치 텍스트
+  static const pageBadgeBackground = Color(0xCCFFFFFF); // 홈 화면 배너 페이지 뱃지 배경
+  static const pageBadgeText = Color(0xCC2D2D2D); // 홈 화면 배너 페이지 뱃지 텍스트
+  static const skeletonColor = Color(0xFFEDEDED); // 홈 화면 로딩 스켈레톤
+  static const cultureCardColor = Color(0xFF548389); // 홈 화면 문화 카테고리 카드
+  static const restaurantCardGradient = [
+    Color(0xFFE5B081),
+    Color(0xFFE9C6A8),
+  ]; // 홈 화면 맛집 카테고리 카드
+  static const lodgingCardGradient = [
+    Color(0xFFFFEADC),
+    Color(0xFFFFBBA2),
+  ]; // 홈 화면 숙소 카테고리 카드
+  static const seasonSpring = Color(0xFF7CB342); // 홈 화면 계절 안내(임시, TO-DO)
+  static const seasonSummer = Color(0xFF039BE5);
+  static const seasonFall = Color(0xFFEF6C00);
+  static const seasonWinter = Color(0xFF5C6BC0);
+  static const popupMenuBackground = Color(0xFFEEEEEE); // 점3개/정렬 팝업 메뉴 배경
+  static const strongTitleText = Color(0xFF060606); // 폴더 편집 화면 타이틀
+  static const scrollFabBackground = Color(0xFFF0F4F8); // 상하단 이동 버튼 배경
+  static const scrollFabIcon = Color(0xFF767676); // 상하단 이동 버튼 아이콘
+  static const myPageCardOverlay = Color(0xB2F2F2F2); // 마이페이지 카드 반투명 배경
 }

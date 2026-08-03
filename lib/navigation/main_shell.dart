@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
 import '../providers/bookmark_provider.dart';
+import '../providers/navigation_provider.dart';
 import '../screen/auth/login_screen.dart';
 import '../screen/home_screen.dart';
 import '../screen/myPage/mypage_screen.dart';
@@ -69,6 +70,16 @@ class _MainShellState extends ConsumerState<MainShell> {
     // 탭을 보고 있는 동안 미리 받아둬서 탭을 눌렀을 때는 이미 준비된 값을
     // 바로 보여줄 수 있게 한다.
     ref.watch(bookmarkProvider);
+
+    // SpotDetailScreen처럼 MainShell 위에 push된 화면에서 하단 탭을 눌렀을
+    // 때, 그냥 pop만 하면 이전에 보고 있던 탭으로 돌아갈 뿐 실제로 그 탭으로
+    // 전환되지 않는다. 그런 화면은 pop과 함께 이 프로바이더에 원하는 탭을
+    // 담아두고, 여기서 감지해서 바로 그 탭으로 전환한다.
+    ref.listen<BottomNavTab?>(tabSwitchRequestProvider, (_, requestedTab) {
+      if (requestedTab == null) return;
+      setState(() => _currentTab = requestedTab);
+      ref.read(tabSwitchRequestProvider.notifier).state = null;
+    });
 
     return Scaffold(
       backgroundColor: Colors.white,

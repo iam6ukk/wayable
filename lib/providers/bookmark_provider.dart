@@ -178,14 +178,23 @@ class BookmarkNotifier extends StateNotifier<BookmarkState> {
     }
   }
 
-  Future<BookmarkFolder> addFolder(String name) {
+  /// 서비스의 addFolder 자체는 서버 ack을 기다리지 않고 즉시 반환하지만,
+  /// 실제로 state.folders에 반영되는 건 Firestore 실시간 구독(watchFolders)이
+  /// 로컬 캐시 갱신을 받아와야 하므로 한 박자 늦다. 이 함수가 반환하자마자
+  /// 호출부(저장 바텀시트의 '새로 만들기' 흐름)가 곧바로 새 폴더를
+  /// preselected로 다시 읽는데, 그 시점에 state.folders가 아직 옛 목록이면
+  /// 새로 만든 폴더를 찾지 못해 자동 스크롤/체크 표시가 조용히 안 먹힌다.
+  /// 그래서 여기서 바로 로컬 상태에 낙관적으로 추가해둔다.
+  Future<BookmarkFolder> addFolder(String name) async {
     final customFolderCount = state.folders
         .where((f) => f.id != _kDefaultFolderId)
         .length;
     if (customFolderCount >= kMaxCustomFolders) {
       throw StateError('폴더는 최대 $kMaxCustomFolders개까지 만들 수 있습니다.');
     }
-    return _service.addFolder(_requireUid(), name);
+    final folder = await _service.addFolder(_requireUid(), name);
+    state = state.copyWith(folders: [...state.folders, folder]);
+    return folder;
   }
 
   Future<void> renameFolder(BookmarkFolder folder, String newName) {

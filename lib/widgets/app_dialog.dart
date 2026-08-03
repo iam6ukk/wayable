@@ -160,7 +160,7 @@ Future<String?> showFolderNameInputDialog(
                 ),
                 SizedBox(height: 16.h),
                 Container(
-                  height: 51.h,
+                  height: 46.7.h,
                   padding: EdgeInsets.symmetric(horizontal: 16.w),
                   decoration: BoxDecoration(
                     border: Border.all(
@@ -176,14 +176,14 @@ Future<String?> showFolderNameInputDialog(
                       autofocus: true,
                       maxLength: 10,
                       style: TextStyle(
-                        fontSize: 17.sp,
+                        fontSize: 16.sp,
                         fontWeight: FontWeight.w500,
                         color: AppColors.textPrimary,
                       ),
                       decoration: InputDecoration.collapsed(
                         hintText: hintText,
                         hintStyle: TextStyle(
-                          fontSize: 17.sp,
+                          fontSize: 16.sp,
                           fontWeight: FontWeight.w500,
                           color: const Color(0xFFA8A8A8),
                         ),

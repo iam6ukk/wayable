@@ -11,6 +11,7 @@ import '../../model/tour/tour_intro_info.dart';
 import '../../model/tour/tour_spot.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/bookmark_provider.dart';
+import '../../providers/navigation_provider.dart';
 import '../../services/tour/tour_detail_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_dialog.dart';
@@ -178,12 +179,16 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                 ],
               ),
             ),
-            // 하단 탭바는 시각적 일관성을 위해 그대로 두되, 이 화면에서는 별도
-            // 탭 상태를 갖지 않으므로 어떤 아이콘을 눌러도 이전 화면(MainShell)
-            // 으로 돌아가는 것으로 충분하다.
+            // 하단 탭바는 시각적 일관성을 위해 그대로 두되, 이 화면은 별도
+            // 탭 상태를 갖지 않는다. 그냥 pop만 하면 직전에 있던 탭(보통
+            // 탐색)으로 돌아갈 뿐이라, 눌린 탭을 tabSwitchRequestProvider에
+            // 담아 MainShell까지 pop한 뒤 그 탭으로 바로 전환되게 한다.
             BottomNavBar(
               currentTab: BottomNavTab.explore,
-              onTabSelected: (_) => Navigator.of(context).maybePop(),
+              onTabSelected: (tab) {
+                ref.read(tabSwitchRequestProvider.notifier).state = tab;
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
             ),
           ],
         ),

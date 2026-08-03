@@ -162,7 +162,7 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
 
   Widget _buildHeader(List<BookmarkFolder> folders) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 0),
+      padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -343,7 +343,7 @@ class _FolderSpotListState extends ConsumerState<_FolderSpotList> {
     if (spots.isEmpty) {
       return Center(
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24.w),
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: Text(
             '저장된 여행지가 없어요.\n여행지 상세화면에서 북마크 아이콘을 눌러 저장해보세요.',
             textAlign: TextAlign.center,
@@ -389,7 +389,7 @@ class _SavedSpotCard extends StatelessWidget {
         context,
       ).push(MaterialPageRoute(builder: (_) => SpotDetailScreen(spot: spot))),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, 20.h),
+        padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 20.h),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -443,7 +443,7 @@ class _SavedSpotCard extends StatelessWidget {
                                   child: Icon(
                                     profile.icon,
                                     size: 16.r,
-                                    color: AppColors.navIconActive,
+                                    color: AppColors.bottomNavInactive,
                                   ),
                                 ),
                               )

@@ -5,12 +5,18 @@ import '../../model/bookmark/bookmark_folder.dart';
 import '../../providers/bookmark_provider.dart' show kMaxCustomFolders;
 import '../../theme/app_colors.dart';
 import '../../widgets/app_dialog.dart';
+import '../../widgets/simple_popup_menu.dart';
 import '../../widgets/toast.dart';
 
-// 점3개 메뉴 배경색과 '새 폴더' 버튼 배경색을 하나로 통일해서 쓴다.
-const _kMenuBackground = Color(0xFFEEEEEE);
-const _kTitleColor = Color(0xFF060606);
 const _kDefaultFolderId = 'default';
+
+/// 정렬 기준 메뉴와 폴더별 점3개 메뉴 둘 다 피그마상 동일한 크기(111×110,
+/// 3항목)로 디자인돼 있어서, 두 메뉴가 같은 크기로 보이도록 이 값을 공유한다.
+const _kActionMenuWidth = 111.0;
+const _kActionMenuItemHeight = 110.0 / 3;
+
+/// '저장된 폴더 (N)' / '정렬 기준' 라벨 텍스트·아이콘 공통 색상(피그마 기준).
+const _kLabelColor = Color(0xFF3C3C3C);
 
 /// 폴더 목록 일괄 정렬 기준. 정렬을 고르면 순서 편집(드래그)과 동일하게
 /// order 필드를 다시 매겨서 저장한다 — 그래서 여기서 정렬하고 나가면
@@ -30,13 +36,14 @@ enum _FolderSortOption {
 /// 들고 있지 않고 부모(SavedListScreen)가 관리하는 목록/콜백을 그대로 받는다.
 ///
 /// 평소엔 각 행의 점3개 버튼을 누르면 그 버튼 바로 아래에 이름 변경/순서
-/// 편집/폴더 삭제 메뉴가 뜬다. 그중 '순서 편집'을 고르면 이 화면 자체가
-/// (별도 페이지 push 없이) 순서 편집 모드로 바뀐다 — 헤더가 '< 순서 편집'로
-/// 바뀌고 점3개 버튼 자리가 드래그 핸들(햄버거 아이콘)로 바뀌어서, 그 아이콘을
-/// 누른 채로 위/아래로 드래그해 순서를 정하고 손을 떼면 바로 반영된다.
-/// 뒤로가기를 누르면 평소 화면으로 돌아가되, 그 사이 바뀐 순서는 그대로
-/// 유지된다(순서는 SavedListScreen이 들고 있는 bookmarkProvider 상태라서
-/// 이 화면의 모드와 무관하게 항상 최신 값을 보여준다).
+/// 편집/폴더 삭제 메뉴가 뜬다. 그중 '순서 편집'을 고르면 헤더(제목/뒤로가기)는
+/// 그대로 '폴더 편집' 화면을 유지한 채, 점3개 버튼 자리만 드래그 핸들(햄버거
+/// 아이콘)로 바뀌어서 그 아이콘을 누른 채로 위/아래로 드래그해 순서를 정하고
+/// 손을 떼면 바로 반영된다. 이 모드에서는 '새 폴더' 버튼도 숨긴다. 순서 편집
+/// 모드 안에서 뒤로가기를 눌러도 이 화면에 남아있지 않고 바로 여행지 저장
+/// 목록으로 나간다(별도의 '순서 편집만 종료' 상태가 없다) — 바뀐 순서는
+/// SavedListScreen이 들고 있는 bookmarkProvider 상태에 이미 반영돼 있으므로
+/// 그대로 유지된다.
 class FolderEditScreen extends StatefulWidget {
   const FolderEditScreen({
     super.key,
@@ -66,6 +73,10 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
   /// 순서는 항상 폴더의 order 필드가 기준이라, 이 값은 정렬 버튼에 지금
   /// 선택된 기준을 보여주기 위한 화면 전용 상태일 뿐이다.
   _FolderSortOption? _sortOption;
+
+  /// 정렬 기준 팝업 메뉴가 열려 있는 동안 화살표 아이콘을 위로 뒤집어
+  /// 보여주기 위한 화면 전용 상태.
+  bool _isSortMenuOpen = false;
 
   /// 기본 폴더는 이름 변경/삭제/순서 변경이 안 되는, 항상 맨 위에 고정된
   /// 폴더다. 정렬·순서 변경은 전부 이 기본 폴더를 뺀 나머지(커스텀 폴더)
@@ -102,7 +113,10 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
       case _FolderSortOption.nameAsc:
         sorted.sort((a, b) => a.name.compareTo(b.name));
     }
-    setState(() => _sortOption = option);
+    setState(() {
+      _sortOption = option;
+      _isSortMenuOpen = false;
+    });
     _applyCustomOrder(sorted);
   }
 
@@ -210,102 +224,107 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
     );
   }
 
+  // 여행지 저장 목록 화면(SavedListScreen)의 헤더와 좌우/상단 여백을 맞춘다
+  // (L/R 16.w, 상단 24.h) — 이 화면은 그 화면의 '편집'을 눌러 콘텐츠만
+  // 갈아끼워진 것이라, 전환 시 제목 위치가 위아래로 튀어 보이면 안 된다.
+  // IconButton의 기본 48x48 탭 영역을 그대로 쓰면 그 안에서 세로 중앙 정렬된
+  // 제목까지 아래로 밀려서 저장목록 화면의 제목 위치와 어긋나므로, 아이콘
+  // 크기만큼만 차지하는 얇은 탭 영역으로 대신한다.
   Widget _buildHeader() {
     return Padding(
-      padding: EdgeInsets.fromLTRB(8.w, 8.h, 16.w, 24.h),
-      child: Row(
+      padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 20.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          IconButton(
-            onPressed: _isReorderMode
-                ? () => setState(() => _isReorderMode = false)
-                : widget.onBack,
-            icon: const Icon(Icons.arrow_back_ios_new, color: _kTitleColor),
-          ),
-          Expanded(
-            child: Text(
-              _isReorderMode ? '순서 편집' : '폴더 편집',
-              style: TextStyle(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+          Row(
+            children: [
+              _buildBackButton(),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: Text(
+                  '폴더 편집',
+                  style: TextStyle(
+                    fontSize: 19.sp,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-          // 순서 편집 모드에서는 드래그로 직접 순서를 정하는 중이라 일괄
-          // 정렬 버튼은 숨긴다 — 여행지 저장 목록 화면의 '편집' 버튼과
-          // 동일한 위치(제목 우측)에 둔다.
-          if (!_isReorderMode) _buildSortButton(),
+          SizedBox(height: 16.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '저장된 폴더 (${widget.folders.length})',
+                style: TextStyle(fontSize: 12.sp, color: _kLabelColor),
+              ),
+              _buildSortButton(),
+            ],
+          ),
         ],
       ),
     );
   }
 
+  // 순서 편집 모드에서도 뒤로가기는 폴더 편집 화면에 머물지 않고 바로
+  // 여행지 저장 목록으로 나간다 — 이 화면 안에 '순서 편집만 종료'하는 별도
+  // 상태로 되돌아갈 곳이 없다.
+  Widget _buildBackButton() {
+    return InkWell(
+      borderRadius: BorderRadius.circular(20.r),
+      onTap: widget.onBack,
+      child: Padding(
+        padding: EdgeInsets.only(top: 4.r, right: 4.r, bottom: 4.r),
+        // arrow_back_ios_new 글리프 자체가 24x24 박스 안에서 왼쪽에 여백을
+        // 두고 그려져 있어서, 그대로 두면 화살표가 아래 '저장된 폴더'
+        // 텍스트보다 화면 좌측 여백(16.w) 안쪽으로 더 들어가 보인다 — 그
+        // 여백만큼 왼쪽으로 당겨서 좌측 기준선을 맞춘다.
+        child: Transform.translate(
+          offset: Offset(-4.r, 0),
+          child: Icon(
+            Icons.arrow_back_ios_new,
+            size: 20.r,
+            color: AppColors.strongTitleText,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 피그마 리뉴얼: 흰 배경/테두리/그림자가 있던 알약 버튼을, 배경 없는
+  // 텍스트+화살표만으로 단순화했다. 라벨은 선택한 정렬 기준으로 바뀌지
+  // 않고 항상 '정렬 기준'을 보여주고(고른 기준은 메뉴 안에서 굵게 표시),
+  // 메뉴가 열려 있는 동안엔 세모 화살표가 위를 향하도록 뒤집는다.
   Widget _buildSortButton() {
-    return PopupMenuButton<_FolderSortOption>(
+    return SimplePopupMenu<_FolderSortOption>(
+      options: [
+        for (final option in _FolderSortOption.values)
+          SimplePopupMenuOption(option, option.label),
+      ],
+      selectedValue: _sortOption,
+      onOpened: () => setState(() => _isSortMenuOpen = true),
+      onCanceled: () => setState(() => _isSortMenuOpen = false),
       onSelected: _handleSortSelected,
       // 점3개 메뉴와 동일한 이유로, 메뉴가 버튼과 겹치지 않고 버튼 바로
       // 아래에서 시작하도록 버튼 높이만큼 내린다.
-      offset: Offset(0, 34.h),
-      popUpAnimationStyle: AnimationStyle.noAnimation,
-      menuPadding: EdgeInsets.zero,
-      color: _kMenuBackground,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.r)),
-      itemBuilder: (context) => [
-        for (var i = 0; i < _FolderSortOption.values.length; i++) ...[
-          if (i > 0) PopupMenuDivider(height: 1, color: AppColors.faintDivider),
-          _sortMenuItem(_FolderSortOption.values[i]),
-        ],
-      ],
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20.r),
-          border: Border.all(color: const Color(0xFFE4E4E4), width: 0.5),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
-              blurRadius: 4,
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              _sortOption?.label ?? '정렬',
-              style: TextStyle(fontSize: 12.sp, color: const Color(0xFF3C3C3C)),
-            ),
-            SizedBox(width: 4.w),
-            Icon(
-              Icons.arrow_drop_down,
-              size: 16.r,
-              color: AppColors.navIconInactive,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  PopupMenuItem<_FolderSortOption> _sortMenuItem(_FolderSortOption option) {
-    final isSelected = option == _sortOption;
-    return PopupMenuItem(
-      value: option,
-      height: 40.h,
-      padding: EdgeInsets.zero,
-      child: SizedBox(
-        height: 40.h,
-        child: Center(
-          child: Text(
-            option.label,
-            style: TextStyle(
-              fontSize: 13.sp,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              color: AppColors.textPrimary,
-            ),
+      offset: Offset(0, 24.h),
+      width: _kActionMenuWidth.w,
+      itemHeight: _kActionMenuItemHeight.h,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '정렬 기준',
+            style: TextStyle(fontSize: 12.sp, color: _kLabelColor),
           ),
-        ),
+          Icon(
+            _isSortMenuOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+            size: 18.r,
+            color: _kLabelColor,
+          ),
+        ],
       ),
     );
   }
@@ -322,7 +341,7 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
           children: [
             Icon(
               Icons.folder_outlined,
-              size: 24.r,
+              size: 20.r,
               color: AppColors.textPrimary,
             ),
             SizedBox(width: 17.w),
@@ -331,43 +350,30 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
                 folder.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 16.sp, color: AppColors.textPrimary),
+                style: TextStyle(fontSize: 15.sp, color: AppColors.textPrimary),
               ),
             ),
             if (!isDefault)
-              PopupMenuButton<String>(
-                // icon 대신 child를 쓰면 기본 IconButton의 48x48 최소 탭
-                // 영역이 붙지 않아, 왼쪽 폴더 아이콘과 동일하게 24px 크기
-                // 그대로 오른쪽 여백이 잡힌다(icon을 쓰면 보이지 않는 여백이
-                // 더해져 좌우 마진이 안 맞아 보였다).
-                constraints: BoxConstraints.tightFor(width: 121.w),
+              SimplePopupMenu<String>(
+                // 정렬 기준 메뉴와 크기를 맞춘다(피그마상 두 메뉴 모두
+                // 111×110, 3항목 동일 디자인).
+                width: _kActionMenuWidth.w,
+                itemHeight: _kActionMenuItemHeight.h,
                 // offset의 기본값(Offset.zero)은 메뉴가 버튼(점3개 아이콘)과
                 // 같은 위치에서부터 겹쳐 자라나서, 메뉴가 버튼 자체를
                 // 덮어버린다. 버튼 높이(24)만큼 아래로 내려서 버튼 바로
                 // 아래에서 메뉴가 시작하도록 한다.
                 offset: Offset(0, 24.r),
-                popUpAnimationStyle: AnimationStyle.noAnimation,
-                // 메뉴 전체를 감싸는 기본 padding(수직 8)이 있어서, 항목
-                // 사이는 구분선 1px뿐인데 첫/마지막 항목의 위/아래에만
-                // 여백이 더 생겨 보였다 — 0으로 없애서 세 항목의 위아래
-                // 여백을 동일하게 만든다.
-                menuPadding: EdgeInsets.zero,
-                color: _kMenuBackground,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(5.r),
-                ),
+                options: const [
+                  SimplePopupMenuOption('rename', '이름 변경'),
+                  SimplePopupMenuOption('reorder', '순서 편집'),
+                  SimplePopupMenuOption('delete', '폴더 삭제'),
+                ],
                 onSelected: (action) =>
                     _handleMenuSelected(context, folder, action),
-                itemBuilder: (context) => <PopupMenuEntry<String>>[
-                  _menuItem('rename', '이름 변경'),
-                  PopupMenuDivider(height: 1, color: AppColors.faintDivider),
-                  _menuItem('reorder', '순서 편집'),
-                  PopupMenuDivider(height: 1, color: AppColors.faintDivider),
-                  _menuItem('delete', '폴더 삭제'),
-                ],
                 child: Icon(
                   Icons.more_vert,
-                  size: 24.r,
+                  size: 22.r,
                   color: AppColors.textPrimary,
                 ),
               ),
@@ -390,14 +396,14 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.folder_outlined, size: 24.r, color: AppColors.textPrimary),
+          Icon(Icons.folder_outlined, size: 20.r, color: AppColors.textPrimary),
           SizedBox(width: 17.w),
           Expanded(
             child: Text(
               folder.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 16.sp, color: AppColors.textPrimary),
+              style: TextStyle(fontSize: 15.sp, color: AppColors.textPrimary),
             ),
           ),
         ],
@@ -420,14 +426,14 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.folder_outlined, size: 24.r, color: AppColors.textPrimary),
+          Icon(Icons.folder_outlined, size: 20.r, color: AppColors.textPrimary),
           SizedBox(width: 17.w),
           Expanded(
             child: Text(
               folder.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 16.sp, color: AppColors.textPrimary),
+              style: TextStyle(fontSize: 15.sp, color: AppColors.textPrimary),
             ),
           ),
           ReorderableDragStartListener(
@@ -439,38 +445,14 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
     );
   }
 
-  PopupMenuItem<String> _menuItem(String value, String label) {
-    return PopupMenuItem(
-      value: value,
-      // PopupMenuItem.height는 최소 높이일 뿐이고 기본값(48)이 더 크면 그게
-      // 이겨버리므로, height도 40으로 낮추고 SizedBox로 실제 높이를 한 번 더
-      // 고정해 세 항목 모두 정확히 같은 높이·같은 상하 여백을 갖도록 한다.
-      height: 40.h,
-      padding: EdgeInsets.zero,
-      child: SizedBox(
-        height: 40.h,
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 13.sp,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildNewFolderButton(BuildContext context) {
     return SizedBox(
-      width: 116.w,
-      height: 41.h,
+      width: 106.w,
+      height: 38.h,
       child: ElevatedButton.icon(
         onPressed: () => _handleAddFolder(context),
         style: ElevatedButton.styleFrom(
-          backgroundColor: _kMenuBackground,
+          backgroundColor: AppColors.popupMenuBackground,
           foregroundColor: AppColors.textPrimary,
           elevation: 0,
           padding: EdgeInsets.zero,
@@ -479,7 +461,7 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
           ),
         ),
         icon: Icon(Icons.create_new_folder_outlined, size: 18.r),
-        label: Text('새 폴더', style: TextStyle(fontSize: 13.sp)),
+        label: Text('새 폴더', style: TextStyle(fontSize: 12.sp)),
       ),
     );
   }

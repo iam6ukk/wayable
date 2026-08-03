@@ -8,10 +8,6 @@ import '../../model/region/area_code.dart';
 import '../../model/tour/tour_category.dart';
 import '../../services/region/area_code_repository.dart';
 
-const _kPrimaryBlue = Color(0xFF0065F4);
-const _kChipInactiveBorder = Color(0xFFC8C8C8);
-const _kDividerColor = Color(0xFFE3E3E3);
-
 const _kProfileOrder = [
   AccessibilityProfile.physicalAssist,
   AccessibilityProfile.hearingAssist,
@@ -183,7 +179,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
                   Tab(text: _tabLabel('카테고리', _categories.length)),
                 ],
               ),
-              Divider(height: 1, color: _kDividerColor),
+              Divider(height: 1, color: AppColors.mutedDivider),
               Expanded(
                 child: TabBarView(
                   children: [
@@ -269,7 +265,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
       children: [
         Row(
           children: [
-            Icon(profile.icon, size: 20.r, color: _kPrimaryBlue),
+            Icon(profile.icon, size: 20.r, color: AppColors.primaryAlt),
             SizedBox(width: 6.w),
             Text(
               '무장애정보 > ${profile.label}',
@@ -415,7 +411,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
               child: ElevatedButton(
                 onPressed: _handleSave,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _kPrimaryBlue,
+                  backgroundColor: AppColors.primaryAlt,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -456,7 +452,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(20.r),
           border: Border.all(
-            color: isSelected ? Colors.black : _kChipInactiveBorder,
+            color: isSelected ? Colors.black : AppColors.chipInactiveBorder,
             width: 1,
           ),
         ),

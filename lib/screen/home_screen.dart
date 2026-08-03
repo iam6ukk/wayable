@@ -12,16 +12,8 @@ import 'package:wayable/services/region/kakao_local_service.dart';
 import 'package:wayable/services/tour/tour_spot_service.dart';
 import 'package:wayable/utils/app_logger.dart';
 
-const _kLocationTextColor = Color(0xFFBFBFBF);
-const _kPageBadgeBg = Color(0xCCFFFFFF);
-const _kPageBadgeText = Color(0xCC2D2D2D);
-const _kSkeletonColor = Color(0xFFEDEDED);
 const _kHeroLoopMultiplier = 1000;
 const _kHeroAutoPlayInterval = Duration(seconds: 5);
-
-const _kCultureCardColor = Color(0xFF548389);
-const _kRestaurantCardGradient = [Color(0xFFE5B081), Color(0xFFE9C6A8)];
-const _kLodgingCardGradient = [Color(0xFFFFEADC), Color(0xFFFFBBA2)];
 
 /// 3~5월 봄, 6~8월 여름, 9~11월 가을, 12~2월 겨울.
 enum _Season { spring, summer, fall, winter }
@@ -35,9 +27,9 @@ _Season _seasonForMonth(int month) {
 
 // TO-DO: 실제 계절별 안내형 슬라이드 디자인으로 교체
 const _kSeasonGuideColors = {
-  _Season.spring: Color(0xFF7CB342),
-  _Season.summer: Color(0xFF039BE5),
-  _Season.fall: Color(0xFFEF6C00),
+  _Season.spring: AppColors.seasonSpring,
+  _Season.summer: AppColors.seasonSummer,
+  _Season.fall: AppColors.seasonFall,
   _Season.winter: Color(0xFF5C6BC0),
 };
 
@@ -105,7 +97,7 @@ final _categorySpots = [
     label: '문화시설',
     imageAsset: 'assets/images/home/category_culture.png',
     background: const LinearGradient(
-      colors: [_kCultureCardColor, _kCultureCardColor],
+      colors: [AppColors.cultureCardColor, AppColors.cultureCardColor],
     ),
     labelColor: Colors.white,
     imageAlignment: Alignment.topCenter,
@@ -116,7 +108,7 @@ final _categorySpots = [
     background: LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: _kRestaurantCardGradient,
+      colors: AppColors.restaurantCardGradient,
     ),
     labelColor: AppColors.textPrimary,
     imageAlignment: Alignment.center,
@@ -127,7 +119,7 @@ final _categorySpots = [
     background: const LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
-      colors: _kLodgingCardGradient,
+      colors: AppColors.lodgingCardGradient,
     ),
     labelColor: AppColors.textPrimary,
     imageAlignment: Alignment.bottomCenter,
@@ -494,7 +486,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
               decoration: BoxDecoration(
-                color: _kPageBadgeBg,
+                color: AppColors.pageBadgeBackground,
                 borderRadius: BorderRadius.circular(16.r),
               ),
               child: Text(
@@ -502,7 +494,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(
                   fontSize: 8.2.sp,
                   fontWeight: FontWeight.w600,
-                  color: _kPageBadgeText,
+                  color: AppColors.pageBadgeText,
                 ),
               ),
             ),
@@ -596,7 +588,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Icon(
                       Icons.location_on_outlined,
                       size: 16.r,
-                      color: _kLocationTextColor,
+                      color: AppColors.locationText,
                     ),
                     SizedBox(width: 4.w),
                     Expanded(
@@ -608,7 +600,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               style: TextStyle(
                                 fontSize: 16.sp,
                                 fontWeight: FontWeight.w600,
-                                color: _kLocationTextColor,
+                                color: AppColors.locationText,
                               ),
                             ),
                     ),
@@ -679,7 +671,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }) {
     final box = DecoratedBox(
       decoration: BoxDecoration(
-        color: _kSkeletonColor,
+        color: AppColors.skeletonColor,
         borderRadius: BorderRadius.circular(8.r),
       ),
       child: SizedBox(height: height, width: double.infinity),
@@ -713,7 +705,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // 사진 URL은 있는데 네트워크 로드 자체가 실패했을 때 쓰는 대체 UI
   Widget _buildImageErrorPlaceholder() {
     return DecoratedBox(
-      decoration: const BoxDecoration(color: _kSkeletonColor),
+      decoration: const BoxDecoration(color: AppColors.skeletonColor),
       child: Center(
         child: Icon(
           Icons.image_not_supported_outlined,

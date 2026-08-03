@@ -15,14 +15,6 @@ import '../../widgets/scroll_fab.dart';
 import 'explore_filter_screen.dart';
 import 'spot_detail_screen.dart';
 
-const _kPrimaryBlue = Color(0xFF0065F4);
-const _kSearchBarBg = Color(0x80D9D9D9);
-const _kInactiveCircleBg = Color(0xFFF2F2F2);
-const _kInactiveIconColor = Color(0xFF7D7D7D);
-const _kFilterIconColor = Color(0xFFB7B7B7);
-const _kAddressTextColor = Color(0xFF5B5B5B);
-const _kEmptyTextColor = Color(0xFFACACAC);
-
 const _kProfileOrder = [
   AccessibilityProfile.physicalAssist,
   AccessibilityProfile.hearingAssist,
@@ -418,7 +410,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           // 방지는 _handleSearch 내부의 _isLoading 가드로 처리한다.
           onPressed: _handleSearch,
           style: ElevatedButton.styleFrom(
-            backgroundColor: _kPrimaryBlue,
+            backgroundColor: AppColors.primaryAlt,
             foregroundColor: Colors.white,
             elevation: 0,
             shape: RoundedRectangleBorder(
@@ -442,7 +434,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       child: Container(
         color: Colors.white.withValues(alpha: 0.85),
         alignment: Alignment.center,
-        child: const CircularProgressIndicator(color: _kPrimaryBlue),
+        child: const CircularProgressIndicator(color: AppColors.primaryAlt),
       ),
     );
   }
@@ -590,7 +582,7 @@ class _ActiveFilterChipsRow extends StatelessWidget {
               child: Icon(
                 Icons.close,
                 size: 11.r,
-                color: _kInactiveIconColor,
+                color: AppColors.toggleUnselected,
               ),
             ),
           ),
@@ -617,7 +609,7 @@ class _SearchBar extends StatelessWidget {
       height: 44.h,
       padding: EdgeInsets.symmetric(horizontal: 19.w),
       decoration: BoxDecoration(
-        color: _kSearchBarBg,
+        color: AppColors.searchBarBackground,
         borderRadius: BorderRadius.circular(34.r),
       ),
       child: Row(
@@ -730,12 +722,12 @@ class _AccessibilityProfileRow extends StatelessWidget {
               height: 48.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isActive ? _kPrimaryBlue : _kInactiveCircleBg,
+                color: isActive ? AppColors.primaryAlt : AppColors.inactiveSurface,
               ),
               child: Icon(
                 profile.icon,
                 size: 30.w,
-                color: isActive ? Colors.white : _kInactiveIconColor,
+                color: isActive ? Colors.white : AppColors.toggleUnselected,
               ),
             ),
             SizedBox(height: 7.h),
@@ -780,7 +772,7 @@ class _FilterSelectRow extends StatelessWidget {
             ),
           ),
           SizedBox(width: 6.w),
-          Icon(Icons.tune, size: 18.r, color: _kFilterIconColor),
+          Icon(Icons.tune, size: 18.r, color: AppColors.navIconInactive),
         ],
       ),
     );
@@ -811,7 +803,7 @@ class _EmptyResultState extends StatelessWidget {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
-              color: _kEmptyTextColor,
+              color: AppColors.emptyStateText,
             ),
           ),
         ],
@@ -894,7 +886,7 @@ class _ResultCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             spot.addr1,
-            style: const TextStyle(fontSize: 13, color: _kAddressTextColor),
+            style: const TextStyle(fontSize: 13, color: AppColors.addressText),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -906,7 +898,7 @@ class _ResultCard extends StatelessWidget {
                   .map(
                     (p) => Padding(
                       padding: const EdgeInsets.only(right: 4),
-                      child: Icon(p.icon, size: 16, color: _kInactiveIconColor),
+                      child: Icon(p.icon, size: 16, color: AppColors.toggleUnselected),
                     ),
                   )
                   .toList(),
@@ -920,7 +912,7 @@ class _ResultCard extends StatelessWidget {
   Widget _buildImagePlaceholder({bool loading = false}) {
     if (loading) {
       return Container(
-        color: _kInactiveCircleBg,
+        color: AppColors.inactiveSurface,
         alignment: Alignment.center,
         child: SizedBox(
           width: 20.r,

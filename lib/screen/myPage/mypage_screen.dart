@@ -9,9 +9,6 @@ import '../../widgets/toast.dart';
 import '../auth/login_screen.dart';
 import 'accessibility_screen.dart';
 
-const _kCardColor = Color(0xB2F2F2F2);
-const _kDividerColor = Color(0xFFE3E3E3);
-
 AccessibilityProfile? _profileFromName(String name) {
   for (final profile in AccessibilityProfile.values) {
     if (profile.name == name) return profile;
@@ -134,7 +131,7 @@ class MyPageScreen extends ConsumerWidget {
             '안녕하세요, $nickname님!',
             style: TextStyle(
               fontSize: 19.sp,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.bold,
               color: AppColors.textPrimary,
             ),
           ),
@@ -193,7 +190,7 @@ class MyPageScreen extends ConsumerWidget {
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(20.r, 20.r, 20.r, 13.r),
       decoration: BoxDecoration(
-        color: _kCardColor,
+        color: AppColors.myPageCardOverlay,
         borderRadius: BorderRadius.circular(9.2.r),
       ),
       child: Column(
@@ -277,7 +274,7 @@ class MyPageScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Divider(color: _kDividerColor, height: 1),
+        const Divider(color: AppColors.mutedDivider, height: 1),
         SizedBox(height: 15.h),
         Text(
           title,
