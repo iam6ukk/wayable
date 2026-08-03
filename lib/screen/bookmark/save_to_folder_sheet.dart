@@ -9,13 +9,10 @@ import '../../theme/app_colors.dart';
 import '../../widgets/app_dialog.dart';
 import '../../widgets/toast.dart';
 
-const _kSheetBackground = Color(0xFFF8FCFF);
-const _kConfirmColor = Color(0xFF0065F4);
-
-/// 폴더 한 줄의 고정 높이(피그마 기준 "기본 폴더"~"폴더 01" 행 간격 51px).
+/// 폴더 한 줄의 고정 높이(피그마 기준 "기본 폴더"~"폴더 A" 행 간격 47px).
 /// 4줄까지는 이 높이만큼 시트가 늘어나고, 5개 이상부터는 늘어나지 않고
 /// 이 높이(4줄치) 안에서 스크롤된다.
-const _kFolderRowHeight = 51.0;
+const _kFolderRowHeight = 47.0;
 const _kMaxVisibleFolderRows = 4;
 
 /// '새로 만들기' 선택을 실제 폴더 id와 구분하기 위한 내부 sentinel 값.
@@ -50,6 +47,15 @@ Future<void> showSaveToFolderSheet(
   if (result == null || !context.mounted) return;
 
   if (result == _kCreateNewFolderValue) {
+    final customFolderCount = ref
+        .read(bookmarkProvider)
+        .folders
+        .where((f) => f.id != 'default')
+        .length;
+    if (customFolderCount >= kMaxCustomFolders) {
+      showAndroidToast(context, '폴더는 최대 $kMaxCustomFolders개까지 만들 수 있어요.');
+      return;
+    }
     final name = await showFolderNameInputDialog(
       context,
       title: '새 폴더 추가',
@@ -135,8 +141,8 @@ class _SaveToFolderSheetState extends State<_SaveToFolderSheet> {
 
     return Container(
       decoration: BoxDecoration(
-        color: _kSheetBackground,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(31.r)),
+        color: AppColors.bottomSheetBackground,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28.4.r)),
       ),
       padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
       child: Column(
@@ -147,12 +153,12 @@ class _SaveToFolderSheetState extends State<_SaveToFolderSheet> {
             height: listHeight,
             child: ListView(
               controller: _scrollController,
-              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              padding: EdgeInsets.symmetric(horizontal: 47.w),
               children: widget.folders.map(_buildFolderRow).toList(),
             ),
           ),
           Padding(
-            padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 20.h),
+            padding: EdgeInsets.fromLTRB(38.w, 12.h, 38.w, 20.h),
             child: _buildConfirmButton(),
           ),
         ],
@@ -183,16 +189,13 @@ class _SaveToFolderSheetState extends State<_SaveToFolderSheet> {
                   children: [
                     Icon(
                       Icons.create_new_folder_outlined,
-                      size: 20.r,
-                      color: AppColors.textPrimary,
+                      size: 18.r,
+                      color: Colors.black,
                     ),
                     SizedBox(height: 2.h),
                     Text(
                       '새로 만들기',
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        color: AppColors.textPrimary,
-                      ),
+                      style: TextStyle(fontSize: 10.sp, color: Colors.black),
                     ),
                   ],
                 ),
@@ -202,7 +205,7 @@ class _SaveToFolderSheetState extends State<_SaveToFolderSheet> {
           Text(
             '폴더 선택',
             style: TextStyle(
-              fontSize: 20.sp,
+              fontSize: 18.sp,
               fontWeight: FontWeight.w600,
               color: Colors.black,
             ),
@@ -214,7 +217,7 @@ class _SaveToFolderSheetState extends State<_SaveToFolderSheet> {
                 onTap: () => Navigator.of(context).pop(),
                 child: Icon(
                   Icons.close,
-                  size: 26.r,
+                  size: 18.3.r,
                   color: AppColors.navIconInactive,
                 ),
               ),
@@ -239,9 +242,9 @@ class _SaveToFolderSheetState extends State<_SaveToFolderSheet> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 16.sp,
+                  fontSize: 14.sp,
                   fontWeight: FontWeight.w500,
-                  color: Colors.black,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ),
@@ -254,11 +257,11 @@ class _SaveToFolderSheetState extends State<_SaveToFolderSheet> {
 
   Widget _buildSelectionCircle(bool selected) {
     return Container(
-      width: 28.r,
-      height: 28.r,
+      width: 25.r,
+      height: 25.r,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: selected ? _kConfirmColor : Colors.transparent,
+        color: selected ? AppColors.primary : Colors.transparent,
         border: selected ? null : Border.all(color: AppColors.faintDivider),
       ),
       child: selected
@@ -270,18 +273,18 @@ class _SaveToFolderSheetState extends State<_SaveToFolderSheet> {
   Widget _buildConfirmButton() {
     return SizedBox(
       width: double.infinity,
-      height: 47.h,
+      height: 43.h,
       child: ElevatedButton(
         onPressed: _selectedId == null
             ? null
             : () => Navigator.of(context).pop(_selectedId),
         style: ElevatedButton.styleFrom(
-          backgroundColor: _kConfirmColor,
+          backgroundColor: AppColors.primary,
           disabledBackgroundColor: AppColors.faintDivider,
           foregroundColor: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(23.r),
+            borderRadius: BorderRadius.circular(21.5.r),
           ),
         ),
         child: Text('확인', style: TextStyle(fontSize: 13.sp)),

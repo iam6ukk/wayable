@@ -29,8 +29,6 @@ class _LandingPageState extends State<LandingPage> {
 
   // 전환 애니메이션 지속시간 (아래 _startExit의 대기시간과 반드시 일치시킬 것)
   static const _exitDuration = Duration(milliseconds: 550);
-  // static const _bgColor = Color(0xFFEAF4FF);
-  // static const _titleColor = Color(0xFF052A5F);
 
   @override
   void initState() {
@@ -88,7 +86,7 @@ class _LandingPageState extends State<LandingPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 로고 - 상단 배치, 140x140
+              // 로고 - 상단 배치, 갤럭시 표준(360x800) Figma 프레임 기준 123x125
               AnimatedOpacity(
                 duration: const Duration(milliseconds: 500),
                 opacity: _logoVisible ? 1 : 0,
@@ -98,12 +96,12 @@ class _LandingPageState extends State<LandingPage> {
                       _EasedRectTween(begin: begin, end: end),
                   child: Image.asset(
                     'assets/images/wayable.png',
-                    width: 140.r,
-                    height: 140.r,
+                    width: 123.w,
+                    height: 125.h,
                   ),
                 ),
               ),
-              SizedBox(height: 32.h),
+              SizedBox(height: 42.h),
 
               // 대제목 - exit 시 슬라이드 없이 제자리에서 페이드아웃만
               _buildFadeText(
@@ -113,12 +111,12 @@ class _LandingPageState extends State<LandingPage> {
                   style: TextStyle(
                     fontFamily: 'Pretendard',
                     fontWeight: FontWeight.w700,
-                    fontSize: 27.sp,
+                    fontSize: 24.sp,
                     color: AppColors.catchPhrase,
                   ),
                 ),
               ),
-              SizedBox(height: 6.h),
+              SizedBox(height: 7.h),
 
               // 소제목 - 마찬가지로 제자리에서 페이드아웃만
               _buildFadeText(
@@ -128,7 +126,7 @@ class _LandingPageState extends State<LandingPage> {
                   style: TextStyle(
                     fontFamily: 'Pretendard',
                     fontWeight: FontWeight.w300,
-                    fontSize: 20.sp,
+                    fontSize: 18.sp,
                     color: AppColors.catchPhrase,
                   ),
                 ),

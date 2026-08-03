@@ -81,9 +81,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       // Stack + Positioned 구조 (overflow 에러가 발생하지 않는 원래 안정적인 구조로 복귀)
       body: Stack(
         children: [
-          // 상단: 로고 + Wayable 워드마크 (화면 최상단에서 197px)
+          // 상단: 로고 + Wayable 워드마크 (갤럭시 표준 360x800 Figma 프레임 기준)
           Positioned(
-            top: 197.h,
+            top: 217.h,
             left: 0,
             right: 0,
             child: Column(
@@ -93,13 +93,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     tag: 'app_logo',
                     child: Image.asset(
                       'assets/images/wayable.png',
-                      width: 120.r,
-                      height: 120.r,
+                      width: 106.w,
+                      height: 108.h,
                       fit: BoxFit.contain,
                     ),
                   ),
                 ),
-                SizedBox(height: 16.h),
+                SizedBox(height: 22.h),
                 Center(
                   child: AnimatedOpacity(
                     duration: const Duration(milliseconds: 500),
@@ -108,9 +108,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       'Wayable',
                       style: TextStyle(
                         fontFamily: 'CalSans',
-                        fontSize: 27.sp,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.catchPhrase,
+                        fontSize: 26.sp,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.wordmark,
                       ),
                     ),
                   ),
@@ -121,9 +121,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
           // 하단: 로그인 버튼 + 비회원 텍스트
           Positioned(
-            bottom: 114.h,
-            left: 34.w,
-            right: 34.w,
+            top: 524.h,
+            left: 31.w,
+            right: 31.w,
             child: IgnorePointer(
               ignoring: !_buttonsVisible,
               child: AnimatedOpacity(
@@ -151,27 +151,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             },
                       child: Container(
                         width: double.infinity,
-                        height: 52.h,
+                        height: 44.9.h,
                         decoration: BoxDecoration(
                           color: const Color(0xFFFDDC3F),
-                          borderRadius: BorderRadius.all(Radius.circular(8.r)),
+                          borderRadius: BorderRadius.all(Radius.circular(5.5.r)),
                         ),
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
                             Positioned(
-                              left: 12.w,
+                              left: 3.w,
                               child: Image.asset(
                                 'assets/images/kakao.png',
-                                width: 35.r,
-                                height: 35.r,
+                                width: 41.r,
+                                height: 41.r,
                               ),
                             ),
                             Text(
                               '카카오 로그인',
                               style: TextStyle(
                                 fontFamily: 'Pretendard',
-                                fontSize: 15.sp,
+                                fontSize: 16.sp,
                                 fontWeight: FontWeight.w500,
                                 color: Colors.black,
                               ),
@@ -199,34 +199,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   .signInWithGoogle();
                             },
                       child: Container(
-                        margin: EdgeInsets.only(top: 18.h),
+                        margin: EdgeInsets.only(top: 15.h),
                         width: double.infinity,
-                        height: 52.h,
+                        height: 44.9.h,
                         decoration: BoxDecoration(
                           color: const Color(0xFFFFFFFF),
                           border: Border.all(
-                            color: AppColors.boldDivider,
-                            // color: const Color(0xFF747775),
+                            color: AppColors.hairlineDivider,
                             width: 0.2,
                           ),
-                          borderRadius: BorderRadius.all(Radius.circular(8.r)),
+                          borderRadius: BorderRadius.all(
+                            Radius.circular(6.4.r),
+                          ),
                         ),
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
                             Positioned(
-                              left: 10.w,
+                              left: 6.5.w,
                               child: Image.asset(
                                 'assets/images/google.png',
-                                width: 40.r,
-                                height: 40.r,
+                                width: 29.3.r,
+                                height: 29.3.r,
                               ),
                             ),
                             Text(
                               'Google 계정으로 로그인',
                               style: TextStyle(
                                 fontFamily: 'Pretendard',
-                                fontSize: 15.sp,
+                                fontSize: 16.sp,
                                 fontWeight: FontWeight.w500,
                                 color: Colors.black,
                               ),
@@ -236,7 +237,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
 
-                    // 비회원 버튼 (하단에서 114px 지점)
+                    // 비회원 버튼 (Figma상 카카오 버튼 top 기준 524px 지점부터 이어짐)
                     TextButton(
                       onPressed: () {
                         Navigator.pushReplacement(
@@ -251,11 +252,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         '비회원으로 진행하기',
                         style: TextStyle(
                           fontFamily: 'Pretendard',
-                          fontSize: 14.sp,
+                          fontSize: 13.sp,
                           fontWeight: FontWeight.w400,
-                          color: AppColors.textSecondary,
+                          color: AppColors.slateGray,
                           decoration: TextDecoration.underline,
-                          decorationColor: AppColors.textSecondary.withValues(
+                          decorationColor: AppColors.slateGray.withValues(
                             alpha: 0.3,
                           ),
                         ),

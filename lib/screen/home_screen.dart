@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:wayable/model/region/area_code.dart';
+import 'package:wayable/theme/app_colors.dart';
 import 'package:wayable/model/tour/tour_spot.dart';
 import 'package:wayable/services/location/location_service.dart';
 import 'package:wayable/services/region/area_code_repository.dart';
@@ -21,7 +22,6 @@ const _kHeroAutoPlayInterval = Duration(seconds: 5);
 const _kCultureCardColor = Color(0xFF548389);
 const _kRestaurantCardGradient = [Color(0xFFE5B081), Color(0xFFE9C6A8)];
 const _kLodgingCardGradient = [Color(0xFFFFEADC), Color(0xFFFFBBA2)];
-const _kDarkLabelColor = Color(0xFF444444);
 
 /// 3~5월 봄, 6~8월 여름, 9~11월 가을, 12~2월 겨울.
 enum _Season { spring, summer, fall, winter }
@@ -118,7 +118,7 @@ final _categorySpots = [
       end: Alignment.bottomRight,
       colors: _kRestaurantCardGradient,
     ),
-    labelColor: _kDarkLabelColor,
+    labelColor: AppColors.textPrimary,
     imageAlignment: Alignment.center,
   ),
   _CategorySpot(
@@ -129,7 +129,7 @@ final _categorySpots = [
       end: Alignment.bottomCenter,
       colors: _kLodgingCardGradient,
     ),
-    labelColor: _kDarkLabelColor,
+    labelColor: AppColors.textPrimary,
     imageAlignment: Alignment.bottomCenter,
   ),
 ];
@@ -400,20 +400,24 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeroBanner(),
-          SizedBox(height: 16.h),
+          SizedBox(height: 41.h),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.w),
             child: _buildDiscoverySection(),
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: 41.h),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.w),
             child: Text(
               '카테고리 별 추천 장소',
-              style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                fontSize: 19.sp,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: 18.h),
           _buildCategoryList(),
           SizedBox(height: 24.h),
         ],
@@ -428,7 +432,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (featuredSpots == null || featuredSpots.isEmpty) {
       return SizedBox(
         width: double.infinity,
-        height: 173.h,
+        height: 171.h,
         child: _buildSkeletonBox(),
       );
     }
@@ -442,7 +446,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return SizedBox(
       width: double.infinity,
-      height: 173.h,
+      height: 171.h,
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -485,18 +489,18 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           Positioned(
-            top: 12.h,
+            top: 16.h,
             right: 16.w,
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
               decoration: BoxDecoration(
                 color: _kPageBadgeBg,
-                borderRadius: BorderRadius.circular(17.r),
+                borderRadius: BorderRadius.circular(16.r),
               ),
               child: Text(
                 '${_heroPage + 1}/${slides.length}',
                 style: TextStyle(
-                  fontSize: 10.sp,
+                  fontSize: 8.2.sp,
                   fontWeight: FontWeight.w600,
                   color: _kPageBadgeText,
                 ),
@@ -507,7 +511,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Positioned(
               left: 16.w,
               right: 16.w,
-              bottom: 20.h,
+              bottom: 13.h,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -525,8 +529,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     currentSlide.spot!.title,
                     textAlign: TextAlign.right,
                     style: TextStyle(
-                      fontSize: 20.sp,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 19.sp,
+                      fontWeight: FontWeight.w600,
                       color: Colors.white,
                     ),
                   ),
@@ -557,8 +561,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(
                       '오늘 발견',
                       style: TextStyle(
-                        fontSize: 24.sp,
+                        fontSize: 19.sp,
                         fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     Row(
@@ -567,8 +572,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         Text(
                           '여행지',
                           style: TextStyle(
-                            fontSize: 24.sp,
+                            fontSize: 19.sp,
                             fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
                           ),
                         ),
                         SizedBox(width: 4.w),
@@ -576,8 +582,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           onTap: _refreshDiscoverySpot,
                           child: Image.asset(
                             'assets/images/refresh.png',
-                            width: 22.r,
-                            height: 22.r,
+                            width: 14.r,
+                            height: 14.r,
                           ),
                         ),
                       ],
@@ -589,7 +595,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Icon(
                       Icons.location_on_outlined,
-                      size: 20.r,
+                      size: 16.r,
                       color: _kLocationTextColor,
                     ),
                     SizedBox(width: 4.w),
@@ -641,15 +647,15 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           Positioned(
                             left: 12.w,
-                            right: 16.w,
-                            top: 16.h,
+                            right: 13.w,
+                            top: 12.h,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
                                   spot.name,
                                   style: TextStyle(
-                                    fontSize: 21.sp,
+                                    fontSize: 16.sp,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.white,
                                   ),
@@ -720,7 +726,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildCategoryList() {
     return SizedBox(
-      height: 190.h,
+      height: 187.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -735,7 +741,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // TO-DO : 카테고리별 추천 장소는 제공하기 어려운 이슈로 보류
   Widget _buildCategoryCard(_CategorySpot spot) {
     return Container(
-      width: 140.w,
+      width: 132.w,
       decoration: BoxDecoration(
         gradient: spot.background,
         borderRadius: BorderRadius.circular(16.r),
@@ -753,12 +759,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           Padding(
-            padding: EdgeInsets.only(left: 12.w, bottom: 10.h),
+            padding: EdgeInsets.only(left: 19.5.w, bottom: 10.h),
             child: Text(
               spot.label,
               style: TextStyle(
                 fontSize: 16.sp,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
                 color: spot.labelColor,
               ),
             ),

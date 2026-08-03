@@ -68,8 +68,8 @@ class BottomNavBar extends StatelessWidget {
             tab.icon,
             size: 28.r,
             color: isSelected
-                ? AppColors.navIconActive
-                : AppColors.navIconInactive,
+                ? AppColors.bottomNavActive
+                : AppColors.bottomNavInactive,
           ),
         ),
       ),

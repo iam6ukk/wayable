@@ -3,14 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../model/accessibility/accessibility_profile.dart';
 import '../../providers/auth_provider.dart';
+import '../../theme/app_colors.dart';
 import '../../utils/app_logger.dart';
-import '../../widgets/app_dialog.dart';
 import '../../widgets/toast.dart';
 import '../auth/login_screen.dart';
 import 'accessibility_screen.dart';
 
-const _kCardColor = Color(0xB2F7F7F7);
-const _kGreyText = Color(0xFF6F6F6F);
+const _kCardColor = Color(0xB2F2F2F2);
 const _kDividerColor = Color(0xFFE3E3E3);
 
 AccessibilityProfile? _profileFromName(String name) {
@@ -126,7 +125,7 @@ class MyPageScreen extends ConsumerWidget {
         .toList();
 
     return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(horizontal: 24.w),
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -135,13 +134,13 @@ class MyPageScreen extends ConsumerWidget {
             '안녕하세요, $nickname님!',
             style: TextStyle(
               fontSize: 19.sp,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF060606),
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
             ),
           ),
-          SizedBox(height: 20.h),
+          SizedBox(height: 23.h),
           _buildAccessibilityCard(context, profiles),
-          SizedBox(height: 24.h),
+          SizedBox(height: 15.h),
           _buildSection(
             title: '내 설정',
             items: [
@@ -149,6 +148,7 @@ class MyPageScreen extends ConsumerWidget {
                 '접근성 프로필 설정',
                 () => _openAccessibilitySetting(context),
               ),
+              _MenuEntry('앱 접근성 설정', () => _showNotReady(context)),
             ],
           ),
           _buildSection(
@@ -167,12 +167,12 @@ class MyPageScreen extends ConsumerWidget {
               _MenuEntry('문의하기', () => _showNotReady(context)),
             ],
           ),
-          SizedBox(height: 8.h),
+          SizedBox(height: 11.h),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _buildTextAction('로그아웃', () => _handleLogout(context, ref)),
-              SizedBox(width: 48.w),
+              SizedBox(width: 96.w),
               _buildTextAction(
                 '회원탈퇴',
                 () => _handleDeleteAccount(context, ref),
@@ -191,10 +191,10 @@ class MyPageScreen extends ConsumerWidget {
   ) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(20.r),
+      padding: EdgeInsets.fromLTRB(20.r, 20.r, 20.r, 13.r),
       decoration: BoxDecoration(
         color: _kCardColor,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(9.2.r),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,16 +202,20 @@ class MyPageScreen extends ConsumerWidget {
           Text(
             '내 접근성 프로필',
             style: TextStyle(
-              fontSize: 18.sp,
+              fontSize: 16.sp,
               fontWeight: FontWeight.w500,
-              color: Colors.black,
+              color: AppColors.textPrimary,
             ),
           ),
           SizedBox(height: 12.h),
           if (profiles.isEmpty)
             Text(
               '접근성 프로필이 설정되지 않았습니다.\n프로필을 수정하여 접근성 프로필을 생성해주세요.',
-              style: TextStyle(fontSize: 16.sp, color: _kGreyText, height: 1.4),
+              style: TextStyle(
+                fontSize: 16.sp,
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
             )
           else
             for (final profile in profiles) _buildProfileRow(profile),
@@ -226,9 +230,17 @@ class MyPageScreen extends ConsumerWidget {
                 children: [
                   Text(
                     '프로필 수정하기',
-                    style: TextStyle(fontSize: 13.sp, color: _kGreyText),
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w300,
+                      color: AppColors.textTertiary,
+                    ),
                   ),
-                  Icon(Icons.chevron_right, size: 16.r, color: _kGreyText),
+                  Icon(
+                    Icons.chevron_right,
+                    size: 10.r,
+                    color: AppColors.textTertiary,
+                  ),
                 ],
               ),
             ),
@@ -240,17 +252,17 @@ class MyPageScreen extends ConsumerWidget {
 
   Widget _buildProfileRow(AccessibilityProfile profile) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 4.h),
+      padding: EdgeInsets.only(bottom: 10.h),
       child: Row(
         children: [
-          Icon(profile.icon, size: 20.r, color: const Color(0xFF7D7D7D)),
+          Icon(profile.icon, size: 18.r, color: const Color(0xFF7D7D7D)),
           SizedBox(width: 8.w),
           Text(
             profile.label,
             style: TextStyle(
-              fontSize: 16.sp,
+              fontSize: 13.sp,
               fontWeight: FontWeight.w500,
-              color: _kGreyText,
+              color: AppColors.textSecondary,
             ),
           ),
         ],
@@ -266,31 +278,35 @@ class MyPageScreen extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Divider(color: _kDividerColor, height: 1),
-        SizedBox(height: 20.h),
+        SizedBox(height: 15.h),
         Text(
           title,
           style: TextStyle(
             fontSize: 16.sp,
             fontWeight: FontWeight.w600,
-            color: Colors.black,
+            color: AppColors.textPrimary,
           ),
         ),
-        SizedBox(height: 12.h),
+        SizedBox(height: 13.h),
         for (final item in items) _buildMenuItem(item),
-        SizedBox(height: 8.h),
+        SizedBox(height: 13.h),
       ],
     );
   }
 
   Widget _buildMenuItem(_MenuEntry item) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8.h),
+      padding: EdgeInsets.symmetric(vertical: 13.5.h),
       child: GestureDetector(
         onTap: item.onTap,
         behavior: HitTestBehavior.opaque,
         child: Text(
           item.label,
-          style: TextStyle(fontSize: 13.sp, color: Colors.black87),
+          style: TextStyle(
+            fontSize: 12.sp,
+            fontWeight: FontWeight.w300,
+            color: AppColors.textSecondary,
+          ),
         ),
       ),
     );
@@ -304,6 +320,7 @@ class MyPageScreen extends ConsumerWidget {
         label,
         style: TextStyle(
           fontSize: 12.sp,
+          fontWeight: FontWeight.w300,
           color: const Color(0xFF8B8B8B),
           decoration: TextDecoration.underline,
         ),

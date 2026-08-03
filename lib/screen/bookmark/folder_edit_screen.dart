@@ -2,12 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../model/bookmark/bookmark_folder.dart';
+import '../../providers/bookmark_provider.dart' show kMaxCustomFolders;
 import '../../theme/app_colors.dart';
 import '../../widgets/app_dialog.dart';
+import '../../widgets/toast.dart';
 
+// 점3개 메뉴 배경색과 '새 폴더' 버튼 배경색을 하나로 통일해서 쓴다.
 const _kMenuBackground = Color(0xFFEEEEEE);
-const _kNewFolderButtonBg = Color(0xFFD9D9D9);
 const _kTitleColor = Color(0xFF060606);
+const _kDefaultFolderId = 'default';
+
+/// 폴더 목록 일괄 정렬 기준. 정렬을 고르면 순서 편집(드래그)과 동일하게
+/// order 필드를 다시 매겨서 저장한다 — 그래서 여기서 정렬하고 나가면
+/// 여행지 저장 목록 탭 순서에도 그대로 반영된다.
+enum _FolderSortOption {
+  newest('최신순'),
+  oldest('오래된순'),
+  nameAsc('이름순');
+
+  const _FolderSortOption(this.label);
+  final String label;
+}
 
 /// 저장목록 폴더 편집 콘텐츠. 저장목록 화면(SavedListScreen) 안에서 '편집'을
 /// 누르면 콘텐츠 영역만 이 화면으로 갈아끼워진다 — 별도 라우트로 push되는
@@ -47,6 +62,50 @@ class FolderEditScreen extends StatefulWidget {
 class _FolderEditScreenState extends State<FolderEditScreen> {
   bool _isReorderMode = false;
 
+  /// 이번에 이 화면을 여는 동안 고른 정렬 기준(고르기 전엔 null). 실제
+  /// 순서는 항상 폴더의 order 필드가 기준이라, 이 값은 정렬 버튼에 지금
+  /// 선택된 기준을 보여주기 위한 화면 전용 상태일 뿐이다.
+  _FolderSortOption? _sortOption;
+
+  /// 기본 폴더는 이름 변경/삭제/순서 변경이 안 되는, 항상 맨 위에 고정된
+  /// 폴더다. 정렬·순서 변경은 전부 이 기본 폴더를 뺀 나머지(커스텀 폴더)
+  /// 안에서만 이뤄지고, 반영할 때 항상 기본 폴더를 맨 앞에 다시 붙인다.
+  BookmarkFolder? get _defaultFolder {
+    for (final folder in widget.folders) {
+      if (folder.id == _kDefaultFolderId) return folder;
+    }
+    return null;
+  }
+
+  List<BookmarkFolder> get _customFolders =>
+      widget.folders.where((f) => f.id != _kDefaultFolderId).toList();
+
+  void _applyCustomOrder(List<BookmarkFolder> customOrder) {
+    widget.onReorderFolders([?_defaultFolder, ...customOrder]);
+  }
+
+  void _handleSortSelected(_FolderSortOption option) {
+    final sorted = _customFolders;
+    switch (option) {
+      case _FolderSortOption.newest:
+        sorted.sort(
+          (a, b) => (b.createdAt ?? DateTime(0)).compareTo(
+            a.createdAt ?? DateTime(0),
+          ),
+        );
+      case _FolderSortOption.oldest:
+        sorted.sort(
+          (a, b) => (a.createdAt ?? DateTime(0)).compareTo(
+            b.createdAt ?? DateTime(0),
+          ),
+        );
+      case _FolderSortOption.nameAsc:
+        sorted.sort((a, b) => a.name.compareTo(b.name));
+    }
+    setState(() => _sortOption = option);
+    _applyCustomOrder(sorted);
+  }
+
   Future<void> _handleMenuSelected(
     BuildContext context,
     BookmarkFolder folder,
@@ -76,6 +135,10 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
   }
 
   Future<void> _handleAddFolder(BuildContext context) async {
+    if (_customFolders.length >= kMaxCustomFolders) {
+      showAndroidToast(context, '폴더는 최대 $kMaxCustomFolders개까지 만들 수 있어요.');
+      return;
+    }
     final name = await showFolderNameInputDialog(
       context,
       title: '새 폴더 추가',
@@ -85,10 +148,10 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
   }
 
   void _handleReorder(int oldIndex, int newIndex) {
-    final reordered = [...widget.folders];
+    final reordered = _customFolders;
     final moved = reordered.removeAt(oldIndex);
     reordered.insert(newIndex, moved);
-    widget.onReorderFolders(reordered);
+    _applyCustomOrder(reordered);
   }
 
   @override
@@ -99,13 +162,32 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
         _buildHeader(),
         Expanded(
           child: _isReorderMode
-              ? ReorderableListView.builder(
-                  padding: EdgeInsets.zero,
-                  buildDefaultDragHandles: false,
-                  itemCount: widget.folders.length,
-                  onReorderItem: _handleReorder,
-                  itemBuilder: (context, index) =>
-                      _buildReorderRow(widget.folders[index], index),
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 기본 폴더는 순서 변경 대상이 아니라 항상 맨 위에 고정
+                    // 노출한다 — 드래그 핸들도 없어서 아예 집을 수가 없다.
+                    if (_defaultFolder case final defaultFolder?)
+                      _buildPinnedDefaultRow(defaultFolder),
+                    Expanded(
+                      child: ReorderableListView.builder(
+                        padding: EdgeInsets.zero,
+                        buildDefaultDragHandles: false,
+                        itemCount: _customFolders.length,
+                        onReorderItem: _handleReorder,
+                        // 드래그 중인 항목은 기본적으로 Material 3의
+                        // surfaceTint가 덧입혀져서 살짝 분홍빛으로 보인다 —
+                        // 바텀시트와 동일한 배경색을 명시해서 그 틴트를
+                        // 덮어쓴다.
+                        proxyDecorator: (child, index, animation) => Material(
+                          color: AppColors.bottomSheetBackground,
+                          child: child,
+                        ),
+                        itemBuilder: (context, index) =>
+                            _buildReorderRow(_customFolders[index], index),
+                      ),
+                    ),
+                  ],
                 )
               : ListView.separated(
                   padding: EdgeInsets.zero,
@@ -139,20 +221,99 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
                 : widget.onBack,
             icon: const Icon(Icons.arrow_back_ios_new, color: _kTitleColor),
           ),
-          Text(
-            _isReorderMode ? '순서 편집' : '폴더 편집',
-            style: TextStyle(
-              fontSize: 20.sp,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+          Expanded(
+            child: Text(
+              _isReorderMode ? '순서 편집' : '폴더 편집',
+              style: TextStyle(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
+          // 순서 편집 모드에서는 드래그로 직접 순서를 정하는 중이라 일괄
+          // 정렬 버튼은 숨긴다 — 여행지 저장 목록 화면의 '편집' 버튼과
+          // 동일한 위치(제목 우측)에 둔다.
+          if (!_isReorderMode) _buildSortButton(),
         ],
       ),
     );
   }
 
+  Widget _buildSortButton() {
+    return PopupMenuButton<_FolderSortOption>(
+      onSelected: _handleSortSelected,
+      // 점3개 메뉴와 동일한 이유로, 메뉴가 버튼과 겹치지 않고 버튼 바로
+      // 아래에서 시작하도록 버튼 높이만큼 내린다.
+      offset: Offset(0, 34.h),
+      popUpAnimationStyle: AnimationStyle.noAnimation,
+      menuPadding: EdgeInsets.zero,
+      color: _kMenuBackground,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.r)),
+      itemBuilder: (context) => [
+        for (var i = 0; i < _FolderSortOption.values.length; i++) ...[
+          if (i > 0) PopupMenuDivider(height: 1, color: AppColors.faintDivider),
+          _sortMenuItem(_FolderSortOption.values[i]),
+        ],
+      ],
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(color: const Color(0xFFE4E4E4), width: 0.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 4,
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _sortOption?.label ?? '정렬',
+              style: TextStyle(fontSize: 12.sp, color: const Color(0xFF3C3C3C)),
+            ),
+            SizedBox(width: 4.w),
+            Icon(
+              Icons.arrow_drop_down,
+              size: 16.r,
+              color: AppColors.navIconInactive,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  PopupMenuItem<_FolderSortOption> _sortMenuItem(_FolderSortOption option) {
+    final isSelected = option == _sortOption;
+    return PopupMenuItem(
+      value: option,
+      height: 40.h,
+      padding: EdgeInsets.zero,
+      child: SizedBox(
+        height: 40.h,
+        child: Center(
+          child: Text(
+            option.label,
+            style: TextStyle(
+              fontSize: 13.sp,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildFolderRow(BuildContext context, BookmarkFolder folder) {
+    // 기본 폴더는 이름 변경/순서 편집/삭제가 전부 불가능해서 점3개 메뉴
+    // 자체를 보여주지 않는다.
+    final isDefault = folder.id == _kDefaultFolderId;
     return SizedBox(
       height: 61.h,
       child: Padding(
@@ -173,49 +334,79 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
                 style: TextStyle(fontSize: 16.sp, color: AppColors.textPrimary),
               ),
             ),
-            PopupMenuButton<String>(
-              // icon 대신 child를 쓰면 기본 IconButton의 48x48 최소 탭 영역이
-              // 붙지 않아, 왼쪽 폴더 아이콘과 동일하게 24px 크기 그대로
-              // 오른쪽 여백이 잡힌다(icon을 쓰면 보이지 않는 여백이 더해져
-              // 좌우 마진이 안 맞아 보였다).
-              constraints: BoxConstraints.tightFor(width: 121.w),
-              // offset의 기본값(Offset.zero)은 메뉴가 버튼(점3개 아이콘)과
-              // 같은 위치에서부터 겹쳐 자라나서, 메뉴가 버튼 자체를 덮어버린다.
-              // 버튼 높이(24)만큼 아래로 내려서 버튼 바로 아래에서 메뉴가
-              // 시작하도록 한다.
-              offset: Offset(0, 24.r),
-              popUpAnimationStyle: AnimationStyle.noAnimation,
-              // 메뉴 전체를 감싸는 기본 padding(수직 8)이 있어서, 항목 사이는
-              // 구분선 1px뿐인데 첫/마지막 항목의 위/아래에만 여백이 더 생겨
-              // 보였다 — 0으로 없애서 세 항목의 위아래 여백을 동일하게 만든다.
-              menuPadding: EdgeInsets.zero,
-              color: _kMenuBackground,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(5.r),
+            if (!isDefault)
+              PopupMenuButton<String>(
+                // icon 대신 child를 쓰면 기본 IconButton의 48x48 최소 탭
+                // 영역이 붙지 않아, 왼쪽 폴더 아이콘과 동일하게 24px 크기
+                // 그대로 오른쪽 여백이 잡힌다(icon을 쓰면 보이지 않는 여백이
+                // 더해져 좌우 마진이 안 맞아 보였다).
+                constraints: BoxConstraints.tightFor(width: 121.w),
+                // offset의 기본값(Offset.zero)은 메뉴가 버튼(점3개 아이콘)과
+                // 같은 위치에서부터 겹쳐 자라나서, 메뉴가 버튼 자체를
+                // 덮어버린다. 버튼 높이(24)만큼 아래로 내려서 버튼 바로
+                // 아래에서 메뉴가 시작하도록 한다.
+                offset: Offset(0, 24.r),
+                popUpAnimationStyle: AnimationStyle.noAnimation,
+                // 메뉴 전체를 감싸는 기본 padding(수직 8)이 있어서, 항목
+                // 사이는 구분선 1px뿐인데 첫/마지막 항목의 위/아래에만
+                // 여백이 더 생겨 보였다 — 0으로 없애서 세 항목의 위아래
+                // 여백을 동일하게 만든다.
+                menuPadding: EdgeInsets.zero,
+                color: _kMenuBackground,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(5.r),
+                ),
+                onSelected: (action) =>
+                    _handleMenuSelected(context, folder, action),
+                itemBuilder: (context) => <PopupMenuEntry<String>>[
+                  _menuItem('rename', '이름 변경'),
+                  PopupMenuDivider(height: 1, color: AppColors.faintDivider),
+                  _menuItem('reorder', '순서 편집'),
+                  PopupMenuDivider(height: 1, color: AppColors.faintDivider),
+                  _menuItem('delete', '폴더 삭제'),
+                ],
+                child: Icon(
+                  Icons.more_vert,
+                  size: 24.r,
+                  color: AppColors.textPrimary,
+                ),
               ),
-              onSelected: (action) =>
-                  _handleMenuSelected(context, folder, action),
-              itemBuilder: (context) => <PopupMenuEntry<String>>[
-                _menuItem('rename', '이름 변경'),
-                PopupMenuDivider(height: 1, color: AppColors.faintDivider),
-                _menuItem('reorder', '순서 편집'),
-                PopupMenuDivider(height: 1, color: AppColors.faintDivider),
-                _menuItem('delete', '폴더 삭제'),
-              ],
-              child: Icon(
-                Icons.more_vert,
-                size: 24.r,
-                color: AppColors.textPrimary,
-              ),
-            ),
           ],
         ),
       ),
     );
   }
 
+  /// 순서 편집 모드에서 기본 폴더를 맨 위에 고정 노출하는 행. 드래그 핸들이
+  /// 없어서 아예 집을 수 없다.
+  Widget _buildPinnedDefaultRow(BookmarkFolder folder) {
+    return Container(
+      height: 61.h,
+      padding: EdgeInsets.symmetric(horizontal: 32.w),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: AppColors.faintDivider, width: 1),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.folder_outlined, size: 24.r, color: AppColors.textPrimary),
+          SizedBox(width: 17.w),
+          Expanded(
+            child: Text(
+              folder.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 16.sp, color: AppColors.textPrimary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildReorderRow(BookmarkFolder folder, int index) {
-    final isLast = index == widget.folders.length - 1;
+    final isLast = index == _customFolders.length - 1;
     return Container(
       key: ValueKey(folder.id),
       height: 61.h,
@@ -279,7 +470,7 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
       child: ElevatedButton.icon(
         onPressed: () => _handleAddFolder(context),
         style: ElevatedButton.styleFrom(
-          backgroundColor: _kNewFolderButtonBg,
+          backgroundColor: _kMenuBackground,
           foregroundColor: AppColors.textPrimary,
           elevation: 0,
           padding: EdgeInsets.zero,

@@ -38,10 +38,12 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    // 디자이너가 Figma 작업 기준으로 쓰는 프레임 크기(393x852, iPhone 16)를
-    // 그대로 기준 사이즈로 등록해 실제 안드로이드 기기 폭에 비례 스케일한다.
+    // 디자이너가 Figma 작업 기준으로 쓰는 프레임 크기(360x800, 갤럭시 표준
+    // 뷰포트)를 그대로 기준 사이즈로 등록해 실제 안드로이드 기기 폭에 비례
+    // 스케일한다. (이전엔 393x852/iPhone 16 프레임 기준이었으나, 디자이너가
+    // 전체 시안을 갤럭시 표준 뷰포트로 다시 작업하면서 변경됨)
     return ScreenUtilInit(
-      designSize: const Size(393, 852),
+      designSize: const Size(360, 800),
       minTextAdapt: true,
       builder: (context, child) => MaterialApp(
         navigatorKey: navigatorKey,
@@ -50,6 +52,15 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(
           fontFamily: 'Pretendard', // 한글 폰트 프리텐다드로 전역 지정
           useMaterial3: true,
+        ),
+        // 기기의 시스템 폰트 크기 설정이 커져 있으면 .sp 스케일과 중첩되어
+        // 피그마 기준으로 맞춘 레이아웃이 실기기에서 넘치거나 줄바꿈이
+        // 깨진다. 시스템 설정을 완전히 무시하진 않되(접근성 앱의 취지상),
+        // 레이아웃이 버틸 수 있는 범위(최대 1.15배)로만 반영되게 제한한다.
+        builder: (context, child) => MediaQuery.withClampedTextScaling(
+          minScaleFactor: 1.0,
+          maxScaleFactor: 1.15,
+          child: child!,
         ),
         home: const LandingPage(),
       ),
