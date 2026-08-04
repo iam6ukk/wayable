@@ -20,6 +20,7 @@ import '../../widgets/image_placeholder.dart';
 import '../../widgets/top_logo_banner.dart';
 import '../../widgets/toast.dart';
 import '../../model/tour/tour_facility_fields.dart';
+import '../../utils/app_logger.dart';
 import '../auth/login_screen.dart';
 import '../bookmark/save_to_folder_sheet.dart';
 
@@ -54,6 +55,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
   @override
   void initState() {
     super.initState();
+    AppLogger.debug('[SpotDetail] 진입 contentId=${widget.spot.contentId}');
     _loadDetail();
   }
 

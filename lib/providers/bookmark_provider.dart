@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import '../model/bookmark/bookmark_folder.dart';
 import '../model/tour/tour_spot.dart';
 import '../services/bookmark/bookmark_service.dart';
+import '../utils/app_logger.dart';
 import 'auth_provider.dart';
 
 /// 기본 폴더를 제외하고 사용자가 새로 만들 수 있는 폴더 개수 제한.
@@ -251,6 +252,10 @@ class BookmarkNotifier extends StateNotifier<BookmarkState> {
       await _service.unsaveSpot(uid, previousFolderId, spot.contentId);
     }
     await _service.saveSpotToFolder(uid, folderId, spot);
+    AppLogger.debug(
+      '[Bookmark] 저장 contentId=${spot.contentId} folderId=$folderId'
+      '${previousFolderId != null && previousFolderId != folderId ? ' (from=$previousFolderId)' : ''}',
+    );
   }
 
   /// 북마크 해제. 어느 폴더에 저장돼 있든 찾아서 지운다.
@@ -259,5 +264,6 @@ class BookmarkNotifier extends StateNotifier<BookmarkState> {
     final folderId = state.folderIdContaining(contentId);
     if (folderId == null) return;
     await _service.unsaveSpot(uid, folderId, contentId);
+    AppLogger.debug('[Bookmark] 해제 contentId=$contentId folderId=$folderId');
   }
 }

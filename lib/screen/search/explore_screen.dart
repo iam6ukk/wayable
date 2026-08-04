@@ -10,6 +10,7 @@ import '../../model/tour/tour_spot.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/tour/tour_spot_service.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/app_logger.dart';
 import '../../widgets/image_placeholder.dart';
 import '../../widgets/scroll_fab.dart';
 import 'explore_filter_screen.dart';
@@ -288,6 +289,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       _hasSearched = true;
     });
 
+    AppLogger.debug(
+      '[Explore] 검색 keyword="${_searchController.text.trim()}" '
+      'region=${_selectedSido?.code} sigungu=${_selectedSigungu?.name} '
+      'categories=${_selectedCategories.map((c) => c.label).toList()} '
+      'acceptableFields=$_acceptableFieldNames',
+    );
     await _fetchBatch(1);
 
     if (!mounted) return;
