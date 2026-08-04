@@ -100,8 +100,14 @@ async function syncOneItem(db: FirebaseFirestore.Firestore, client: TourApiClien
   const docRef = db.collection(TOUR_SPOTS_COLLECTION).doc(raw.contentid);
 
   if (raw.showflag === "0") {
+    // tourSpots 문서를 먼저 지우면 상세 정보가 사라진 장소를 유저가 계속
+    // 저장목록에 들고 있게 되므로, 모든 유저의 북마크를 먼저 정리한 뒤
+    // 원본 문서를 지운다. 이 순서라야 북마크 삭제가 트리거하는
+    // bookmarkCountSync의 감소 반영도 tourSpots 문서가 존재하는 동안
+    // 정상적으로 먹힌다.
+    await deleteAllBookmarksForContent(db, raw.contentid);
     await docRef.delete();
-    console.log(`[deltaSync] contentId=${raw.contentid} 비표출 처리(showflag=0) → 삭제`);
+    console.log(`[deltaSync] contentId=${raw.contentid} 비표출 처리(showflag=0) → 북마크 연쇄삭제 + 삭제`);
     return;
   }
 
@@ -140,4 +146,25 @@ async function syncOneItem(db: FirebaseFirestore.Firestore, client: TourApiClien
   } else {
     await docRef.set({ festivalSynced: true }, { merge: true });
   }
+}
+
+/**
+ * contentId 기준으로 모든 유저의 북마크(users/{uid}/bookmarks/{folderId}/spots/{contentId})를
+ * collectionGroup으로 찾아 일괄 삭제한다.
+ *
+ * ⚠️ 배포 시 필요한 작업: collectionGroup where 쿼리라 컬렉션 그룹 범위의
+ * 색인이 필요하다 — 콘솔에서 spots 컬렉션 그룹의 contentId(오름차순) 필드에
+ * "컬렉션 그룹" 쿼리 범위 색인을 만들어야 한다(최초 실행 시 색인 없으면
+ * failed-precondition 에러 로그에 생성 링크가 뜬다).
+ */
+async function deleteAllBookmarksForContent(db: FirebaseFirestore.Firestore, contentId: string): Promise<void> {
+  const snap = await db.collectionGroup("spots").where("contentId", "==", contentId).get();
+  if (snap.empty) return;
+
+  const batch = db.batch();
+  for (const doc of snap.docs) {
+    batch.delete(doc.ref);
+  }
+  await batch.commit();
+  console.log(`[deltaSync] contentId=${contentId} 북마크 ${snap.size}건 연쇄삭제`);
 }

@@ -44,6 +44,12 @@ class TourSpot {
   /// 실제 값이 채워진 개별 무장애정보 필드 (상세 필터 매칭용).
   final Set<AccessibilityField> populatedFields;
 
+  /// 이 여행지를 현재 북마크에 담고 있는 유저 수(활성 저장 기준, 해제 시 감소).
+  /// tourSpots/{contentId} 문서에만 존재하는 값이라 Cloud Functions
+  /// (functions/src/bookmark/bookmarkCountSync.ts)가 북마크 저장/해제 시마다
+  /// 갱신하고, fromBookmarkDoc()로 복원하는 저장목록 화면 쪽 복사본에는 없다.
+  final int bookmarkCount;
+
   const TourSpot({
     required this.contentId,
     required this.title,
@@ -56,6 +62,7 @@ class TourSpot {
     this.lDongSignguCd,
     this.supportedProfiles = const {},
     this.populatedFields = const {},
+    this.bookmarkCount = 0,
   });
 
   factory TourSpot.fromFirestore(String id, Map<String, dynamic> data) {
@@ -93,6 +100,7 @@ class TourSpot {
       lDongSignguCd: basic['lDongSignguCd'] as String?,
       supportedProfiles: supportedProfiles,
       populatedFields: populatedFields,
+      bookmarkCount: (data['bookmarkCount'] as num?)?.toInt() ?? 0,
     );
   }
 
