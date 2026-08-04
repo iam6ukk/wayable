@@ -150,12 +150,9 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ScrollFab(icon: Icons.arrow_upward_rounded, onTap: _scrollToTop),
+              ScrollFab(icon: Icons.arrow_upward, onTap: _scrollToTop),
               SizedBox(height: 11.h),
-              ScrollFab(
-                icon: Icons.arrow_downward_rounded,
-                onTap: _scrollToBottom,
-              ),
+              ScrollFab(icon: Icons.arrow_downward, onTap: _scrollToBottom),
             ],
           ),
         ),
@@ -165,7 +162,7 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
 
   Widget _buildHeader(List<BookmarkFolder> folders) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 0),
+      padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -191,7 +188,7 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
             tabAlignment: TabAlignment.start,
             padding: EdgeInsets.zero,
             labelColor: AppColors.textPrimary,
-            unselectedLabelColor: AppColors.textQuaternary,
+            unselectedLabelColor: AppColors.textTertiary,
             indicatorColor: AppColors.textPrimary,
             indicatorSize: TabBarIndicatorSize.tab,
             indicatorWeight: 3,
@@ -242,13 +239,13 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
           children: [
             Text(
               '편집',
-              style: TextStyle(fontSize: 12.sp, color: const Color(0xFF3C3C3C)),
+              style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary),
             ),
             SizedBox(width: 4.w),
             Icon(
               Icons.edit_outlined,
               size: 16.r,
-              color: AppColors.navIconInactive,
+              color: AppColors.bottomNavInactive,
             ),
           ],
         ),
@@ -346,7 +343,7 @@ class _FolderSpotListState extends ConsumerState<_FolderSpotList> {
     if (spots.isEmpty) {
       return Center(
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24.w),
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: Text(
             '저장된 여행지가 없어요.\n여행지 상세화면에서 북마크 아이콘을 눌러 저장해보세요.',
             textAlign: TextAlign.center,
@@ -392,7 +389,7 @@ class _SavedSpotCard extends StatelessWidget {
         context,
       ).push(MaterialPageRoute(builder: (_) => SpotDetailScreen(spot: spot))),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, 20.h),
+        padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 20.h),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -407,7 +404,7 @@ class _SavedSpotCard extends StatelessWidget {
                         spot.title,
                         style: TextStyle(
                           fontSize: 14.sp,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,
                         ),
                       ),
@@ -446,7 +443,7 @@ class _SavedSpotCard extends StatelessWidget {
                                   child: Icon(
                                     profile.icon,
                                     size: 16.r,
-                                    color: AppColors.navIconActive,
+                                    color: AppColors.toggleUnselected,
                                   ),
                                 ),
                               )
@@ -463,8 +460,8 @@ class _SavedSpotCard extends StatelessWidget {
                     isBookmarked ? Icons.bookmark : Icons.bookmark_border,
                     color: isBookmarked
                         ? AppColors.accent
-                        : AppColors.boldDivider,
-                    size: 24.r,
+                        : AppColors.navIconInactive,
+                    size: 32.r,
                   ),
                 ),
               ],

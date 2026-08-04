@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../model/accessibility/accessibility_profile.dart';
 import '../../providers/auth_provider.dart';
+import '../../theme/app_colors.dart';
 import '../../widgets/app_dialog.dart';
 import '../../widgets/toast.dart';
 import 'accessibility_detail_screen.dart';
@@ -62,23 +63,27 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: 16.h),
-              SizedBox(height: 24.h),
-              SizedBox(height: 16.h),
-              Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: 16.h),
+            SizedBox(height: 24.h),
+            SizedBox(height: 16.h),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              child: Row(
                 children: [
                   RichText(
                     text: TextSpan(
-                      style: TextStyle(fontSize: 16.sp, color: Colors.black),
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.textPrimary,
+                      ),
                       children: [
                         TextSpan(
                           text: '$_kCurrentStep',
-                          style: const TextStyle(color: Color(0xFF0065F4)),
+                          style: TextStyle(color: AppColors.primary),
                         ),
                         TextSpan(text: '/$_kTotalSteps'),
                       ],
@@ -88,7 +93,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                   TextButton(
                     onPressed: () => _handleSkip(context),
                     style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF9A9A9A),
+                      foregroundColor: AppColors.textTertiary,
                       padding: EdgeInsets.zero,
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -97,62 +102,77 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                   ),
                 ],
               ),
-              SizedBox(height: 8.h),
-              ClipRRect(
+            ),
+            SizedBox(height: 12.h),
+            // 진행바/저장 버튼은 본문 텍스트(24.w)보다 살짝 넓은 16.5.w 여백을 쓴다
+            // (Figma상 두 요소만 폭이 더 넓게 잡혀있음).
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.5.w),
+              child: ClipRRect(
                 borderRadius: BorderRadius.circular(2.r),
                 child: LinearProgressIndicator(
                   value: _kCurrentStep / _kTotalSteps,
                   minHeight: 4.h,
-                  backgroundColor: const Color(0xFFE3E3E3),
-                  valueColor: const AlwaysStoppedAnimation(Color(0xFF0065F4)),
+                  backgroundColor: AppColors.toggleUnselectedBackground,
+                  valueColor: AlwaysStoppedAnimation(AppColors.primary),
                 ),
               ),
-              SizedBox(height: 24.h),
-              Text(
+            ),
+            SizedBox(height: 26.h),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              child: Text(
                 '$nickname님의 관심유형을 선택해주세요',
                 style: TextStyle(
-                  fontSize: 20.sp,
+                  fontSize: 19.sp,
                   fontWeight: FontWeight.w500,
-                  color: Colors.black,
+                  color: AppColors.textPrimary,
                 ),
               ),
-              SizedBox(height: 6.h),
-              Text(
+            ),
+            SizedBox(height: 11.h),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              child: Text(
                 '선택해주신 관심유형에 맞춰 추천해드려요',
                 style: TextStyle(
-                  fontSize: 16.sp,
-                  color: const Color(0xFF6F6F6F),
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w300,
+                  color: AppColors.textSecondary,
                 ),
               ),
-              Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildOption(_kProfileOrder[0]),
-                          _buildOption(_kProfileOrder[1]),
-                        ],
-                      ),
-                      SizedBox(height: 32.h),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildOption(_kProfileOrder[2]),
-                          _buildOption(_kProfileOrder[3]),
-                        ],
-                      ),
-                      SizedBox(height: 32.h),
-                      _buildOption(_kProfileOrder[4]),
-                    ],
-                  ),
+            ),
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildOption(_kProfileOrder[0]),
+                        _buildOption(_kProfileOrder[1]),
+                      ],
+                    ),
+                    SizedBox(height: 30.h),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildOption(_kProfileOrder[2]),
+                        _buildOption(_kProfileOrder[3]),
+                      ],
+                    ),
+                    SizedBox(height: 30.h),
+                    _buildOption(_kProfileOrder[4]),
+                  ],
                 ),
               ),
-              SizedBox(
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 14.7.w),
+              child: SizedBox(
                 width: double.infinity,
-                height: 53.h,
+                height: 48.55.h,
                 child: ElevatedButton(
                   onPressed: () {
                     if (_selectedProfiles.isEmpty) {
@@ -169,25 +189,25 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0065F4),
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16.r),
+                      borderRadius: BorderRadius.circular(14.7.r),
                     ),
                   ),
                   child: Text(
                     '다음으로',
                     style: TextStyle(
-                      fontSize: 16.sp,
+                      fontSize: 13.sp,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ),
-              SizedBox(height: 24.h),
-            ],
-          ),
+            ),
+            SizedBox(height: 24.h),
+          ],
         ),
       ),
     );
@@ -205,29 +225,28 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
           children: [
             AnimatedContainer(
               duration: const Duration(milliseconds: 150),
-              width: 90.r,
-              height: 90.r,
+              width: 82.4.r,
+              height: 82.4.r,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isSelected
-                    ? const Color(0xFF0065F4)
-                    : const Color(0xFFF2F2F2),
+                    ? AppColors.primary
+                    : AppColors.toggleUnselectedBackground,
               ),
               child: Icon(
                 profile.icon,
                 size: 48.r,
-                color: isSelected ? Colors.white : const Color(0xFF7D7D7D),
+                color: isSelected ? Colors.white : AppColors.toggleUnselected,
               ),
             ),
             SizedBox(height: 12.h),
             Text(
               profile.label,
               style: TextStyle(
-                fontSize: 16.sp,
+                fontSize: 13.sp,
                 fontWeight: FontWeight.w500,
-                color: Colors.black,
+                color: AppColors.textPrimary,
               ),
-              textAlign: TextAlign.center,
             ),
           ],
         ),

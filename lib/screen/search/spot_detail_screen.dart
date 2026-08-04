@@ -11,6 +11,7 @@ import '../../model/tour/tour_intro_info.dart';
 import '../../model/tour/tour_spot.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/bookmark_provider.dart';
+import '../../providers/navigation_provider.dart';
 import '../../services/tour/tour_detail_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_dialog.dart';
@@ -178,12 +179,16 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                 ],
               ),
             ),
-            // 하단 탭바는 시각적 일관성을 위해 그대로 두되, 이 화면에서는 별도
-            // 탭 상태를 갖지 않으므로 어떤 아이콘을 눌러도 이전 화면(MainShell)
-            // 으로 돌아가는 것으로 충분하다.
+            // 하단 탭바는 시각적 일관성을 위해 그대로 두되, 이 화면은 별도
+            // 탭 상태를 갖지 않는다. 그냥 pop만 하면 직전에 있던 탭(보통
+            // 탐색)으로 돌아갈 뿐이라, 눌린 탭을 tabSwitchRequestProvider에
+            // 담아 MainShell까지 pop한 뒤 그 탭으로 바로 전환되게 한다.
             BottomNavBar(
               currentTab: BottomNavTab.explore,
-              onTabSelected: (_) => Navigator.of(context).maybePop(),
+              onTabSelected: (tab) {
+                ref.read(tabSwitchRequestProvider.notifier).state = tab;
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
             ),
           ],
         ),
@@ -259,8 +264,8 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
               child: Text(
                 title,
                 style: TextStyle(
-                  fontSize: 21.sp,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 19.sp,
+                  fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
                 ),
               ),
@@ -270,8 +275,10 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
               behavior: HitTestBehavior.opaque,
               child: Icon(
                 isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                size: 28.r,
-                color: isBookmarked ? AppColors.accent : AppColors.boldDivider,
+                size: 32.r,
+                color: isBookmarked
+                    ? AppColors.accent
+                    : AppColors.navIconInactive,
               ),
             ),
           ],
@@ -279,7 +286,11 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
         SizedBox(height: 6.h),
         Text(
           addr2 == null ? addr1 : '$addr1 $addr2',
-          style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary),
+          style: TextStyle(
+            fontSize: 12.sp,
+            fontWeight: FontWeight.w300,
+            color: AppColors.textSecondary,
+          ),
         ),
       ],
     );
@@ -356,7 +367,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
         Text(
           '시설정보',
           style: TextStyle(
-            fontSize: 18.sp,
+            fontSize: 16.sp,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
           ),
@@ -368,26 +379,39 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
             style: TextStyle(fontSize: 14.sp, color: AppColors.textQuaternary),
           )
         else
-          Container(
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(8.r)),
-            foregroundDecoration: BoxDecoration(
-              border: Border.all(color: AppColors.faintDivider, width: 0.5),
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              children: [
-                for (var i = 0; i < fields.length; i++) ...[
-                  if (i > 0)
-                    const Divider(
-                      height: 1,
-                      thickness: 0.5,
-                      color: AppColors.faintDivider,
-                    ),
-                  _facilityFieldRow(fields[i]),
-                ],
-              ],
-            ),
+          Builder(
+            builder: (context) {
+              // 라벨마다 따로 줄여버리면(FittedBox를 셀 단위로 적용) "문의처"
+              // 처럼 짧은 라벨은 원래 크기 그대로, "이용시간"처럼 긴 라벨만
+              // 줄어들어 같은 표 안에서 라벨 글자 크기가 제각각으로 보인다.
+              // 표에서 가장 긴 라벨 하나만 기준으로 공통 배율을 구해 모든
+              // 라벨에 동일하게 적용해야 크기가 통일되면서도 절대 넘치지
+              // 않는다.
+              final labelFontSize = _facilityLabelFontSize(context, fields);
+              return Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                foregroundDecoration: BoxDecoration(
+                  border: Border.all(color: AppColors.faintDivider, width: 0.5),
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  children: [
+                    for (var i = 0; i < fields.length; i++) ...[
+                      if (i > 0)
+                        const Divider(
+                          height: 1,
+                          thickness: 0.5,
+                          color: AppColors.faintDivider,
+                        ),
+                      _facilityFieldRow(fields[i], labelFontSize),
+                    ],
+                  ],
+                ),
+              );
+            },
           ),
       ],
     );
@@ -414,7 +438,37 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
 
   static final _urlPattern = RegExp(r'^https?://', caseSensitive: false);
 
-  Widget _facilityFieldRow(FacilityFieldSpec spec) {
+  /// 표의 모든 라벨이 같은 크기로 보이도록, 라벨 칸 폭(67.8.w에서 좌우
+  /// 패딩 12.w씩을 뺀 값)에 가장 긴 라벨 하나를 기준으로 공통 배율을 구한다.
+  /// 셀마다 각자 FittedBox로 줄이면 라벨 글자 수에 따라 축소 비율이 달라져
+  /// 같은 표 안에서 라벨 크기가 제각각으로 보이는 문제가 있었다.
+  double _facilityLabelFontSize(
+    BuildContext context,
+    List<FacilityFieldSpec> fields,
+  ) {
+    const designFontSize = 13.0;
+    final baseFontSize = designFontSize.sp;
+    final availableWidth = 67.8.w - 24.w;
+    final textScaler = MediaQuery.textScalerOf(context);
+
+    var maxWidth = 0.0;
+    for (final field in fields) {
+      final painter = TextPainter(
+        text: TextSpan(
+          text: field.label,
+          style: TextStyle(fontSize: baseFontSize, fontWeight: FontWeight.w500),
+        ),
+        textDirection: TextDirection.ltr,
+        textScaler: textScaler,
+      )..layout();
+      if (painter.width > maxWidth) maxWidth = painter.width;
+    }
+
+    if (maxWidth <= availableWidth) return baseFontSize;
+    return baseFontSize * (availableWidth / maxWidth);
+  }
+
+  Widget _facilityFieldRow(FacilityFieldSpec spec, double labelFontSize) {
     final value = _resolveFacilityValue(spec);
     final isEmpty = value == null;
     final isUrl = !isEmpty && _urlPattern.hasMatch(value.trim());
@@ -424,22 +478,23 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            width: 92.w,
+            width: 67.8.w,
             color: AppColors.surfaceLabelColumn,
-            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.5.h),
             alignment: Alignment.center,
             child: Text(
               spec.label,
+              maxLines: 1,
               style: TextStyle(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w600,
+                fontSize: labelFontSize,
+                fontWeight: FontWeight.w500,
                 color: AppColors.textSecondary,
               ),
             ),
           ),
           Expanded(
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.5.h),
               child: isUrl
                   ? GestureDetector(
                       onTap: () => _openUrl(value.trim()),
@@ -448,7 +503,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                         value,
                         style: TextStyle(
                           fontSize: 13.sp,
-                          color: AppColors.textSecondary,
+                          color: AppColors.textTertiary,
                         ),
                       ),
                     )
@@ -456,6 +511,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                       isEmpty ? '정보 없음' : value,
                       style: TextStyle(
                         fontSize: 13.sp,
+                        fontWeight: FontWeight.w300,
                         color: isEmpty
                             ? AppColors.textQuaternary
                             : AppColors.textTertiary,
@@ -483,7 +539,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
         Text(
           '편의정보',
           style: TextStyle(
-            fontSize: 18.sp,
+            fontSize: 16.sp,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
           ),
@@ -498,11 +554,15 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
         else
           Text(
             '장애유형별 편의시설 정보를 확인하세요.',
-            style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondary),
+            style: TextStyle(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary,
+            ),
           ),
         SizedBox(height: 12.h),
         for (var i = 0; i < categories.length; i++) ...[
-          if (i > 0) SizedBox(height: 8.h),
+          if (i > 0) SizedBox(height: 4.h),
           _buildAccessibilityCategoryCard(categories[i], i),
         ],
       ],
@@ -531,12 +591,12 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
             child: Row(
               children: [
                 Container(
-                  width: 32.r,
-                  height: 32.r,
+                  width: 30.r,
+                  height: 30.r,
                   alignment: Alignment.center,
                   decoration: const BoxDecoration(
                     color: AppColors.primary,
@@ -553,7 +613,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                   child: Text(
                     category.profile.label,
                     style: TextStyle(
-                      fontSize: 12.sp,
+                      fontSize: 13.sp,
                       fontWeight: FontWeight.w500,
                       color: AppColors.textSecondary,
                     ),
@@ -569,7 +629,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                           ? Icons.keyboard_arrow_up
                           : Icons.keyboard_arrow_down,
                       size: 20.r,
-                      color: AppColors.textSecondary,
+                      color: AppColors.boldDivider,
                     ),
                   ),
                 ),
@@ -581,11 +641,11 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
               height: 1,
               thickness: 0.5,
               color: AppColors.faintDivider,
-              indent: 12.w,
-              endIndent: 12.w,
+              indent: 16.w,
+              endIndent: 16.w,
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 4.h),
+              padding: EdgeInsets.fromLTRB(12.w, 16.h, 12.w, 4.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -609,8 +669,8 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
           Padding(
             padding: EdgeInsets.only(top: 7.h, right: 8.w),
             child: Container(
-              width: 4.r,
-              height: 4.r,
+              width: 2.r,
+              height: 2.r,
               decoration: const BoxDecoration(
                 color: AppColors.textSecondary,
                 shape: BoxShape.circle,
@@ -634,6 +694,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                   value,
                   style: TextStyle(
                     fontSize: 11.sp,
+                    fontWeight: FontWeight.w300,
                     color: AppColors.textTertiary,
                   ),
                 ),

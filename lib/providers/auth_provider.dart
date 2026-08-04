@@ -106,36 +106,26 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(user: user);
   }
 
-  // 카카오 로그아웃
-  Future<bool> logoutKakao() async {
-    final success = await _kakaoAuthService.logout();
+  // 로그아웃 (provider별 분기는 여기서 처리, 화면은 결과만 소비)
+  Future<bool> logout() async {
+    final success = switch (state.user?.provider) {
+      'kakao' => await _kakaoAuthService.logout(),
+      'google' => await _googleAuthService.logout(),
+      _ => false,
+    };
     if (success) {
       state = AuthState();
     }
     return success;
   }
 
-  // 구글 로그아웃
-  Future<bool> logoutGoogle() async {
-    final success = await _googleAuthService.logout();
-    if (success) {
-      state = AuthState();
-    }
-    return success;
-  }
-
-  // 카카오 회원탈퇴
-  Future<bool> deleteKakaoAccount() async {
-    final success = await _kakaoAuthService.deleteAccount();
-    if (success) {
-      state = AuthState();
-    }
-    return success;
-  }
-
-  // 구글 회원탈퇴
-  Future<bool> deleteGoogleAccount() async {
-    final success = await _googleAuthService.deleteAccount();
+  // 회원탈퇴 (provider별 분기는 여기서 처리, 화면은 결과만 소비)
+  Future<bool> deleteAccount() async {
+    final success = switch (state.user?.provider) {
+      'kakao' => await _kakaoAuthService.deleteAccount(),
+      'google' => await _googleAuthService.deleteAccount(),
+      _ => false,
+    };
     if (success) {
       state = AuthState();
     }

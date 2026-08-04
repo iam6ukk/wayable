@@ -8,6 +8,11 @@ import '../model/tour/tour_spot.dart';
 import '../services/bookmark/bookmark_service.dart';
 import 'auth_provider.dart';
 
+/// 기본 폴더를 제외하고 사용자가 새로 만들 수 있는 폴더 개수 제한.
+const kMaxCustomFolders = 10;
+
+const _kDefaultFolderId = 'default';
+
 /// 저장목록(북마크) 상태. Firestore(users/{uid}/bookmarks/...)를 실시간
 /// 구독해서 반영한다 — 저장목록 화면, 폴더 편집 화면, 여행지 상세화면의 저장
 /// 바텀시트가 전부 이 provider 하나를 공유해서 어느 화면에서 바꾸든 서로
@@ -165,11 +170,35 @@ class BookmarkNotifier extends StateNotifier<BookmarkState> {
     return uid;
   }
 
-  Future<BookmarkFolder> addFolder(String name) {
-    return _service.addFolder(_requireUid(), name);
+  /// 기본 폴더는 이름 변경/삭제/순서 변경이 전부 불가능한 고정 폴더다. 화면
+  /// 쪽에서 이미 버튼 자체를 안 보여주지만, 여기서도 한 번 더 막아둔다.
+  void _requireNotDefault(BookmarkFolder folder) {
+    if (folder.id == _kDefaultFolderId) {
+      throw StateError('기본 폴더는 이름 변경/삭제할 수 없습니다.');
+    }
+  }
+
+  /// 서비스의 addFolder 자체는 서버 ack을 기다리지 않고 즉시 반환하지만,
+  /// 실제로 state.folders에 반영되는 건 Firestore 실시간 구독(watchFolders)이
+  /// 로컬 캐시 갱신을 받아와야 하므로 한 박자 늦다. 이 함수가 반환하자마자
+  /// 호출부(저장 바텀시트의 '새로 만들기' 흐름)가 곧바로 새 폴더를
+  /// preselected로 다시 읽는데, 그 시점에 state.folders가 아직 옛 목록이면
+  /// 새로 만든 폴더를 찾지 못해 자동 스크롤/체크 표시가 조용히 안 먹힌다.
+  /// 그래서 여기서 바로 로컬 상태에 낙관적으로 추가해둔다.
+  Future<BookmarkFolder> addFolder(String name) async {
+    final customFolderCount = state.folders
+        .where((f) => f.id != _kDefaultFolderId)
+        .length;
+    if (customFolderCount >= kMaxCustomFolders) {
+      throw StateError('폴더는 최대 $kMaxCustomFolders개까지 만들 수 있습니다.');
+    }
+    final folder = await _service.addFolder(_requireUid(), name);
+    state = state.copyWith(folders: [...state.folders, folder]);
+    return folder;
   }
 
   Future<void> renameFolder(BookmarkFolder folder, String newName) {
+    _requireNotDefault(folder);
     return _service.renameFolder(_requireUid(), folder.id, newName);
   }
 
@@ -178,6 +207,7 @@ class BookmarkNotifier extends StateNotifier<BookmarkState> {
   /// 그 응답을 기다리면 잠깐 화면에 그대로 남아 있는 것처럼 보인다. 그래서
   /// Firestore 작업을 기다리지 않고 로컬 상태부터 먼저 지운다.
   Future<void> deleteFolder(BookmarkFolder folder) async {
+    _requireNotDefault(folder);
     final uid = _requireUid();
     final folders = state.folders.where((f) => f.id != folder.id).toList();
     final spotsByFolderId = {...state.spotsByFolderId}..remove(folder.id);
@@ -192,14 +222,23 @@ class BookmarkNotifier extends StateNotifier<BookmarkState> {
     await _service.deleteFolder(uid, folder.id);
   }
 
-  /// 드래그로 정한 새 순서를 바로 화면에 반영하고, 실제 저장(Firestore 배치
-  /// 업데이트)은 백그라운드로 진행한다 — 손을 뗀 순간 그 위치에 고정되어야
-  /// 자연스럽다.
+  /// 드래그(또는 정렬)로 정한 새 순서를 바로 화면에 반영하고, 실제
+  /// 저장(Firestore 배치 업데이트)은 백그라운드로 진행한다 — 손을 뗀 순간
+  /// 그 위치에 고정되어야 자연스럽다. 기본 폴더는 항상 맨 위에 있어야 하는
+  /// 고정 폴더라, 화면에서 넘어온 순서에 섞여 있더라도 여기서 다시 맨
+  /// 앞으로 되돌린다.
   Future<void> reorderFolders(List<BookmarkFolder> newOrder) async {
-    state = state.copyWith(folders: newOrder);
+    final defaultIndex = newOrder.indexWhere((f) => f.id == _kDefaultFolderId);
+    final result = defaultIndex <= 0
+        ? newOrder
+        : [
+            newOrder[defaultIndex],
+            ...newOrder.where((f) => f.id != _kDefaultFolderId),
+          ];
+    state = state.copyWith(folders: result);
     await _service.reorderFolders(
       _requireUid(),
-      newOrder.map((f) => f.id).toList(),
+      result.map((f) => f.id).toList(),
     );
   }
 

@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../theme/app_colors.dart';
 import '../../model/accessibility/accessibility_field.dart';
 import '../../model/accessibility/accessibility_field_mapping.dart';
 import '../../model/accessibility/accessibility_profile.dart';
 import '../../model/region/area_code.dart';
 import '../../model/tour/tour_category.dart';
 import '../../services/region/area_code_repository.dart';
-
-const _kPrimaryBlue = Color(0xFF0065F4);
-const _kChipInactiveBorder = Color(0xFFC8C8C8);
-const _kDividerColor = Color(0xFFE3E3E3);
 
 const _kProfileOrder = [
   AccessibilityProfile.physicalAssist,
@@ -163,14 +160,18 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
             children: [
               _buildHeader(),
               TabBar(
-                labelColor: Colors.black,
+                labelColor: AppColors.textPrimary,
                 unselectedLabelColor: const Color(0xFF9D9D9D),
-                indicatorColor: Colors.black,
+                indicatorColor: AppColors.textPrimary,
                 // 탭 인디케이터 각 탭이 차지하는 영역 전체 너비로 맞춤
                 indicatorSize: TabBarIndicatorSize.tab,
                 labelStyle: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w700,
+                ),
+                unselectedLabelStyle: TextStyle(
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w500,
                 ),
                 tabs: [
                   Tab(text: _tabLabel('무장애정보', _accessibilitySelectionCount)),
@@ -178,7 +179,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
                   Tab(text: _tabLabel('카테고리', _categories.length)),
                 ],
               ),
-              Divider(height: 1, color: _kDividerColor),
+              Divider(height: 1, color: AppColors.mutedDivider),
               Expanded(
                 child: TabBarView(
                   children: [
@@ -207,21 +208,25 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
 
   Widget _buildHeader() {
     return Padding(
-      padding: EdgeInsets.fromLTRB(20.w, 12.h, 8.w, 0),
+      padding: EdgeInsets.fromLTRB(20.w, 18.h, 8.w, 0),
       child: Row(
         children: [
           Text(
             '통합필터선택',
             style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFFB0B0B0),
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textTertiary,
             ),
           ),
           const Spacer(),
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.close, color: Color(0xFFB7B7B7)),
+            icon: Icon(
+              Icons.close,
+              size: 24.r,
+              color: AppColors.navIconInactive,
+            ),
           ),
         ],
       ),
@@ -240,14 +245,14 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
           child: Text(
             '탐색 화면에서 접근성 대분류를 먼저 선택해주세요.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14.sp, color: const Color(0xFF9D9D9D)),
+            style: TextStyle(fontSize: 14.sp, color: AppColors.textQuaternary),
           ),
         ),
       );
     }
 
     return ListView.separated(
-      padding: EdgeInsets.all(20.r),
+      padding: EdgeInsets.fromLTRB(35.w, 15.h, 35.w, 20.h),
       itemCount: orderedProfiles.length,
       separatorBuilder: (_, _) => SizedBox(height: 28.h),
       itemBuilder: (context, index) =>
@@ -264,22 +269,22 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
       children: [
         Row(
           children: [
-            Icon(profile.icon, size: 20.r, color: _kPrimaryBlue),
+            Icon(profile.icon, size: 24.r, color: AppColors.primary),
             SizedBox(width: 6.w),
             Text(
               '무장애정보 > ${profile.label}',
               style: TextStyle(
-                fontSize: 16.sp,
+                fontSize: 13.sp,
                 fontWeight: FontWeight.w600,
-                color: Colors.black,
+                color: AppColors.textPrimary,
               ),
             ),
           ],
         ),
-        SizedBox(height: 12.h),
+        SizedBox(height: 11.h),
         Wrap(
-          spacing: 10.w,
-          runSpacing: 10.h,
+          spacing: 5.5.w,
+          runSpacing: 7.3.h,
           children: [
             _chip(
               label: '전체',
@@ -305,20 +310,20 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
     }
 
     return ListView(
-      padding: EdgeInsets.all(20.r),
+      padding: EdgeInsets.fromLTRB(35.w, 15.h, 35.w, 20.h),
       children: [
         Text(
           '시/도',
           style: TextStyle(
-            fontSize: 16.sp,
+            fontSize: 13.sp,
             fontWeight: FontWeight.w600,
-            color: Colors.black,
+            color: AppColors.textPrimary,
           ),
         ),
-        SizedBox(height: 12.h),
+        SizedBox(height: 11.h),
         Wrap(
-          spacing: 10.w,
-          runSpacing: 10.h,
+          spacing: 5.5.w,
+          runSpacing: 7.3.h,
           children: _areaCodes
               .map(
                 (area) => _chip(
@@ -334,15 +339,15 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
           Text(
             '2차 지역',
             style: TextStyle(
-              fontSize: 16.sp,
+              fontSize: 13.sp,
               fontWeight: FontWeight.w600,
-              color: Colors.black,
+              color: AppColors.textPrimary,
             ),
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: 11.h),
           Wrap(
-            spacing: 10.w,
-            runSpacing: 10.h,
+            spacing: 5.5.w,
+            runSpacing: 7.3.h,
             children: _sido!.sigungu
                 .map(
                   (sigungu) => _chip(
@@ -359,55 +364,46 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
   }
 
   Widget _buildCategoryTab() {
-    const categories = TourCategory.values;
-    const crossAxisCount = 4;
-    final rows = <Widget>[];
-    for (var i = 0; i < categories.length; i += crossAxisCount) {
-      final rowCategories = categories.skip(i).take(crossAxisCount).toList();
-      if (i > 0) rows.add(SizedBox(height: 10.h));
-      rows.add(
-        Row(
-          children: [
-            for (var j = 0; j < rowCategories.length; j++) ...[
-              if (j > 0) SizedBox(width: 10.w),
-              _chip(
-                label: rowCategories[j].label,
-                isSelected: _categories.contains(rowCategories[j]),
-                onTap: () => _toggleCategory(rowCategories[j]),
-              ),
-            ],
-          ],
-        ),
-      );
-    }
     return Padding(
-      padding: EdgeInsets.all(20.r),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: rows,
+      padding: EdgeInsets.fromLTRB(35.w, 15.h, 35.w, 20.h),
+      child: Wrap(
+        spacing: 5.5.w,
+        runSpacing: 7.3.h,
+        children: [
+          for (final category in TourCategory.values)
+            _chip(
+              label: category.label,
+              isSelected: _categories.contains(category),
+              onTap: () => _toggleCategory(category),
+            ),
+        ],
       ),
     );
   }
 
   Widget _buildBottomBar() {
     return Padding(
-      padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 20.h),
+      padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 14.h),
       child: Row(
         children: [
           SizedBox(
-            height: 53.h,
+            height: 45.8.h,
             child: OutlinedButton.icon(
               onPressed: _handleReset,
-              icon: Icon(Icons.refresh, size: 18.r, color: Colors.black),
+              icon: Icon(
+                Icons.refresh,
+                size: 20.r,
+                color: AppColors.bottomNavActive,
+              ),
               label: Text(
                 '초기화',
-                style: TextStyle(fontSize: 15.sp, color: Colors.black),
+                style: TextStyle(fontSize: 13.sp, color: AppColors.textPrimary),
               ),
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Color(0xFFDDDDDD)),
-                backgroundColor: const Color(0xFFEFF1F4),
+                side: const BorderSide(color: AppColors.boldDivider),
+                backgroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16.r),
+                  borderRadius: BorderRadius.circular(14.7.r),
                 ),
                 padding: EdgeInsets.symmetric(horizontal: 16.w),
               ),
@@ -416,22 +412,22 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
           SizedBox(width: 12.w),
           Expanded(
             child: SizedBox(
-              height: 53.h,
+              height: 46.7.h,
               child: ElevatedButton(
                 onPressed: _handleSave,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _kPrimaryBlue,
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16.r),
+                    borderRadius: BorderRadius.circular(14.7.r),
                   ),
                 ),
                 child: Text(
                   '저장',
                   style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
@@ -456,12 +452,14 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+        padding: EdgeInsets.symmetric(horizontal: 17.w, vertical: 5.5.h),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20.r),
           border: Border.all(
-            color: isSelected ? Colors.black : _kChipInactiveBorder,
+            color: isSelected
+                ? AppColors.textPrimary
+                : AppColors.chipInactiveBorder,
             width: 1,
           ),
         ),
@@ -472,15 +470,17 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
               opacity: 0,
               child: Text(
                 label,
-                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500),
               ),
             ),
             Text(
               label,
               style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: Colors.black,
+                fontSize: 12.sp,
+                fontWeight: isSelected ? FontWeight.w500 : FontWeight.w300,
+                color: isSelected
+                    ? AppColors.textPrimary
+                    : AppColors.textTertiary,
               ),
             ),
           ],

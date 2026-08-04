@@ -3,46 +3,51 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../theme/app_colors.dart';
 
-/// 폴더 삭제 확인 다이얼로그 기준 노드(Figma 393px 프레임, 앱 전역 ScreenUtil
-/// 기준 프레임과 동일)에서 측정한 좌우 마진 평균값. 카드 너비를 고정하지
-/// 않고 이 마진만큼만 비워두는 방식이라 화면 폭에 비례해 자동으로 커진다.
-const _kOuterMarginPx = 40.5;
-const _kDialogRadius = 24.0;
-const _kFooterHeight = 63.0;
+/// 폴더 삭제 확인 다이얼로그 기준 노드(Figma 360x800 갤럭시 표준 프레임, 앱
+/// 전역 ScreenUtil 기준 프레임과 동일)에서 측정한 좌우 마진 평균값. 카드
+/// 너비를 고정하지 않고 이 마진만큼만 비워두는 방식이라 화면 폭에 비례해
+/// 자동으로 커진다.
+const _kOuterMarginPx = 37.1;
+const _kDialogRadius = 22.0;
+const _kFooterHeight = 57.7;
 
 RoundedRectangleBorder _dialogShape() => RoundedRectangleBorder(
   borderRadius: BorderRadius.circular(_kDialogRadius.r),
 );
 
-TextStyle _bodyTextStyle(FontWeight weight) => TextStyle(
-  fontSize: 14.sp,
-  fontWeight: weight,
+TextStyle _titleTextStyle() => TextStyle(
+  fontSize: 13.sp,
+  fontWeight: FontWeight.w700,
+  color: AppColors.textPrimary,
+  height: 1.5,
+);
+
+TextStyle _contentTextStyle({required bool emphasized}) => TextStyle(
+  fontSize: 13.sp,
+  fontWeight: emphasized ? FontWeight.w600 : FontWeight.w300,
   color: AppColors.textPrimary,
   height: 1.5,
 );
 
 TextStyle _actionTextStyle(Color color) =>
-    TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: color);
+    TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600, color: color);
 
-/// title이 있으면 title(세미볼드)/content(라이트)로 구분되고, title 없이
+/// title이 있으면 title(볼드)/content(라이트)로 구분되고, title 없이
 /// content 하나만 쓰는 다이얼로그(로그인 유도, 안내, 원버튼 등)는 세미볼드로
 /// 통일한다.
 Widget _dialogBody({required String? title, required String content}) {
   final hasTitle = title != null;
   return Padding(
-    padding: EdgeInsets.fromLTRB(30.w, 28.h, 30.w, 24.h),
+    padding: EdgeInsets.fromLTRB(30.w, 31.h, 30.w, 31.h),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         if (hasTitle) ...[
-          Text(title, style: _bodyTextStyle(FontWeight.w600)),
-          SizedBox(height: 4.h),
+          Text(title, style: _titleTextStyle()),
+          SizedBox(height: 10.h),
         ],
-        Text(
-          content,
-          style: _bodyTextStyle(hasTitle ? FontWeight.w300 : FontWeight.w600),
-        ),
+        Text(content, style: _contentTextStyle(emphasized: !hasTitle)),
       ],
     ),
   );
@@ -151,11 +156,11 @@ Future<String?> showFolderNameInputDialog(
                 Text(
                   title,
                   textAlign: TextAlign.center,
-                  style: _bodyTextStyle(FontWeight.w600),
+                  style: _titleTextStyle(),
                 ),
                 SizedBox(height: 16.h),
                 Container(
-                  height: 51.h,
+                  height: 46.7.h,
                   padding: EdgeInsets.symmetric(horizontal: 16.w),
                   decoration: BoxDecoration(
                     border: Border.all(
@@ -171,14 +176,14 @@ Future<String?> showFolderNameInputDialog(
                       autofocus: true,
                       maxLength: 10,
                       style: TextStyle(
-                        fontSize: 17.sp,
+                        fontSize: 16.sp,
                         fontWeight: FontWeight.w500,
                         color: AppColors.textPrimary,
                       ),
                       decoration: InputDecoration.collapsed(
                         hintText: hintText,
                         hintStyle: TextStyle(
-                          fontSize: 17.sp,
+                          fontSize: 16.sp,
                           fontWeight: FontWeight.w500,
                           color: const Color(0xFFA8A8A8),
                         ),

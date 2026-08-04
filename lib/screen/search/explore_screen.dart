@@ -15,15 +15,6 @@ import '../../widgets/scroll_fab.dart';
 import 'explore_filter_screen.dart';
 import 'spot_detail_screen.dart';
 
-const _kPrimaryBlue = Color(0xFF0065F4);
-const _kSearchBarBg = Color(0x80D9D9D9);
-const _kInactiveCircleBg = Color(0xFFF2F2F2);
-const _kInactiveIconColor = Color(0xFF7D7D7D);
-const _kFilterIconColor = Color(0xFFB7B7B7);
-const _kHintTextColor = Color(0xFF6E6E6E);
-const _kAddressTextColor = Color(0xFF5B5B5B);
-const _kEmptyTextColor = Color(0xFFACACAC);
-
 const _kProfileOrder = [
   AccessibilityProfile.physicalAssist,
   AccessibilityProfile.hearingAssist,
@@ -366,12 +357,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ScrollFab(icon: Icons.arrow_upward_rounded, onTap: _scrollToTop),
+              ScrollFab(icon: Icons.arrow_upward, onTap: _scrollToTop),
               SizedBox(height: 11.h),
-              ScrollFab(
-                icon: Icons.arrow_downward_rounded,
-                onTap: _scrollToBottom,
-              ),
+              ScrollFab(icon: Icons.arrow_downward, onTap: _scrollToBottom),
             ],
           ),
         ),
@@ -382,39 +370,39 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   /// 검색어~검색하기 버튼까지, 결과 유무와 무관하게 항상 보이는 상단 콘텐츠.
   List<Widget> _topContent() {
     return [
-      const Text(
+      Text(
         '맞춤 여행지 탐색',
         style: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w500,
-          color: Colors.black,
+          fontSize: 19.sp,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textPrimary,
         ),
       ),
-      const SizedBox(height: 20),
+      SizedBox(height: 22.h),
       _SearchBar(
         controller: _searchController,
         onSubmitted: (_) => _handleSearch(),
       ),
-      const SizedBox(height: 24),
+      SizedBox(height: 22.h),
       _AccessibilityProfileRow(
         activeProfiles: _activeProfiles,
         onToggle: _toggleProfile,
       ),
-      const SizedBox(height: 20),
+      SizedBox(height: 15.h),
       _FilterSelectRow(onTap: _openFilterScreen),
-      const SizedBox(height: 6),
-      const Text(
+      SizedBox(height: 4.h),
+      Text(
         '지역과 카테고리를 선택할 수 있어요',
-        style: TextStyle(fontSize: 12, color: _kHintTextColor),
+        style: TextStyle(fontSize: 10.sp, color: AppColors.textTertiary),
       ),
       if (_activeFilterChips.isNotEmpty) ...[
-        const SizedBox(height: 10),
+        SizedBox(height: 10.h),
         _ActiveFilterChipsRow(chips: _activeFilterChips),
       ],
-      const SizedBox(height: 24),
+      SizedBox(height: 33.h),
       SizedBox(
         width: double.infinity,
-        height: 53,
+        height: 47.h,
         child: ElevatedButton(
           // 로딩 중에도 onPressed를 null로 바꾸지 않는다 — null이 되면
           // disabledBackgroundColor로 버튼 색이 로딩 내내 바뀐 채로 유지돼
@@ -422,16 +410,16 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           // 방지는 _handleSearch 내부의 _isLoading 가드로 처리한다.
           onPressed: _handleSearch,
           style: ElevatedButton.styleFrom(
-            backgroundColor: _kPrimaryBlue,
+            backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             elevation: 0,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14.7.r),
             ),
           ),
-          child: const Text(
+          child: Text(
             '검색하기',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w500),
           ),
         ),
       ),
@@ -446,7 +434,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       child: Container(
         color: Colors.white.withValues(alpha: 0.85),
         alignment: Alignment.center,
-        child: const CircularProgressIndicator(color: _kPrimaryBlue),
+        child: const CircularProgressIndicator(color: AppColors.primary),
       ),
     );
   }
@@ -462,10 +450,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     if (!_hasSearched || _totalCount == 0) {
       return LayoutBuilder(
         builder: (context, viewportConstraints) {
-          const verticalPadding = 24.0 + 36.0;
+          final verticalPadding = 24.h + 36.h;
           return SingleChildScrollView(
             controller: _scrollController,
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 36),
+            padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 36.h),
             child: ConstrainedBox(
               constraints: BoxConstraints(
                 minHeight: viewportConstraints.maxHeight - verticalPadding,
@@ -499,7 +487,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
     return SingleChildScrollView(
       controller: _scrollController,
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 36),
+      padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 36.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -532,7 +520,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       forceStrutHeight: true,
                     ),
                   ),
-                  SizedBox(height: 6.h),
+                  SizedBox(height: 16.h),
                   _ResultGrid(items: _pageItems),
                   const SizedBox(height: 24),
                   _PaginationBar(
@@ -566,8 +554,8 @@ class _ActiveFilterChipsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: 8.w,
+      runSpacing: 8.h,
       children: chips.map((chip) => _buildChip(chip)).toList(),
     );
   }
@@ -577,11 +565,11 @@ class _ActiveFilterChipsRow extends StatelessWidget {
       // x 아이콘 자체에 탭 영역 확보용 4px 패딩이 이미 있어서, 컨테이너 좌측
       // 여백을 오른쪽(10)보다 4 작게 둬야 아이콘부터 텍스트까지 실제 보이는
       // 여백이 좌우 10으로 맞는다.
-      padding: const EdgeInsets.only(left: 6, right: 10, top: 4, bottom: 4),
+      padding: EdgeInsets.only(left: 6.w, right: 10.w, top: 4.h, bottom: 4.h),
       decoration: BoxDecoration(
         color: const Color(0xFFF8FCFF),
         border: Border.all(color: const Color(0xFF989898), width: 0.5),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(5.5.r),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -589,15 +577,19 @@ class _ActiveFilterChipsRow extends StatelessWidget {
           GestureDetector(
             onTap: chip.onRemove,
             behavior: HitTestBehavior.opaque,
-            child: const Padding(
-              padding: EdgeInsets.all(4),
-              child: Icon(Icons.close, size: 16, color: _kInactiveIconColor),
+            child: Padding(
+              padding: EdgeInsets.all(4.r),
+              child: Icon(
+                Icons.close,
+                size: 11.r,
+                color: AppColors.toggleUnselected,
+              ),
             ),
           ),
-          const SizedBox(width: 2),
+          SizedBox(width: 2.w),
           Text(
             chip.label,
-            style: const TextStyle(fontSize: 12, color: Colors.black),
+            style: TextStyle(fontSize: 10.sp, color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -614,26 +606,30 @@ class _SearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 49,
-      padding: const EdgeInsets.symmetric(horizontal: 18),
+      height: 44.h,
+      padding: EdgeInsets.symmetric(horizontal: 19.w),
       decoration: BoxDecoration(
-        color: _kSearchBarBg,
-        borderRadius: BorderRadius.circular(37),
+        color: AppColors.searchBarBackground,
+        borderRadius: BorderRadius.circular(34.r),
       ),
       child: Row(
         children: [
-          const Icon(Icons.search, color: Color(0xFF697281)),
-          const SizedBox(width: 8),
+          Icon(Icons.search, size: 24.r, color: AppColors.toggleUnselected),
+          SizedBox(width: 10.w),
           Expanded(
             child: TextField(
               controller: controller,
               onSubmitted: onSubmitted,
               textInputAction: TextInputAction.search,
-              style: const TextStyle(fontSize: 16, color: Colors.black),
-              decoration: const InputDecoration(
+              style: TextStyle(fontSize: 13.sp, color: AppColors.textPrimary),
+              decoration: InputDecoration(
                 isCollapsed: true,
                 hintText: '검색',
-                hintStyle: TextStyle(fontSize: 16, color: Color(0xFF697281)),
+                hintStyle: TextStyle(
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.slateGray,
+                ),
                 border: InputBorder.none,
               ),
             ),
@@ -659,15 +655,21 @@ class _AccessibilityProfileRow extends StatelessWidget {
     // 값이라 그대로 쓰면 5개(52*5 + 19*4 = 336)가 360dp 폭 기기(좌우 패딩
     // 24*2 제외 가용폭 312)에서 24px 오버플로우한다. ScreenUtil로 실제
     // 화면 폭 대비 비례 스케일해 좁은 기기에서도 넘치지 않게 한다.
+    // 아이콘마다 라벨을 따로 FittedBox로 줄이면 "영유아"(3글자)와 "지체장애"
+    // (4글자)의 축소 비율이 달라져 같은 줄인데 라벨 크기가 제각각으로 보인다.
+    // 5개 라벨 중 가장 넓은 첫 줄 하나를 기준으로 공통 배율을 구해 전부
+    // 동일한 크기로 맞추되, 그 배율로도 절대 원(48.w) 폭을 넘지 않게 한다.
+    final labelFontSize = _profileLabelFontSize(context);
     return Center(
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           for (var i = 0; i < _kProfileOrder.length; i++) ...[
-            if (i > 0) SizedBox(width: 19.w),
+            if (i > 0) SizedBox(width: 21.4.w),
             _buildIcon(
               _kProfileOrder[i],
               activeProfiles.contains(_kProfileOrder[i]),
+              labelFontSize,
             ),
           ],
         ],
@@ -675,31 +677,63 @@ class _AccessibilityProfileRow extends StatelessWidget {
     );
   }
 
-  Widget _buildIcon(AccessibilityProfile profile, bool isActive) {
+  double _profileLabelFontSize(BuildContext context) {
+    const designFontSize = 13.0;
+    final baseFontSize = designFontSize.sp;
+    final availableWidth = 48.w;
+    final textScaler = MediaQuery.textScalerOf(context);
+
+    var maxWidth = 0.0;
+    for (final profile in _kProfileOrder) {
+      // 강제 줄바꿈된 두 줄 중 항상 더 넓은 건 띄어쓰기 앞부분이다(뒷부분은
+      // "보조"/"가족"/"동반"처럼 2글자로 고정).
+      final firstLine = profile.label.split(' ').first;
+      final painter = TextPainter(
+        text: TextSpan(
+          text: firstLine,
+          style: TextStyle(fontSize: baseFontSize, fontWeight: FontWeight.w500),
+        ),
+        textDirection: TextDirection.ltr,
+        textScaler: textScaler,
+      )..layout();
+      if (painter.width > maxWidth) maxWidth = painter.width;
+    }
+
+    if (maxWidth <= availableWidth) return baseFontSize;
+    return baseFontSize * (availableWidth / maxWidth);
+  }
+
+  Widget _buildIcon(
+    AccessibilityProfile profile,
+    bool isActive,
+    double labelFontSize,
+  ) {
     return GestureDetector(
       onTap: () => onToggle(profile),
       behavior: HitTestBehavior.opaque,
-      // 라벨 텍스트가 원(52px)보다 넓어서 그대로 두면 Column이 텍스트 폭만큼
-      // 늘어나 옆 아이콘과의 실제 간격이 19px보다 벌어진다. 폭을 52로 고정해
+      // 라벨 텍스트가 원(48px)보다 넓어서 그대로 두면 Column이 텍스트 폭만큼
+      // 늘어나 옆 아이콘과의 실제 간격이 벌어진다. 폭을 원 크기로 고정해
       // 라벨이 필요하면 두 줄로 접히게 해서 원 기준 간격을 지킨다.
       child: SizedBox(
-        width: 52.w,
+        width: 48.w,
         child: Column(
           children: [
             Container(
-              width: 52.w,
-              height: 52.w,
+              width: 48.w,
+              height: 48.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isActive ? _kPrimaryBlue : _kInactiveCircleBg,
+                color: isActive
+                    ? AppColors.primary
+                    : AppColors.toggleUnselectedBackground,
               ),
               child: Icon(
                 profile.icon,
-                size: 28.w,
-                color: isActive ? Colors.white : _kInactiveIconColor,
+                size: 30.w,
+                color: isActive ? Colors.white : AppColors.toggleUnselected,
               ),
             ),
-            SizedBox(height: 6.h),
+            SizedBox(height: 7.h),
             Text(
               // 라벨의 띄어쓰기 위치에서 무조건 줄바꿈되도록 강제한다. 폭 기준
               // 자동 줄바꿈에 맡기면 한글은 띄어쓰기와 무관하게 아무 글자
@@ -708,9 +742,9 @@ class _AccessibilityProfileRow extends StatelessWidget {
               profile.label.replaceFirst(' ', '\n'),
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 12.sp,
+                fontSize: labelFontSize,
                 fontWeight: FontWeight.w500,
-                color: Colors.black,
+                color: AppColors.textPrimary,
               ),
             ),
           ],
@@ -731,17 +765,17 @@ class _FilterSelectRow extends StatelessWidget {
       onTap: onTap,
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: const [
+        children: [
           Text(
             '필터선택',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 16.sp,
               fontWeight: FontWeight.w500,
-              color: Colors.black,
+              color: AppColors.textPrimary,
             ),
           ),
-          SizedBox(width: 6),
-          Icon(Icons.tune, size: 20, color: _kFilterIconColor),
+          SizedBox(width: 6.w),
+          Icon(Icons.tune, size: 18.r, color: AppColors.navIconInactive),
         ],
       ),
     );
@@ -772,7 +806,7 @@ class _EmptyResultState extends StatelessWidget {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
-              color: _kEmptyTextColor,
+              color: AppColors.emptyStateText,
             ),
           ),
         ],
@@ -847,7 +881,7 @@ class _ResultCard extends StatelessWidget {
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
-              color: Colors.black,
+              color: AppColors.textPrimary,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -855,7 +889,10 @@ class _ResultCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             spot.addr1,
-            style: const TextStyle(fontSize: 13, color: _kAddressTextColor),
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -867,7 +904,11 @@ class _ResultCard extends StatelessWidget {
                   .map(
                     (p) => Padding(
                       padding: const EdgeInsets.only(right: 4),
-                      child: Icon(p.icon, size: 16, color: _kInactiveIconColor),
+                      child: Icon(
+                        p.icon,
+                        size: 16,
+                        color: AppColors.toggleUnselected,
+                      ),
                     ),
                   )
                   .toList(),
@@ -881,7 +922,7 @@ class _ResultCard extends StatelessWidget {
   Widget _buildImagePlaceholder({bool loading = false}) {
     if (loading) {
       return Container(
-        color: _kInactiveCircleBg,
+        color: AppColors.inactiveSurface,
         alignment: Alignment.center,
         child: SizedBox(
           width: 20.r,
@@ -969,7 +1010,9 @@ class _PageNumberButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 2),
         decoration: BoxDecoration(
           border: isSelected
-              ? const Border(bottom: BorderSide(color: Colors.black, width: 1))
+              ? const Border(
+                  bottom: BorderSide(color: AppColors.textPrimary, width: 1),
+                )
               : null,
         ),
         child: Text(
@@ -977,9 +1020,7 @@ class _PageNumberButton extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w400,
-            color: isSelected
-                ? Colors.black
-                : Colors.black.withValues(alpha: 0.5),
+            color: isSelected ? AppColors.textPrimary : AppColors.textTertiary,
           ),
         ),
       ),
@@ -1004,7 +1045,7 @@ class _NavTextButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = enabled ? Colors.black : Colors.black.withValues(alpha: 0.5);
+    final color = enabled ? AppColors.textPrimary : AppColors.textTertiary;
     return GestureDetector(
       onTap: enabled ? onTap : null,
       behavior: HitTestBehavior.opaque,
@@ -1015,7 +1056,7 @@ class _NavTextButton extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 14,
-              fontWeight: FontWeight.w400,
+              fontWeight: FontWeight.w300,
               color: color,
             ),
           ),
