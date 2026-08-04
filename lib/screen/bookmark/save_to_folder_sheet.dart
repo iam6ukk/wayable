@@ -189,13 +189,16 @@ class _SaveToFolderSheetState extends State<_SaveToFolderSheet> {
                   children: [
                     Icon(
                       Icons.create_new_folder_outlined,
-                      size: 18.r,
-                      color: Colors.black,
+                      size: 20.r,
+                      color: AppColors.bottomNavActive,
                     ),
                     SizedBox(height: 2.h),
                     Text(
                       '새로 만들기',
-                      style: TextStyle(fontSize: 10.sp, color: Colors.black),
+                      style: TextStyle(
+                        fontSize: 10.sp,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ],
                 ),
@@ -207,7 +210,7 @@ class _SaveToFolderSheetState extends State<_SaveToFolderSheet> {
             style: TextStyle(
               fontSize: 18.sp,
               fontWeight: FontWeight.w600,
-              color: Colors.black,
+              color: AppColors.textPrimary,
             ),
           ),
           Expanded(
@@ -217,7 +220,7 @@ class _SaveToFolderSheetState extends State<_SaveToFolderSheet> {
                 onTap: () => Navigator.of(context).pop(),
                 child: Icon(
                   Icons.close,
-                  size: 18.3.r,
+                  size: 24.r,
                   color: AppColors.navIconInactive,
                 ),
               ),
@@ -257,15 +260,15 @@ class _SaveToFolderSheetState extends State<_SaveToFolderSheet> {
 
   Widget _buildSelectionCircle(bool selected) {
     return Container(
-      width: 25.r,
-      height: 25.r,
+      width: 20.r,
+      height: 20.r,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: selected ? AppColors.primary : Colors.transparent,
         border: selected ? null : Border.all(color: AppColors.faintDivider),
       ),
       child: selected
-          ? Icon(Icons.check, size: 16.r, color: Colors.white)
+          ? Icon(Icons.check, size: 17.r, color: Colors.white)
           : null,
     );
   }

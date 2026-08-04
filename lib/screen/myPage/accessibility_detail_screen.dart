@@ -175,7 +175,7 @@ class _AccessibilityDetailScreenState
                     TextButton(
                       onPressed: () => Navigator.of(context).maybePop(),
                       style: TextButton.styleFrom(
-                        foregroundColor: Colors.black87,
+                        foregroundColor: AppColors.bottomNavActive,
                         padding: EdgeInsets.zero,
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -190,6 +190,7 @@ class _AccessibilityDetailScreenState
                             style: TextStyle(
                               fontSize: 14.sp,
                               fontWeight: FontWeight.w500,
+                              color: AppColors.textPrimary,
                             ),
                           ),
                         ],
@@ -206,7 +207,10 @@ class _AccessibilityDetailScreenState
                 children: [
                   RichText(
                     text: TextSpan(
-                      style: TextStyle(fontSize: 13.sp, color: Colors.black),
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        color: AppColors.textPrimary,
+                      ),
                       children: [
                         TextSpan(
                           text: '$_kCurrentStep',
@@ -299,7 +303,10 @@ class _AccessibilityDetailScreenState
                   ),
                   child: Text(
                     '저장하기',
-                    style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
@@ -326,7 +333,7 @@ class _AccessibilityDetailScreenState
               style: TextStyle(
                 fontSize: 13.sp,
                 fontWeight: FontWeight.w600,
-                color: Colors.black,
+                color: AppColors.textPrimary,
               ),
             ),
           ],
@@ -373,7 +380,7 @@ class _AccessibilityDetailScreenState
         duration: const Duration(milliseconds: 150),
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : const Color(0xFFF2F2F2),
+          color: isSelected ? AppColors.primary : AppColors.surfaceCircle,
           borderRadius: BorderRadius.circular(22.r),
         ),
         child: Text(

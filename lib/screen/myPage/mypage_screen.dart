@@ -4,7 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../model/accessibility/accessibility_profile.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
-import '../../utils/app_logger.dart';
 import '../../widgets/toast.dart';
 import '../auth/login_screen.dart';
 import 'accessibility_screen.dart';
@@ -50,26 +49,16 @@ class MyPageScreen extends ConsumerWidget {
     //   return;
     // }
 
-    final provider = ref.read(authStateProvider).user?.provider;
-    final notifier = ref.read(authStateProvider.notifier);
-    AppLogger.debug('[Auth] 로그아웃 시도 (provider=$provider)');
-
-    final success = switch (provider) {
-      'kakao' => await notifier.logoutKakao(),
-      'google' => await notifier.logoutGoogle(),
-      _ => false,
-    };
+    final success = await ref.read(authStateProvider.notifier).logout();
 
     if (!context.mounted) return;
 
     if (success) {
-      AppLogger.info('[Auth] 로그아웃 완료 (provider=$provider)');
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
         (route) => false,
       );
     } else {
-      AppLogger.warning('[Auth] 로그아웃 실패 (provider=$provider)');
       showAndroidToast(context, '로그아웃에 실패했습니다. 다시 시도해주세요.');
     }
   }
@@ -88,26 +77,16 @@ class MyPageScreen extends ConsumerWidget {
     //   return;
     // }
 
-    final provider = ref.read(authStateProvider).user?.provider;
-    final notifier = ref.read(authStateProvider.notifier);
-    AppLogger.debug('[Auth] 회원탈퇴 시도 (provider=$provider)');
-
-    final success = switch (provider) {
-      'kakao' => await notifier.deleteKakaoAccount(),
-      'google' => await notifier.deleteGoogleAccount(),
-      _ => false,
-    };
+    final success = await ref.read(authStateProvider.notifier).deleteAccount();
 
     if (!context.mounted) return;
 
     if (success) {
-      AppLogger.info('[Auth] 회원탈퇴 완료 (provider=$provider)');
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
         (route) => false,
       );
     } else {
-      AppLogger.warning('[Auth] 회원탈퇴 실패 (provider=$provider)');
       showAndroidToast(context, '회원탈퇴에 실패했습니다. 다시 시도해주세요.');
     }
   }
@@ -131,7 +110,7 @@ class MyPageScreen extends ConsumerWidget {
             '안녕하세요, $nickname님!',
             style: TextStyle(
               fontSize: 19.sp,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
             ),
           ),
@@ -209,7 +188,7 @@ class MyPageScreen extends ConsumerWidget {
             Text(
               '접근성 프로필이 설정되지 않았습니다.\n프로필을 수정하여 접근성 프로필을 생성해주세요.',
               style: TextStyle(
-                fontSize: 16.sp,
+                fontSize: 13.sp,
                 color: AppColors.textSecondary,
                 height: 1.4,
               ),
@@ -252,7 +231,7 @@ class MyPageScreen extends ConsumerWidget {
       padding: EdgeInsets.only(bottom: 10.h),
       child: Row(
         children: [
-          Icon(profile.icon, size: 18.r, color: const Color(0xFF7D7D7D)),
+          Icon(profile.icon, size: 18.r, color: AppColors.toggleUnselected),
           SizedBox(width: 8.w),
           Text(
             profile.label,
@@ -318,8 +297,9 @@ class MyPageScreen extends ConsumerWidget {
         style: TextStyle(
           fontSize: 12.sp,
           fontWeight: FontWeight.w300,
-          color: const Color(0xFF8B8B8B),
+          color: AppColors.textTertiary,
           decoration: TextDecoration.underline,
+          decorationColor: AppColors.textTertiary,
         ),
       ),
     );

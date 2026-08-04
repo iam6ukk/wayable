@@ -15,9 +15,6 @@ const _kDefaultFolderId = 'default';
 const _kActionMenuWidth = 111.0;
 const _kActionMenuItemHeight = 110.0 / 3;
 
-/// '저장된 폴더 (N)' / '정렬 기준' 라벨 텍스트·아이콘 공통 색상(피그마 기준).
-const _kLabelColor = Color(0xFF3C3C3C);
-
 /// 폴더 목록 일괄 정렬 기준. 정렬을 고르면 순서 편집(드래그)과 동일하게
 /// order 필드를 다시 매겨서 저장한다 — 그래서 여기서 정렬하고 나가면
 /// 여행지 저장 목록 탭 순서에도 그대로 반영된다.
@@ -245,7 +242,7 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
                   '폴더 편집',
                   style: TextStyle(
                     fontSize: 19.sp,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
                   ),
                 ),
@@ -258,7 +255,10 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
             children: [
               Text(
                 '저장된 폴더 (${widget.folders.length})',
-                style: TextStyle(fontSize: 12.sp, color: _kLabelColor),
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  color: AppColors.textSecondary,
+                ),
               ),
               _buildSortButton(),
             ],
@@ -286,7 +286,7 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
           child: Icon(
             Icons.arrow_back_ios_new,
             size: 20.r,
-            color: AppColors.strongTitleText,
+            color: AppColors.bottomNavActive,
           ),
         ),
       ),
@@ -317,12 +317,12 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
         children: [
           Text(
             '정렬 기준',
-            style: TextStyle(fontSize: 12.sp, color: _kLabelColor),
+            style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary),
           ),
           Icon(
             _isSortMenuOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-            size: 18.r,
-            color: _kLabelColor,
+            size: 24.r,
+            color: AppColors.bottomNavActive,
           ),
         ],
       ),
@@ -350,7 +350,10 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
                 folder.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 15.sp, color: AppColors.textPrimary),
+                style: TextStyle(
+                  fontSize: 15.sp,
+                  color: AppColors.textSecondary,
+                ),
               ),
             ),
             if (!isDefault)
@@ -373,8 +376,8 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
                     _handleMenuSelected(context, folder, action),
                 child: Icon(
                   Icons.more_vert,
-                  size: 22.r,
-                  color: AppColors.textPrimary,
+                  size: 24.r,
+                  color: AppColors.bottomNavActive,
                 ),
               ),
           ],
@@ -403,7 +406,7 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
               folder.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 15.sp, color: AppColors.textPrimary),
+              style: TextStyle(fontSize: 15.sp, color: AppColors.textSecondary),
             ),
           ),
         ],
@@ -426,19 +429,27 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.folder_outlined, size: 20.r, color: AppColors.textPrimary),
+          Icon(
+            Icons.folder_outlined,
+            size: 20.r,
+            color: AppColors.bottomNavActive,
+          ),
           SizedBox(width: 17.w),
           Expanded(
             child: Text(
               folder.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 15.sp, color: AppColors.textPrimary),
+              style: TextStyle(fontSize: 15.sp, color: AppColors.textSecondary),
             ),
           ),
           ReorderableDragStartListener(
             index: index,
-            child: Icon(Icons.dehaze, size: 24.r, color: AppColors.textPrimary),
+            child: Icon(
+              Icons.dehaze,
+              size: 24.r,
+              color: AppColors.bottomNavActive,
+            ),
           ),
         ],
       ),
@@ -460,8 +471,11 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
             borderRadius: BorderRadius.circular(51.r),
           ),
         ),
-        icon: Icon(Icons.create_new_folder_outlined, size: 18.r),
-        label: Text('새 폴더', style: TextStyle(fontSize: 12.sp)),
+        icon: Icon(Icons.create_new_folder_outlined, size: 17.r),
+        label: Text(
+          '새 폴더',
+          style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }

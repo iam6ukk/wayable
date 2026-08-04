@@ -410,7 +410,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           // 방지는 _handleSearch 내부의 _isLoading 가드로 처리한다.
           onPressed: _handleSearch,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryAlt,
+            backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             elevation: 0,
             shape: RoundedRectangleBorder(
@@ -434,7 +434,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       child: Container(
         color: Colors.white.withValues(alpha: 0.85),
         alignment: Alignment.center,
-        child: const CircularProgressIndicator(color: AppColors.primaryAlt),
+        child: const CircularProgressIndicator(color: AppColors.primary),
       ),
     );
   }
@@ -614,20 +614,21 @@ class _SearchBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.search, size: 20.r, color: const Color(0xFF697281)),
+          Icon(Icons.search, size: 24.r, color: AppColors.toggleUnselected),
           SizedBox(width: 10.w),
           Expanded(
             child: TextField(
               controller: controller,
               onSubmitted: onSubmitted,
               textInputAction: TextInputAction.search,
-              style: TextStyle(fontSize: 13.sp, color: Colors.black),
+              style: TextStyle(fontSize: 13.sp, color: AppColors.textPrimary),
               decoration: InputDecoration(
                 isCollapsed: true,
                 hintText: '검색',
                 hintStyle: TextStyle(
                   fontSize: 13.sp,
-                  color: const Color(0xFF697281),
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.slateGray,
                 ),
                 border: InputBorder.none,
               ),
@@ -722,7 +723,9 @@ class _AccessibilityProfileRow extends StatelessWidget {
               height: 48.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isActive ? AppColors.primaryAlt : AppColors.inactiveSurface,
+                color: isActive
+                    ? AppColors.primary
+                    : AppColors.toggleUnselectedBackground,
               ),
               child: Icon(
                 profile.icon,
@@ -878,7 +881,7 @@ class _ResultCard extends StatelessWidget {
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
-              color: Colors.black,
+              color: AppColors.textPrimary,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -886,7 +889,10 @@ class _ResultCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             spot.addr1,
-            style: const TextStyle(fontSize: 13, color: AppColors.addressText),
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -898,7 +904,11 @@ class _ResultCard extends StatelessWidget {
                   .map(
                     (p) => Padding(
                       padding: const EdgeInsets.only(right: 4),
-                      child: Icon(p.icon, size: 16, color: AppColors.toggleUnselected),
+                      child: Icon(
+                        p.icon,
+                        size: 16,
+                        color: AppColors.toggleUnselected,
+                      ),
                     ),
                   )
                   .toList(),
@@ -1000,7 +1010,9 @@ class _PageNumberButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 2),
         decoration: BoxDecoration(
           border: isSelected
-              ? const Border(bottom: BorderSide(color: Colors.black, width: 1))
+              ? const Border(
+                  bottom: BorderSide(color: AppColors.textPrimary, width: 1),
+                )
               : null,
         ),
         child: Text(
@@ -1008,9 +1020,7 @@ class _PageNumberButton extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w400,
-            color: isSelected
-                ? Colors.black
-                : Colors.black.withValues(alpha: 0.5),
+            color: isSelected ? AppColors.textPrimary : AppColors.textTertiary,
           ),
         ),
       ),
@@ -1035,7 +1045,7 @@ class _NavTextButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = enabled ? Colors.black : Colors.black.withValues(alpha: 0.5);
+    final color = enabled ? AppColors.textPrimary : AppColors.textTertiary;
     return GestureDetector(
       onTap: enabled ? onTap : null,
       behavior: HitTestBehavior.opaque,
@@ -1046,7 +1056,7 @@ class _NavTextButton extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 14,
-              fontWeight: FontWeight.w400,
+              fontWeight: FontWeight.w300,
               color: color,
             ),
           ),

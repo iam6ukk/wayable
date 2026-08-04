@@ -47,9 +47,8 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
   Future<void> _handleSkip(BuildContext context) async {
     final skip = await showTwoButtonDialog(
       context,
-      content:
-          '접근성 프로필을 설정하면 나에게 맞는 장소를 쉽게 찾을 수 있어요.\n'
-          '마이페이지에서 언제든 접근성 프로필을 수정할 수 있습니다.',
+      title: '접근성 프로필을 설정하면 나에게 맞는 장소를 쉽게 찾을 수 있어요.',
+      content: '마이페이지에서 언제든 접근성 프로필을 수정할 수 있습니다.',
       primaryLabel: '건너뛰기',
       secondaryLabel: '취소하기',
     );
@@ -76,7 +75,11 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                 children: [
                   RichText(
                     text: TextSpan(
-                      style: TextStyle(fontSize: 13.sp, color: Colors.black),
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.textPrimary,
+                      ),
                       children: [
                         TextSpan(
                           text: '$_kCurrentStep',
@@ -110,7 +113,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                 child: LinearProgressIndicator(
                   value: _kCurrentStep / _kTotalSteps,
                   minHeight: 4.h,
-                  backgroundColor: const Color(0xFFE3E3E3),
+                  backgroundColor: AppColors.toggleUnselectedBackground,
                   valueColor: AlwaysStoppedAnimation(AppColors.primary),
                 ),
               ),
@@ -195,7 +198,10 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                   ),
                   child: Text(
                     '다음으로',
-                    style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
@@ -225,12 +231,12 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                 shape: BoxShape.circle,
                 color: isSelected
                     ? AppColors.primary
-                    : const Color(0xFFF2F2F2),
+                    : AppColors.toggleUnselectedBackground,
               ),
               child: Icon(
                 profile.icon,
                 size: 48.r,
-                color: isSelected ? Colors.white : const Color(0xFF7D7D7D),
+                color: isSelected ? Colors.white : AppColors.toggleUnselected,
               ),
             ),
             SizedBox(height: 12.h),
@@ -239,7 +245,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
               style: TextStyle(
                 fontSize: 13.sp,
                 fontWeight: FontWeight.w500,
-                color: Colors.black,
+                color: AppColors.textPrimary,
               ),
             ),
           ],

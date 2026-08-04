@@ -188,7 +188,7 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
             tabAlignment: TabAlignment.start,
             padding: EdgeInsets.zero,
             labelColor: AppColors.textPrimary,
-            unselectedLabelColor: AppColors.textQuaternary,
+            unselectedLabelColor: AppColors.textTertiary,
             indicatorColor: AppColors.textPrimary,
             indicatorSize: TabBarIndicatorSize.tab,
             indicatorWeight: 3,
@@ -239,13 +239,13 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
           children: [
             Text(
               '편집',
-              style: TextStyle(fontSize: 12.sp, color: const Color(0xFF3C3C3C)),
+              style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary),
             ),
             SizedBox(width: 4.w),
             Icon(
               Icons.edit_outlined,
               size: 16.r,
-              color: AppColors.navIconInactive,
+              color: AppColors.bottomNavInactive,
             ),
           ],
         ),
@@ -404,7 +404,7 @@ class _SavedSpotCard extends StatelessWidget {
                         spot.title,
                         style: TextStyle(
                           fontSize: 14.sp,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,
                         ),
                       ),
@@ -443,7 +443,7 @@ class _SavedSpotCard extends StatelessWidget {
                                   child: Icon(
                                     profile.icon,
                                     size: 16.r,
-                                    color: AppColors.bottomNavInactive,
+                                    color: AppColors.toggleUnselected,
                                   ),
                                 ),
                               )
@@ -460,8 +460,8 @@ class _SavedSpotCard extends StatelessWidget {
                     isBookmarked ? Icons.bookmark : Icons.bookmark_border,
                     color: isBookmarked
                         ? AppColors.accent
-                        : AppColors.boldDivider,
-                    size: 24.r,
+                        : AppColors.navIconInactive,
+                    size: 32.r,
                   ),
                 ),
               ],

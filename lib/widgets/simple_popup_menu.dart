@@ -88,7 +88,7 @@ class SimplePopupMenu<T> extends StatelessWidget {
             style: TextStyle(
               fontSize: 12.sp,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              color: AppColors.textPrimary,
+              color: AppColors.textSecondary,
             ),
           ),
         ),

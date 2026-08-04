@@ -162,7 +162,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
               TabBar(
                 labelColor: AppColors.textPrimary,
                 unselectedLabelColor: const Color(0xFF9D9D9D),
-                indicatorColor: Colors.black,
+                indicatorColor: AppColors.textPrimary,
                 // 탭 인디케이터 각 탭이 차지하는 영역 전체 너비로 맞춤
                 indicatorSize: TabBarIndicatorSize.tab,
                 labelStyle: TextStyle(
@@ -216,13 +216,17 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
             style: TextStyle(
               fontSize: 13.sp,
               fontWeight: FontWeight.w500,
-              color: const Color(0xFFB0B0B0),
+              color: AppColors.textTertiary,
             ),
           ),
           const Spacer(),
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
-            icon: Icon(Icons.close, size: 20.r, color: const Color(0xFFB7B7B7)),
+            icon: Icon(
+              Icons.close,
+              size: 24.r,
+              color: AppColors.navIconInactive,
+            ),
           ),
         ],
       ),
@@ -241,7 +245,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
           child: Text(
             '탐색 화면에서 접근성 대분류를 먼저 선택해주세요.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14.sp, color: const Color(0xFF9D9D9D)),
+            style: TextStyle(fontSize: 14.sp, color: AppColors.textQuaternary),
           ),
         ),
       );
@@ -265,7 +269,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
       children: [
         Row(
           children: [
-            Icon(profile.icon, size: 20.r, color: AppColors.primaryAlt),
+            Icon(profile.icon, size: 24.r, color: AppColors.primary),
             SizedBox(width: 6.w),
             Text(
               '무장애정보 > ${profile.label}',
@@ -386,13 +390,14 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
             height: 45.8.h,
             child: OutlinedButton.icon(
               onPressed: _handleReset,
-              icon: Icon(Icons.refresh, size: 20.r, color: Colors.black),
+              icon: Icon(
+                Icons.refresh,
+                size: 20.r,
+                color: AppColors.bottomNavActive,
+              ),
               label: Text(
                 '초기화',
-                style: TextStyle(
-                  fontSize: 13.sp,
-                  color: AppColors.textPrimary,
-                ),
+                style: TextStyle(fontSize: 13.sp, color: AppColors.textPrimary),
               ),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: AppColors.boldDivider),
@@ -411,7 +416,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
               child: ElevatedButton(
                 onPressed: _handleSave,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryAlt,
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -452,7 +457,9 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(20.r),
           border: Border.all(
-            color: isSelected ? Colors.black : AppColors.chipInactiveBorder,
+            color: isSelected
+                ? AppColors.textPrimary
+                : AppColors.chipInactiveBorder,
             width: 1,
           ),
         ),

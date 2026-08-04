@@ -265,7 +265,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                 title,
                 style: TextStyle(
                   fontSize: 19.sp,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
                 ),
               ),
@@ -275,8 +275,10 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
               behavior: HitTestBehavior.opaque,
               child: Icon(
                 isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                size: 28.r,
-                color: isBookmarked ? AppColors.accent : AppColors.boldDivider,
+                size: 32.r,
+                color: isBookmarked
+                    ? AppColors.accent
+                    : AppColors.navIconInactive,
               ),
             ),
           ],
@@ -287,7 +289,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
           style: TextStyle(
             fontSize: 12.sp,
             fontWeight: FontWeight.w300,
-            color: AppColors.textPrimary,
+            color: AppColors.textSecondary,
           ),
         ),
       ],
@@ -486,7 +488,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
               style: TextStyle(
                 fontSize: labelFontSize,
                 fontWeight: FontWeight.w500,
-                color: AppColors.facilityLabelText,
+                color: AppColors.textSecondary,
               ),
             ),
           ),
@@ -501,7 +503,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                         value,
                         style: TextStyle(
                           fontSize: 13.sp,
-                          color: AppColors.textSecondary,
+                          color: AppColors.textTertiary,
                         ),
                       ),
                     )
@@ -509,6 +511,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                       isEmpty ? '정보 없음' : value,
                       style: TextStyle(
                         fontSize: 13.sp,
+                        fontWeight: FontWeight.w300,
                         color: isEmpty
                             ? AppColors.textQuaternary
                             : AppColors.textTertiary,
@@ -554,7 +557,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
             style: TextStyle(
               fontSize: 12.sp,
               fontWeight: FontWeight.w500,
-              color: AppColors.facilityLabelText,
+              color: AppColors.textSecondary,
             ),
           ),
         SizedBox(height: 12.h),
@@ -612,7 +615,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                     style: TextStyle(
                       fontSize: 13.sp,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.facilityLabelText,
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ),
@@ -626,7 +629,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                           ? Icons.keyboard_arrow_up
                           : Icons.keyboard_arrow_down,
                       size: 20.r,
-                      color: AppColors.textSecondary,
+                      color: AppColors.boldDivider,
                     ),
                   ),
                 ),
@@ -683,7 +686,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                   style: TextStyle(
                     fontSize: 11.sp,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.facilityLabelText,
+                    color: AppColors.textSecondary,
                   ),
                 ),
                 SizedBox(height: 4.h),
@@ -692,7 +695,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                   style: TextStyle(
                     fontSize: 11.sp,
                     fontWeight: FontWeight.w300,
-                    color: AppColors.textSecondary,
+                    color: AppColors.textTertiary,
                   ),
                 ),
               ],

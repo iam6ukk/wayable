@@ -554,7 +554,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       '오늘 발견',
                       style: TextStyle(
                         fontSize: 19.sp,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
                       ),
                     ),
@@ -565,7 +565,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           '여행지',
                           style: TextStyle(
                             fontSize: 19.sp,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary,
                           ),
                         ),
