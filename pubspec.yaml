@@ -46,6 +46,7 @@ dependencies:
   url_launcher: ^6.3.2
   flutter_screenutil: ^5.9.3
   lottie: ^3.5.0
+  kakao_map_sdk: ^1.2.6
 
 dev_dependencies:
   flutter_test:

@@ -31,6 +31,11 @@ class TourSpot {
 
   final String contentTypeId;
 
+  /// 경도/위도 (TourAPI mapx/mapy, WGS84). 지도 마커 표시·거리 계산용.
+  /// 좌표 정보가 없는 장소는 null.
+  final double? mapX;
+  final double? mapY;
+
   /// 법정동 지역코드/시군구코드 (ldongCode2 체계). assets/data/area_codes.json의
   /// AreaCode.code / SigunguCode.code와 대응한다.
   final String? lDongRegnCd;
@@ -58,6 +63,8 @@ class TourSpot {
     this.firstImage,
     this.galleryImages = const [],
     this.contentTypeId = '',
+    this.mapX,
+    this.mapY,
     this.lDongRegnCd,
     this.lDongSignguCd,
     this.supportedProfiles = const {},
@@ -96,6 +103,8 @@ class TourSpot {
       addr2: basic['addr2'] as String?,
       firstImage: basic['firstImage'] as String?,
       contentTypeId: (basic['contentTypeId'] as String?) ?? '',
+      mapX: (basic['mapX'] as num?)?.toDouble(),
+      mapY: (basic['mapY'] as num?)?.toDouble(),
       lDongRegnCd: basic['lDongRegnCd'] as String?,
       lDongSignguCd: basic['lDongSignguCd'] as String?,
       supportedProfiles: supportedProfiles,

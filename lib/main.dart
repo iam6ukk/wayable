@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:kakao_flutter_sdk_common/kakao_flutter_sdk_common.dart';
+import 'package:kakao_map_sdk/kakao_map_sdk.dart';
 import 'package:wayable/screen/auth/landing.dart';
 import 'firebase_options.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -16,6 +18,15 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   KakaoSdk.init(nativeAppKey: kakaoNativeAppKey);
+  // 로그인용 KakaoSdk.init과는 별개 패키지(kakao_map_sdk)라 지도 SDK 인증도 따로 해줘야 한다.
+  if (kakaoNativeAppKey != null) {
+    await KakaoMapSdk.instance.initialize(kakaoNativeAppKey);
+  }
+
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
   runApp(const ProviderScope(child: MyApp()));
 }

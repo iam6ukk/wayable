@@ -81,6 +81,12 @@ class _MainShellState extends ConsumerState<MainShell> {
       ref.read(tabSwitchRequestProvider.notifier).state = null;
     });
 
+    // 지도 탭에서 검색 결과 바텀시트가 뜨면(피그마 831:763 등) 하단 탭 바가
+    // 없는 전체화면에 가까운 레이아웃이 된다.
+    final hideBottomNav =
+        _currentTab == BottomNavTab.map &&
+        ref.watch(mapResultsActiveProvider);
+
     return Scaffold(
       backgroundColor: Colors.white,
       // 기본값(true)이면 키보드가 열고 닫힐 때마다 이 셸 전체(배너+콘텐츠+
@@ -104,7 +110,10 @@ class _MainShellState extends ConsumerState<MainShell> {
           bottom: false,
           child: Column(
             children: [
-              const TopLogoBanner(),
+              // 지도 화면은 자체 상단 배경 밴드(검색창+카테고리)가 상태바
+              // 인셋까지 직접 챙기는 피그마 시안이라, 여기서 로고 배너를
+              // 또 얹으면 파란 헤더가 두 겹으로 보인다.
+              if (_currentTab != BottomNavTab.map) const TopLogoBanner(),
               Expanded(
                 child: AnimatedSwitcher(
                   duration: _kTabTransitionDuration,
@@ -125,10 +134,11 @@ class _MainShellState extends ConsumerState<MainShell> {
                   ),
                 ),
               ),
-              BottomNavBar(
-                currentTab: _currentTab,
-                onTabSelected: _handleTabSelected,
-              ),
+              if (!hideBottomNav)
+                BottomNavBar(
+                  currentTab: _currentTab,
+                  onTabSelected: _handleTabSelected,
+                ),
             ],
           ),
         ),
