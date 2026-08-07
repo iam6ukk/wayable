@@ -17,6 +17,7 @@ import '../../theme/app_colors.dart';
 import '../../widgets/app_dialog.dart';
 import '../../widgets/bottom_nav_bar.dart';
 import '../../widgets/image_placeholder.dart';
+import '../../widgets/loading_overlay.dart';
 import '../../widgets/top_logo_banner.dart';
 import '../../widgets/toast.dart';
 import '../../model/tour/tour_facility_fields.dart';
@@ -169,15 +170,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                     ),
                   ),
                   if (_isLoading)
-                    Positioned.fill(
-                      child: Container(
-                        color: AppColors.whiteBackground.withValues(alpha: 0.7),
-                        alignment: Alignment.center,
-                        child: const CircularProgressIndicator(
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
+                    const Positioned.fill(child: LoadingOverlay()),
                 ],
               ),
             ),

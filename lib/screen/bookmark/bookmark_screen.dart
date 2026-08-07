@@ -10,6 +10,7 @@ import '../../providers/bookmark_provider.dart';
 import '../../services/location/location_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/image_placeholder.dart';
+import '../../widgets/loading_overlay.dart';
 import '../../widgets/scroll_fab.dart';
 import '../../widgets/toast.dart';
 import '../search/spot_detail_screen.dart';
@@ -367,7 +368,7 @@ class _FolderSpotListState extends ConsumerState<_FolderSpotList> {
   Widget build(BuildContext context) {
     final spots = _spots;
     if (spots == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const LoadingOverlay();
     }
     if (spots.isEmpty) {
       return Center(
