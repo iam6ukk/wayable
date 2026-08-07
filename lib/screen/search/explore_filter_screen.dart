@@ -159,11 +159,11 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
           child: Column(
             children: [
               _buildHeader(),
+              // 필터 항목 탭
               TabBar(
                 labelColor: AppColors.textPrimary,
                 unselectedLabelColor: const Color(0xFF9D9D9D),
                 indicatorColor: AppColors.textPrimary,
-                // 탭 인디케이터 각 탭이 차지하는 영역 전체 너비로 맞춤
                 indicatorSize: TabBarIndicatorSize.tab,
                 labelStyle: TextStyle(
                   fontSize: 12.sp,
@@ -443,11 +443,6 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    // 선택 시 글자 굵기(w400->w600)만으로도 칩 너비가 늘어나서, 화면 폭이
-    // 좁은 기기에서는 카테고리를 2개 이상 고를 때마다 Wrap 줄바꿈 위치가
-    // 흔들리는 문제가 있었다. 보이지 않는 굵은 글씨를 밑에 깔아 항상 그
-    // 너비만큼 자리를 예약해두면, 실제 글씨는 얇든 굵든 같은 칩 크기 안에서
-    // 렌더링되어 선택 여부와 무관하게 레이아웃이 고정된다.
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(

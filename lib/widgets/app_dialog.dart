@@ -3,10 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../theme/app_colors.dart';
 
-/// 폴더 삭제 확인 다이얼로그 기준 노드(Figma 360x800 갤럭시 표준 프레임, 앱
-/// 전역 ScreenUtil 기준 프레임과 동일)에서 측정한 좌우 마진 평균값. 카드
-/// 너비를 고정하지 않고 이 마진만큼만 비워두는 방식이라 화면 폭에 비례해
-/// 자동으로 커진다.
 const _kOuterMarginPx = 37.1;
 const _kDialogRadius = 22.0;
 const _kFooterHeight = 57.7;
@@ -32,9 +28,8 @@ TextStyle _contentTextStyle({required bool emphasized}) => TextStyle(
 TextStyle _actionTextStyle(Color color) =>
     TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600, color: color);
 
-/// title이 있으면 title(볼드)/content(라이트)로 구분되고, title 없이
-/// content 하나만 쓰는 다이얼로그(로그인 유도, 안내, 원버튼 등)는 세미볼드로
-/// 통일한다.
+/// title이 있으면 title(볼드)/content(라이트)로 구분되고,
+/// title 없이 content 하나만 쓰는 다이얼로그(로그인 유도, 안내, 원버튼 등)는 세미볼드로 통일
 Widget _dialogBody({required String? title, required String content}) {
   final hasTitle = title != null;
   return Padding(
@@ -69,9 +64,8 @@ Widget _footerButton({
   );
 }
 
-/// 버튼 2개(보조/주 액션)짜리 컨펌 다이얼로그. 좌우로 배치되며 좌측이 보조
-/// 액션, 우측이 주 액션이다. 주 액션을 누르면 true, 보조 액션이나 다이얼로그
-/// 바깥을 눌러 닫으면 false/null을 반환한다.
+/// 버튼 2개(보조/주 액션)짜리 컨펌 다이얼로그. 좌우로 배치되며 좌측이 보조 액션, 우측이 주 액션이다.
+/// 주 액션을 누르면 true, 보조 액션이나 다이얼로그 바깥을 눌러 닫으면 false/null을 반환한다.
 Future<bool?> showTwoButtonDialog(
   BuildContext context, {
   String? title,
@@ -122,10 +116,10 @@ Future<bool?> showTwoButtonDialog(
   );
 }
 
-/// 인풋 박스 하나 + 버튼 2개(취소/주 액션)짜리 다이얼로그. 폴더 이름 변경,
-/// 새 폴더 추가 등 "이름을 입력받아 확정"하는 흐름에서 공통으로 재사용한다.
-/// 주 액션을 누르면 입력값(trim)을, 취소하거나 다이얼로그 바깥을 누르면
-/// null을 반환한다. 입력값이 비어 있으면 주 액션을 눌러도 닫히지 않는다.
+/// 인풋 박스 하나 + 버튼 2개(취소/주 액션)짜리 다이얼로그.
+/// 폴더 이름 변경, 새 폴더 추가 등 "이름을 입력받아 확정"하는 흐름에서 공통으로 재사용한다.
+/// 주 액션을 누르면 입력값(trim)을, 취소하거나 다이얼로그 바깥을 누르면 null을 반환한다.
+/// 입력값이 비어 있으면 주 액션을 눌러도 닫히지 않는다.
 Future<String?> showFolderNameInputDialog(
   BuildContext context, {
   required String title,

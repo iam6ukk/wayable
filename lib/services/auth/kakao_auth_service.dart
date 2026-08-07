@@ -3,11 +3,13 @@ import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' as kakao;
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:wayable/model/user/user.dart';
+import 'package:wayable/services/bookmark/bookmark_service.dart';
 import 'package:wayable/services/user_service.dart';
 import 'package:wayable/utils/app_logger.dart';
 
 class KakaoAuthService {
   final _userService = UserService();
+  final _bookmarkService = BookmarkService();
 
   // 로그인
   Future<({AppUser? user, bool isNewUser})> signInWithKakao() async {
@@ -85,11 +87,14 @@ class KakaoAuthService {
   }
 
   // 회원탈퇴
-  // Firestore 유저 데이터 삭제 → Firebase 계정 삭제 → 카카오 연결 해제
+  // 북마크 삭제 → Firestore 유저 문서 삭제 → Firebase 계정 삭제 → 카카오 연결 해제
   Future<bool> deleteAccount() async {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid != null) {
+        // 유저 문서보다 먼저 지워야, 중간에 앱이 죽어 재시도하더라도
+        // 이미 지운 문서는 멱등하게 건너뛰고 남은 것만 마저 정리된다.
+        await _bookmarkService.deleteAllBookmarks(uid);
         await _userService.deleteUser(uid);
       }
 

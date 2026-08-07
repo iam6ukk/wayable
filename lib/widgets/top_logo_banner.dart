@@ -8,8 +8,6 @@ class TopLogoBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 상태 바 영역은 배경색만 이어지도록 상단 인셋만큼 추가 패딩을 주고,
-    // 실제 배너 영역은 하단 탭 바와 동일한 표준 높이(56dp)로 맞춘다.
     final topInset = MediaQuery.paddingOf(context).top;
 
     return Container(

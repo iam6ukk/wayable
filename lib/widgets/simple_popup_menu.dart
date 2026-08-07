@@ -41,9 +41,6 @@ class SimplePopupMenu<T> extends StatelessWidget {
   final Offset offset;
   final double? width;
 
-  /// 항목 하나의 높이. 정렬 기준 메뉴와 폴더별 점3개 메뉴 둘 다 피그마상
-  /// 동일한 크기(111×110, 3항목)로 디자인돼 있어서, 두 호출부가 같은
-  /// width와 itemHeight를 넘기면 메뉴 크기가 항상 같게 맞춰진다.
   final double? itemHeight;
 
   @override
@@ -75,9 +72,6 @@ class SimplePopupMenu<T> extends StatelessWidget {
     final height = itemHeight ?? 40.h;
     return PopupMenuItem<T>(
       value: option.value,
-      // PopupMenuItem.height는 최소 높이일 뿐이고 기본값(48)이 더 크면 그게
-      // 이겨버리므로, height도 명시적으로 낮추고 SizedBox로 실제 높이를 한 번
-      // 더 고정해 항목마다 정확히 같은 높이·같은 상하 여백을 갖도록 한다.
       height: height,
       padding: EdgeInsets.zero,
       child: SizedBox(

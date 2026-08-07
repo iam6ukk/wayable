@@ -10,13 +10,11 @@ import '../../widgets/toast.dart';
 
 const _kDefaultFolderId = 'default';
 
-/// 정렬 기준 메뉴와 폴더별 점3개 메뉴 둘 다 피그마상 동일한 크기(111×110,
-/// 3항목)로 디자인돼 있어서, 두 메뉴가 같은 크기로 보이도록 이 값을 공유한다.
 const _kActionMenuWidth = 111.0;
 const _kActionMenuItemHeight = 110.0 / 3;
 
-/// 폴더 목록 일괄 정렬 기준. 정렬을 고르면 순서 편집(드래그)과 동일하게
-/// order 필드를 다시 매겨서 저장한다 — 그래서 여기서 정렬하고 나가면
+/// 폴더 목록 일괄 정렬 기준
+/// 정렬을 고르면 순서 편집(드래그)과 동일하게 order 필드를 다시 매겨서 저장한다
 /// 여행지 저장 목록 탭 순서에도 그대로 반영된다.
 enum _FolderSortOption {
   newest('최신순'),
@@ -27,20 +25,6 @@ enum _FolderSortOption {
   final String label;
 }
 
-/// 저장목록 폴더 편집 콘텐츠. 저장목록 화면(SavedListScreen) 안에서 '편집'을
-/// 누르면 콘텐츠 영역만 이 화면으로 갈아끼워진다 — 별도 라우트로 push되는
-/// 화면이 아니라서 상단 배너/하단 탭바를 다시 그리지 않고, 폴더 목록도 직접
-/// 들고 있지 않고 부모(SavedListScreen)가 관리하는 목록/콜백을 그대로 받는다.
-///
-/// 평소엔 각 행의 점3개 버튼을 누르면 그 버튼 바로 아래에 이름 변경/순서
-/// 편집/폴더 삭제 메뉴가 뜬다. 그중 '순서 편집'을 고르면 헤더(제목/뒤로가기)는
-/// 그대로 '폴더 편집' 화면을 유지한 채, 점3개 버튼 자리만 드래그 핸들(햄버거
-/// 아이콘)로 바뀌어서 그 아이콘을 누른 채로 위/아래로 드래그해 순서를 정하고
-/// 손을 떼면 바로 반영된다. 이 모드에서는 '새 폴더' 버튼도 숨긴다. 순서 편집
-/// 모드 안에서 뒤로가기를 눌러도 이 화면에 남아있지 않고 바로 여행지 저장
-/// 목록으로 나간다(별도의 '순서 편집만 종료' 상태가 없다) — 바뀐 순서는
-/// SavedListScreen이 들고 있는 bookmarkProvider 상태에 이미 반영돼 있으므로
-/// 그대로 유지된다.
 class FolderEditScreen extends StatefulWidget {
   const FolderEditScreen({
     super.key,
@@ -136,7 +120,7 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
       case 'delete':
         final confirmed = await showTwoButtonDialog(
           context,
-          title: '폴더를 삭제할까요?',
+          title: '폴더를 삭제하시겠습니까?',
           content: '이 폴더에 저장된 여행지도 함께 삭제돼요.\n삭제 후에는 복구할 수 없어요.',
           primaryLabel: '삭제하기',
           secondaryLabel: '아니오',

@@ -30,8 +30,8 @@ class AccessibilityDetailScreen extends ConsumerStatefulWidget {
 
   final Set<AccessibilityProfile> selectedProfiles;
 
-  /// 저장을 마치거나 건너뛰었을 때 호출된다. 진입 경로에 따라 호출부에서
-  /// 홈 화면 이동, 이전 화면으로 복귀 등을 결정한다.
+  /// 설정을 마치거나(저장) 건너뛰었을 때 호출된다.
+  /// 접근성 프로필 화면 진입 경로에 따라 리턴 페이지 결정
   final VoidCallback onComplete;
 
   @override
@@ -42,9 +42,9 @@ class AccessibilityDetailScreen extends ConsumerStatefulWidget {
 class _AccessibilityDetailScreenState
     extends ConsumerState<AccessibilityDetailScreen> {
   final _userService = UserService();
-  // profile별로 독립된 필드 선택 상태를 갖는다. 같은 AccessibilityField를
-  // 공유하는 profile(예: seniorCompanion과 physicalAssist)이 있어도, 한쪽에서
-  // 고른다고 다른 쪽 칩까지 같이 활성화되면 안 되기 때문.
+  // 대분류별로 독립된 필드 선택 상태를 가짐
+  // 같은 무장애 편의정보를 공유하는 대분류(예: seniorCompanion과 physicalAssist)가 있어도
+  // 한쪽에서 고른다고 다른 쪽 칩까지 같이 활성화되면 안 되기 때문
   final Map<AccessibilityProfile, Set<AccessibilityField>> _selectedFields = {};
   final Set<AccessibilityProfile> _selectAllProfiles = {};
 
@@ -59,7 +59,7 @@ class _AccessibilityDetailScreenState
       } else {
         fields.add(field);
       }
-      // 개별 필드를 직접 고르면 그 profile의 '전체' 선택은 해제된다.
+      // 개별 필드를 직접 고르면 그 대분류의 '전체' 선택 해제
       _selectAllProfiles.remove(profile);
     });
   }
@@ -70,12 +70,13 @@ class _AccessibilityDetailScreenState
         _selectAllProfiles.remove(profile);
       } else {
         _selectAllProfiles.add(profile);
-        // '전체'를 고르면 그 profile 안에서 개별로 골라둔 필드는 해제된다.
+        // '전체'를 고르면 그 대분류 안에서 개별로 골라둔 필드 해제
         _selectedFields[profile]?.clear();
       }
     });
   }
 
+  // 건너뛰기 시 다이얼로그
   Future<void> _handleSkip(BuildContext context) async {
     final skip = await showTwoButtonDialog(
       context,
@@ -235,8 +236,6 @@ class _AccessibilityDetailScreenState
               ),
             ),
             SizedBox(height: 12.h),
-            // 진행바/저장 버튼은 본문 텍스트(24.w)보다 살짝 넓은 16.5.w 여백을 쓴다
-            // (Figma상 두 요소만 폭이 더 넓게 잡혀있음).
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.5.w),
               child: ClipRRect(

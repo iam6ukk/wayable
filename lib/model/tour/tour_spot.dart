@@ -125,6 +125,8 @@ class TourSpot {
       if (firstImage != null) 'firstImage': firstImage,
       if (galleryImages.isNotEmpty) 'galleryImages': galleryImages,
       'contentTypeId': contentTypeId,
+      if (mapX != null) 'mapX': mapX,
+      if (mapY != null) 'mapY': mapY,
       if (lDongRegnCd != null) 'lDongRegnCd': lDongRegnCd,
       if (lDongSignguCd != null) 'lDongSignguCd': lDongSignguCd,
       'supportedProfiles': supportedProfiles.map((p) => p.name).toList(),
@@ -152,6 +154,8 @@ class TourSpot {
           .map((e) => e as String)
           .toList(),
       contentTypeId: (data['contentTypeId'] as String?) ?? '',
+      mapX: (data['mapX'] as num?)?.toDouble(),
+      mapY: (data['mapY'] as num?)?.toDouble(),
       lDongRegnCd: data['lDongRegnCd'] as String?,
       lDongSignguCd: data['lDongSignguCd'] as String?,
       supportedProfiles: supportedProfiles,

@@ -128,6 +128,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   String? _regionCode;
   bool _hasSearched = false;
   bool _isLoading = false;
+  // 지도가 뜨자마자 기본값(서울시청)으로 그려졌다가 실제 GPS 위치로
+  // 넘어가는 게 눈에 보이면 혼선이 생기므로, 카메라가 진짜 위치로 옮겨질
+  // 때까지는 이 화면을 로딩으로 가리고 있다가 한 번에 보여준다.
+  bool _isLocating = true;
   // _handleMarkerTap이 리스트를 활성 카드로 스크롤시킬 때, 그 스크롤 자체가
   // 다시 스크롤 리스너를 건드려 활성 인덱스를 재계산하지 않도록 막는 플래그.
   bool _isProgrammaticScroll = false;
@@ -184,6 +188,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       CameraUpdate.newCenterPosition(latLng, zoomLevel: _kDefaultZoomLevel),
     );
     await _updateMyLocationMarker(latLng);
+    if (mounted) setState(() => _isLocating = false);
 
     // 지역코드는 검색 시점에 바로 쓸 수 있게 미리 구해두지만, 실제 검색/마커
     // 렌더링은 사용자가 검색어를 입력하거나 카테고리를 선택했을 때부터 시작한다
@@ -684,7 +689,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 ),
               // login_loading_screen.dart와 같은 방식 — 전체 화면을 어둡게
               // 깔고 그 위에 LoadingAnimation을 띄운다.
-              if (_isLoading) ...[
+              if (_isLoading || _isLocating) ...[
                 Positioned.fill(
                   child: Container(
                     color: const Color(0xFF363636).withValues(alpha: 0.3),
