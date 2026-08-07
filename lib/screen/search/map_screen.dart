@@ -1494,7 +1494,7 @@ class _SpotListCard extends ConsumerWidget {
       final goLogin = await showTwoButtonDialog(
         context,
         content: '회원에게만 제공되는 기능입니다.\n로그인 하시겠습니까?',
-        primaryLabel: '로그인',
+        primaryLabel: '로그인하기',
         secondaryLabel: '취소',
       );
       if (goLogin == true && context.mounted) {

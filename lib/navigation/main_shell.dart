@@ -39,7 +39,7 @@ class _MainShellState extends ConsumerState<MainShell> {
       final goLogin = await showTwoButtonDialog(
         context,
         content: '회원에게만 제공되는 기능입니다.\n로그인 하시겠습니까?',
-        primaryLabel: '로그인',
+        primaryLabel: '로그인하기',
         secondaryLabel: '취소',
       );
       if (goLogin == true && context.mounted) {
@@ -84,8 +84,7 @@ class _MainShellState extends ConsumerState<MainShell> {
     // 지도 탭에서 검색 결과 바텀시트가 뜨면(피그마 831:763 등) 하단 탭 바가
     // 없는 전체화면에 가까운 레이아웃이 된다.
     final hideBottomNav =
-        _currentTab == BottomNavTab.map &&
-        ref.watch(mapResultsActiveProvider);
+        _currentTab == BottomNavTab.map && ref.watch(mapResultsActiveProvider);
 
     return Scaffold(
       backgroundColor: Colors.white,

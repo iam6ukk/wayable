@@ -49,10 +49,10 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
   Future<void> _handleSkip(BuildContext context) async {
     final skip = await showTwoButtonDialog(
       context,
-      title: '접근성 프로필을 설정하면 나에게 맞는 장소를 쉽게 찾을 수 있어요.',
-      content: '마이페이지에서 언제든 접근성 프로필을 수정할 수 있습니다.',
+      title: '접근성 프로필을 설정하면 나에게 맞는\n장소를 쉽게 찾을 수 있습니다.',
+      content: '마이페이지에서 언제든 접근성 프로필을\n수정할 수 있습니다.',
       primaryLabel: '건너뛰기',
-      secondaryLabel: '취소하기',
+      secondaryLabel: '취소',
     );
     if (skip != true || !context.mounted) return;
     widget.onComplete();

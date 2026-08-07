@@ -121,9 +121,9 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
         final confirmed = await showTwoButtonDialog(
           context,
           title: '폴더를 삭제하시겠습니까?',
-          content: '이 폴더에 저장된 여행지도 함께 삭제돼요.\n삭제 후에는 복구할 수 없어요.',
+          content: '폴더에 저장된 여행지도 함께 삭제됩니다.\n삭제 후에는 복구할 수 없습니다.',
           primaryLabel: '삭제하기',
-          secondaryLabel: '아니오',
+          secondaryLabel: '취소',
         );
         if (confirmed == true) widget.onDeleteFolder(folder);
     }
