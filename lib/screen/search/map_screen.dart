@@ -19,7 +19,7 @@ import '../../utils/accessibility_fit_level.dart';
 import '../../utils/app_logger.dart';
 import '../../widgets/app_dialog.dart';
 import '../../widgets/image_placeholder.dart';
-import '../../widgets/loading_animation.dart';
+import '../../widgets/loading_overlay.dart';
 import '../../widgets/toast.dart';
 import '../auth/login_screen.dart';
 import '../bookmark/save_to_folder_sheet.dart';
@@ -234,10 +234,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     return index < 0 ? 1 << 20 : index;
   }
 
-  /// "이 장소 재검색" 버튼: 원래 GPS 위치가 아니라 사용자가 지도를 움직여
-  /// 지금 실제로 보고 있는 위치를 기준으로 거리 정렬·지역을 다시 계산해
-  /// [_runSearch]를 재실행한다.
-  Future<void> _handleResearchThisArea() async {
+  /// GPS로 잡은 최초 위치가 아니라, 사용자가 지도를 움직여 지금 실제로 보고
+  /// 있는 위치를 기준으로 거리 정렬·지역을 다시 계산해둔다. [_runSearch]가
+  /// 검색어 제출/카테고리·정렬·적합레벨 선택/"이 장소 재검색" 등 모든 검색
+  /// 진입점에서 매번 먼저 호출해서, 지도를 옮겨둔 채로 무엇을 하든 항상 그
+  /// 위치 기준으로 검색되게 한다.
+  Future<void> _syncPositionFromCamera() async {
     final controller = _mapController;
     if (controller == null) return;
 
@@ -247,14 +249,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     setState(() => _currentPosition = latLng);
     _regionCode =
         await _resolveRegionCode(latLng) ?? _regionCode ?? _kFallbackRegionCode;
-    await _runSearch();
   }
+
+  /// "이 장소 재검색" 버튼.
+  Future<void> _handleResearchThisArea() => _runSearch();
 
   /// 검색어 제출/카테고리·정렬·적합레벨 선택 시 즉시 호출된다. 지역 전체를
   /// 받아 좌표 있는 장소만 남기고, 키워드(제목 부분일치)·카테고리·최소
   /// 적합레벨로 거른 뒤 선택한 기준으로 정렬해 상위 [_kMaxMarkers]건만
   /// 마커+바텀시트 목록으로 그린다.
   Future<void> _runSearch() async {
+    await _syncPositionFromCamera();
     final regionCode = _regionCode;
     if (regionCode == null) return;
 
@@ -688,15 +693,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   ),
                 ),
               // login_loading_screen.dart와 같은 방식 — 전체 화면을 어둡게
-              // 깔고 그 위에 LoadingAnimation을 띄운다.
-              if (_isLoading || _isLocating) ...[
-                Positioned.fill(
-                  child: Container(
-                    color: const Color(0xFF363636).withValues(alpha: 0.3),
-                  ),
-                ),
-                const Positioned.fill(child: Center(child: LoadingAnimation())),
-              ],
+              // 깔고 그 위에 로딩 애니메이션을 띄운다.
+              if (_isLoading || _isLocating)
+                const Positioned.fill(child: LoadingOverlay()),
             ],
           );
         },
@@ -1494,7 +1493,7 @@ class _SpotListCard extends ConsumerWidget {
       final goLogin = await showTwoButtonDialog(
         context,
         content: '회원에게만 제공되는 기능입니다.\n로그인 하시겠습니까?',
-        primaryLabel: '로그인',
+        primaryLabel: '로그인하기',
         secondaryLabel: '취소',
       );
       if (goLogin == true && context.mounted) {

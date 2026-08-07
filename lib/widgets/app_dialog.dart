@@ -13,14 +13,14 @@ RoundedRectangleBorder _dialogShape() => RoundedRectangleBorder(
 
 TextStyle _titleTextStyle() => TextStyle(
   fontSize: 13.sp,
-  fontWeight: FontWeight.w700,
+  fontWeight: FontWeight.w600,
   color: AppColors.textPrimary,
   height: 1.5,
 );
 
 TextStyle _contentTextStyle({required bool emphasized}) => TextStyle(
   fontSize: 13.sp,
-  fontWeight: emphasized ? FontWeight.w600 : FontWeight.w300,
+  fontWeight: FontWeight.w400,
   color: AppColors.textPrimary,
   height: 1.5,
 );

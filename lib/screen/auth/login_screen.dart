@@ -72,7 +72,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         if (navigatorKey.currentState?.canPop() ?? false) {
           navigatorKey.currentState?.pop();
         }
-        showInfoDialog(context, content: '로그인에 실패했습니다.\n다시 시도해주세요.');
+        showInfoDialog(context, title: '로그인에 실패했습니다.', content: '다시 시도해주세요.');
       }
     });
 
@@ -154,7 +154,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         height: 44.9.h,
                         decoration: BoxDecoration(
                           color: const Color(0xFFFDDC3F),
-                          borderRadius: BorderRadius.all(Radius.circular(5.5.r)),
+                          borderRadius: BorderRadius.all(
+                            Radius.circular(5.5.r),
+                          ),
                         ),
                         child: Stack(
                           alignment: Alignment.center,

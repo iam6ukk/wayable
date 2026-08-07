@@ -17,6 +17,7 @@ import '../../theme/app_colors.dart';
 import '../../widgets/app_dialog.dart';
 import '../../widgets/bottom_nav_bar.dart';
 import '../../widgets/image_placeholder.dart';
+import '../../widgets/loading_overlay.dart';
 import '../../widgets/top_logo_banner.dart';
 import '../../widgets/toast.dart';
 import '../../model/tour/tour_facility_fields.dart';
@@ -169,15 +170,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                     ),
                   ),
                   if (_isLoading)
-                    Positioned.fill(
-                      child: Container(
-                        color: AppColors.whiteBackground.withValues(alpha: 0.7),
-                        alignment: Alignment.center,
-                        child: const CircularProgressIndicator(
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
+                    const Positioned.fill(child: LoadingOverlay()),
                 ],
               ),
             ),
@@ -205,7 +198,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
       final goLogin = await showTwoButtonDialog(
         context,
         content: '회원에게만 제공되는 기능입니다.\n로그인 하시겠습니까?',
-        primaryLabel: '로그인',
+        primaryLabel: '로그인하기',
         secondaryLabel: '취소',
       );
       if (goLogin == true && context.mounted) {

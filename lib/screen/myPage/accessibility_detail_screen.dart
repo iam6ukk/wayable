@@ -80,10 +80,10 @@ class _AccessibilityDetailScreenState
   Future<void> _handleSkip(BuildContext context) async {
     final skip = await showTwoButtonDialog(
       context,
-      title: '접근성 프로필을 설정하면 나에게 맞는 장소를 쉽게 찾을 수 있어요.',
-      content: '마이페이지에서 언제든 접근성 프로필을 수정할 수 있습니다.',
+      title: '접근성 프로필을 설정하면 나에게 맞는\n장소를 쉽게 찾을 수 있습니다.',
+      content: '마이페이지에서 언제든 접근성 프로필을\n수정할 수 있습니다.',
       primaryLabel: '건너뛰기',
-      secondaryLabel: '취소하기',
+      secondaryLabel: '취소',
     );
     if (skip != true || !context.mounted) return;
     widget.onComplete();
@@ -116,7 +116,7 @@ class _AccessibilityDetailScreenState
     if (hasUnselectedProfile) {
       final confirmed = await showTwoButtonDialog(
         context,
-        content: '무장애 정보를 선택하지 않은 경우 전체 항목을 기준으로 정보가 제공됩니다.',
+        content: '무장애 정보를 선택하지 않은 경우,\n전체 항목을 기준으로 정보가 제공됩니다.',
         primaryLabel: '확인',
         secondaryLabel: '취소',
       );

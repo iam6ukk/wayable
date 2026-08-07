@@ -7,6 +7,7 @@ import '../../model/accessibility/accessibility_profile.dart';
 import '../../model/region/area_code.dart';
 import '../../model/tour/tour_category.dart';
 import '../../services/region/area_code_repository.dart';
+import '../../widgets/loading_overlay.dart';
 
 const _kProfileOrder = [
   AccessibilityProfile.physicalAssist,
@@ -156,40 +157,47 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
         backgroundColor: const Color(0xFFF8FCFF),
         body: SafeArea(
           top: false,
-          child: Column(
+          child: Stack(
             children: [
-              _buildHeader(),
-              // 필터 항목 탭
-              TabBar(
-                labelColor: AppColors.textPrimary,
-                unselectedLabelColor: const Color(0xFF9D9D9D),
-                indicatorColor: AppColors.textPrimary,
-                indicatorSize: TabBarIndicatorSize.tab,
-                labelStyle: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w700,
-                ),
-                unselectedLabelStyle: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w500,
-                ),
-                tabs: [
-                  Tab(text: _tabLabel('무장애정보', _accessibilitySelectionCount)),
-                  Tab(text: _tabLabel('지역', _regionSelectionCount)),
-                  Tab(text: _tabLabel('카테고리', _categories.length)),
+              Column(
+                children: [
+                  _buildHeader(),
+                  // 필터 항목 탭
+                  TabBar(
+                    labelColor: AppColors.textPrimary,
+                    unselectedLabelColor: const Color(0xFF9D9D9D),
+                    indicatorColor: AppColors.textPrimary,
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    labelStyle: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    unselectedLabelStyle: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    tabs: [
+                      Tab(
+                        text: _tabLabel('무장애정보', _accessibilitySelectionCount),
+                      ),
+                      Tab(text: _tabLabel('지역', _regionSelectionCount)),
+                      Tab(text: _tabLabel('카테고리', _categories.length)),
+                    ],
+                  ),
+                  Divider(height: 1, color: AppColors.mutedDivider),
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        _buildAccessibilityTab(),
+                        _buildRegionTab(),
+                        _buildCategoryTab(),
+                      ],
+                    ),
+                  ),
+                  _buildBottomBar(),
                 ],
               ),
-              Divider(height: 1, color: AppColors.mutedDivider),
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    _buildAccessibilityTab(),
-                    _buildRegionTab(),
-                    _buildCategoryTab(),
-                  ],
-                ),
-              ),
-              _buildBottomBar(),
+              if (_loadingAreaCodes) const Positioned.fill(child: LoadingOverlay()),
             ],
           ),
         ),
@@ -305,10 +313,6 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
   }
 
   Widget _buildRegionTab() {
-    if (_loadingAreaCodes) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     return ListView(
       padding: EdgeInsets.fromLTRB(35.w, 15.h, 35.w, 20.h),
       children: [

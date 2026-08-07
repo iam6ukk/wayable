@@ -69,8 +69,8 @@ class MyPageScreen extends ConsumerWidget {
     // 회원탈퇴 다이얼로그
     final confirmed = await showTwoButtonDialog(
       context,
-      title: '회원탈퇴 하시겠어요?',
-      content: '탈퇴하면 저장한 여행지, 접근성 프로필 등\n계정 정보가 삭제되며 복구할 수 없어요.',
+      title: '회원 탈퇴하시겠습니까?',
+      content: '탈퇴하면 저장한 여행지, 접근성 프로필 등\n계정 정보가 삭제되며 복구할 수 없습니다.',
       primaryLabel: '탈퇴하기',
       secondaryLabel: '취소',
     );

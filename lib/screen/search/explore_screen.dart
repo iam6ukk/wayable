@@ -12,6 +12,7 @@ import '../../services/tour/tour_spot_service.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/app_logger.dart';
 import '../../widgets/image_placeholder.dart';
+import '../../widgets/loading_overlay.dart';
 import '../../widgets/scroll_fab.dart';
 import 'explore_filter_screen.dart';
 import 'spot_detail_screen.dart';
@@ -361,6 +362,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             ],
           ),
         ),
+        if (_isLoading) const Positioned.fill(child: LoadingOverlay()),
       ],
     );
   }
@@ -420,16 +422,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     ];
   }
 
-  Widget _loadingOverlay() {
-    return Positioned.fill(
-      child: Container(
-        color: Colors.white.withValues(alpha: 0.85),
-        alignment: Alignment.center,
-        child: const CircularProgressIndicator(color: AppColors.primary),
-      ),
-    );
-  }
-
   Widget _buildScrollableContent() {
     if (!_hasSearched || _totalCount == 0) {
       return LayoutBuilder(
@@ -449,13 +441,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                     ..._topContent(),
                     const SizedBox(height: 24),
                     Expanded(
-                      child: Stack(
-                        children: [
-                          if (_hasSearched && !_isLoading)
-                            const Center(child: _EmptyResultState()),
-                          if (_isLoading) _loadingOverlay(),
-                        ],
-                      ),
+                      child: _hasSearched && !_isLoading
+                          ? const Center(child: _EmptyResultState())
+                          : const SizedBox.shrink(),
                     ),
                   ],
                 ),
@@ -474,45 +462,35 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         children: [
           ..._topContent(),
           const SizedBox(height: 24),
-          Stack(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text.rich(
-                    TextSpan(
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                        height: 1.0,
-                      ),
-                      children: [
-                        const TextSpan(text: '검색 결과 '),
-                        TextSpan(
-                          text: '$_totalCount건',
-                          style: TextStyle(color: AppColors.textSecondary),
-                        ),
-                      ],
-                    ),
-                    strutStyle: StrutStyle(
-                      fontSize: 14.sp,
-                      height: 1.0,
-                      forceStrutHeight: true,
-                    ),
-                  ),
-                  SizedBox(height: 16.h),
-                  _ResultGrid(items: _pageItems),
-                  const SizedBox(height: 24),
-                  _PaginationBar(
-                    currentPage: _currentPage,
-                    totalPages: _totalPages,
-                    onPageSelected: _goToPage,
-                  ),
-                ],
+          Text.rich(
+            TextSpan(
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+                height: 1.0,
               ),
-              if (_isLoading) _loadingOverlay(),
-            ],
+              children: [
+                const TextSpan(text: '검색 결과 '),
+                TextSpan(
+                  text: '$_totalCount건',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+            strutStyle: StrutStyle(
+              fontSize: 14.sp,
+              height: 1.0,
+              forceStrutHeight: true,
+            ),
+          ),
+          SizedBox(height: 16.h),
+          _ResultGrid(items: _pageItems),
+          const SizedBox(height: 24),
+          _PaginationBar(
+            currentPage: _currentPage,
+            totalPages: _totalPages,
+            onPageSelected: _goToPage,
           ),
         ],
       ),
