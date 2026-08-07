@@ -32,7 +32,7 @@ class LocationService {
       // GPS가 실내 등에서 새 fix를 못 잡으면 timeLimit 없이는 무한 대기했다
       // (지도 화면이 계속 서울 기본값에 머무는 원인). 타임아웃/실패 시에도
       // 기기가 예전에 잡아둔 위치가 있으면 그거라도 쓰는 게 기본 위치보다 낫다.
-      AppLogger.error('[Location] 위치 조회 실패, 마지막 위치로 폴백', error: e);
+      AppLogger.warning('[Location] 위치 조회 실패, 마지막 위치로 폴백 ($e)');
       return await Geolocator.getLastKnownPosition();
     }
   }

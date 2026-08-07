@@ -13,14 +13,12 @@ import '../widgets/app_dialog.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/top_logo_banner.dart';
 
-const _kTabTransitionDuration = Duration(milliseconds: 200);
-
 /// 로그인한 회원만 접근 가능한 탭. 비회원이 누르면 탭 전환 대신 로그인 유도
 /// 다이얼로그를 띄운다.
 const _kMemberOnlyTabs = {BottomNavTab.myPage, BottomNavTab.bookmark};
 
 /// 하단 탭 화면들의 공용 셸. 상단 배너와 하단 탭 바는 고정한 채
-/// 선택된 탭에 따라 콘텐츠 영역만 페이드 인/아웃으로 교체한다.
+/// 선택된 탭에 따라 콘텐츠 영역만 교체한다.
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key, this.initialTab = BottomNavTab.home});
 
@@ -32,6 +30,20 @@ class MainShell extends ConsumerStatefulWidget {
 
 class _MainShellState extends ConsumerState<MainShell> {
   late BottomNavTab _currentTab = widget.initialTab;
+
+  // 한 번이라도 연 탭은 화면에서 물러나도 위젯을 통째로 지웠다 새로
+  // 만들지 않고 Offstage로 숨겨서 상태(카메라 위치, 검색 결과, 스크롤
+  // 위치 등)를 그대로 들고 있는다. 지도 탭은 특히 카카오맵 네이티브
+  // 플랫폼 뷰를 포함하는데, 탭을 오갈 때마다 그 뷰가 새로 붙었다 떨어지면서
+  // 화면이 깜빡이는 문제가 있어 아예 탭을 뜰 때 없애지 않는 쪽으로 고쳤다.
+  late final Set<BottomNavTab> _mountedTabs = {_currentTab};
+
+  void _switchTab(BottomNavTab tab) {
+    setState(() {
+      _mountedTabs.add(tab);
+      _currentTab = tab;
+    });
+  }
 
   Future<void> _handleTabSelected(BottomNavTab tab) async {
     final isGuest = ref.read(authStateProvider).user == null;
@@ -49,13 +61,16 @@ class _MainShellState extends ConsumerState<MainShell> {
       }
       return;
     }
-    setState(() => _currentTab = tab);
+    _switchTab(tab);
   }
 
-  Widget _buildContent() {
-    return switch (_currentTab) {
+  Widget _buildScreen(BottomNavTab tab) {
+    return switch (tab) {
       BottomNavTab.explore => const ExploreScreen(),
-      BottomNavTab.map => const MapScreen(),
+      // 지도 화면은 탭을 떠나도 위젯을 지우지 않고 숨겨만 두므로(플랫폼 뷰
+      // 깜빡임 방지), 지금 활성 탭인지를 넘겨줘서 비활성화되는 순간을 그
+      // 화면 스스로 감지해 검색 상태만 초기화하게 한다(카메라 위치는 유지).
+      BottomNavTab.map => MapScreen(isActive: tab == _currentTab),
       BottomNavTab.home => const HomeScreen(),
       BottomNavTab.myPage => const MyPageScreen(),
       BottomNavTab.bookmark => const SavedListScreen(),
@@ -77,7 +92,7 @@ class _MainShellState extends ConsumerState<MainShell> {
     // 담아두고, 여기서 감지해서 바로 그 탭으로 전환한다.
     ref.listen<BottomNavTab?>(tabSwitchRequestProvider, (_, requestedTab) {
       if (requestedTab == null) return;
-      setState(() => _currentTab = requestedTab);
+      _switchTab(requestedTab);
       ref.read(tabSwitchRequestProvider.notifier).state = null;
     });
 
@@ -114,23 +129,33 @@ class _MainShellState extends ConsumerState<MainShell> {
               // 또 얹으면 파란 헤더가 두 겹으로 보인다.
               if (_currentTab != BottomNavTab.map) const TopLogoBanner(),
               Expanded(
-                child: AnimatedSwitcher(
-                  duration: _kTabTransitionDuration,
-                  // AnimatedSwitcher의 기본 layoutBuilder는 Stack(alignment:
-                  // center)라서, 탭 콘텐츠가 이 Expanded 영역보다 짧으면(예:
-                  // 탐색 화면이 검색 전/결과 없음 상태일 때) 위쪽이 아니라
-                  // 세로 가운데로 정렬되어 배너 바로 아래에 큰 여백이 생기고,
-                  // 검색 결과가 생겨 콘텐츠가 길어지면 그 여백이 줄면서
-                  // 화면이 위로 올라가는 것처럼 보였다. 항상 위쪽 기준으로
-                  // 붙도록 정렬을 바꾼다.
-                  layoutBuilder: (currentChild, previousChildren) => Stack(
-                    alignment: Alignment.topCenter,
-                    children: [...previousChildren, ?currentChild],
-                  ),
-                  child: KeyedSubtree(
-                    key: ValueKey(_currentTab),
-                    child: _buildContent(),
-                  ),
+                // 탭 콘텐츠가 짧으면(예: 탐색 화면이 검색 전/결과 없음
+                // 상태일 때) Stack이 기본 정렬(top-start)이 아니면 세로
+                // 가운데로 쏠려 배너 바로 아래에 여백이 생기므로 명시적으로
+                // 위쪽 정렬한다.
+                child: Stack(
+                  alignment: Alignment.topCenter,
+                  children: [
+                    for (final tab in BottomNavTab.values)
+                      if (_mountedTabs.contains(tab))
+                        Offstage(
+                          // 방문한 탭이 늘어날수록 이 리스트 안에서 각
+                          // 위젯의 순번(index)이 밀릴 수 있는데, key 없이
+                          // 위치로만 매칭하면 Flutter가 다른 탭 위젯을 같은
+                          // 자리의 것으로 착각해 엉뚱하게 지웠다 새로
+                          // 만들어버린다(상태 유지가 깨짐). tab 자체를
+                          // key로 고정해 순번이 바뀌어도 항상 같은 탭끼리
+                          // 매칭되게 한다.
+                          key: ValueKey(tab),
+                          offstage: _currentTab != tab,
+                          // 보이지 않는 탭은 애니메이션 틱도 같이 멈춰서
+                          // 백그라운드에서 불필요하게 돌지 않게 한다.
+                          child: TickerMode(
+                            enabled: _currentTab == tab,
+                            child: _buildScreen(tab),
+                          ),
+                        ),
+                  ],
                 ),
               ),
               if (!hideBottomNav)
