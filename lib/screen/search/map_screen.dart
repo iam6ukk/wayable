@@ -93,7 +93,12 @@ enum _FilterKind { category, sort, level }
 /// 아니라 사용자가 지도를 움직여 지금 보고 있는 위치 기준으로 다시 검색할 수
 /// 있다(카카오맵 등 지도 앱의 "이 지역 검색" 패턴과 동일).
 class MapScreen extends ConsumerStatefulWidget {
-  const MapScreen({super.key});
+  const MapScreen({super.key, required this.isActive});
+
+  /// 지금 하단 탭에서 실제로 보이고 있는 탭인지. MainShell이 탭을 떠나도
+  /// 이 화면을 지우지 않고 숨겨만 두므로(카카오맵 플랫폼 뷰 깜빡임 방지),
+  /// 대신 이 값이 false로 바뀌는 시점을 감지해 검색 상태를 초기화한다.
+  final bool isActive;
 
   @override
   ConsumerState<MapScreen> createState() => _MapScreenState();
@@ -152,6 +157,34 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   @override
+  void didUpdateWidget(covariant MapScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 다른 탭으로 넘어가는 순간(=이 화면이 비활성화되는 순간) 검색 상태를
+    // 초기화한다. 카메라 위치(_currentPosition)는 그대로 둔다 — 지도
+    // 탭으로 돌아왔을 때 검색 결과까지는 아니어도 보고 있던 위치는 그대로
+    // 남아있는 게 자연스럽다.
+    if (oldWidget.isActive && !widget.isActive) {
+      _resetSearchState();
+    }
+  }
+
+  void _resetSearchState() {
+    setState(() {
+      _hasSearched = false;
+      _isLoading = false;
+      _results = const [];
+      _activeIndex = 0;
+      _selectedCategory = null;
+      _sortOption = _SortOption.distance;
+      _minFitLevel = null;
+      _expandedFilter = null;
+      _showInfoTooltip = false;
+    });
+    _searchController.clear();
+    _renderResultMarkers(const []);
+  }
+
+  @override
   void dispose() {
     // 이 화면을 벗어날 때 하단 탭 바 숨김 상태가 다른 탭에 남지 않게 되돌린다.
     ref.read(mapResultsActiveProvider.notifier).state = false;
@@ -173,22 +206,51 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     controller.addListener(_handleListScroll);
   }
 
+  /// 위치를 확정할 때마다 공통으로 하는 일: 로딩 오버레이를 내리고, 내 위치
+  /// 상태를 갱신하고(카메라 이동은 [moveCamera]가 true일 때만), 내 위치
+  /// 마커를 다시 그린다.
+  Future<void> _applyResolvedPosition(
+    LatLng latLng, {
+    bool moveCamera = true,
+  }) async {
+    if (!mounted) return;
+    setState(() {
+      _currentPosition = latLng;
+      _isLocating = false;
+    });
+    if (moveCamera) {
+      await _mapController?.moveCamera(
+        CameraUpdate.newCenterPosition(latLng, zoomLevel: _kDefaultZoomLevel),
+      );
+    }
+    await _updateMyLocationMarker(latLng);
+  }
+
   Future<void> _handleMapReady(KakaoMapController controller) async {
     _mapController = controller;
+
+    // 정확한 GPS 새 fix는 실내 등에서 최대 8초까지 걸릴 수 있어([LocationService]
+    // 타임아웃), 그동안 로딩 화면을 붙잡고 있으면 진입이 너무 느리게 느껴진다.
+    // 기기에 캐시된 마지막 위치가 있으면 그걸로 먼저 즉시 지도를 그려서
+    // 로딩 체감을 줄이고, 진짜 GPS 결과는 뒤이어 조용히 반영한다.
+    final lastKnown = await Geolocator.getLastKnownPosition();
+    final quickLatLng = lastKnown == null
+        ? null
+        : LatLng(lastKnown.latitude, lastKnown.longitude);
+    if (quickLatLng != null) {
+      await _applyResolvedPosition(quickLatLng);
+    }
 
     final position = await _initialPositionFuture;
     final latLng = position != null
         ? LatLng(position.latitude, position.longitude)
-        : _kDefaultCenter;
+        : (quickLatLng ?? _kDefaultCenter);
 
-    if (!mounted) return;
-    setState(() => _currentPosition = latLng);
-
-    await controller.moveCamera(
-      CameraUpdate.newCenterPosition(latLng, zoomLevel: _kDefaultZoomLevel),
-    );
-    await _updateMyLocationMarker(latLng);
-    if (mounted) setState(() => _isLocating = false);
+    // 이미 캐시된 위치로 카메라를 옮겨둔 상태에서 실제 GPS 결과가 크게
+    // 다르지 않으면(제자리에 서 있던 경우 등) 카메라를 또 움직이지 않는다
+    // — 막 지도를 보기 시작한 사용자를 두 번째로 놀래킬 필요는 없다.
+    final movedFar = quickLatLng == null || latLng.distance(quickLatLng) > 30;
+    await _applyResolvedPosition(latLng, moveCamera: movedFar);
 
     // 지역코드는 검색 시점에 바로 쓸 수 있게 미리 구해두지만, 실제 검색/마커
     // 렌더링은 사용자가 검색어를 입력하거나 카테고리를 선택했을 때부터 시작한다
@@ -1712,7 +1774,7 @@ class _FitLevelBadge extends StatelessWidget {
       };
 
   const _FitLevelBadge.pending()
-    : label = '레벨 산정중',
+    : label = '레벨 산정 중',
       color = AppColors.fitLevelPendingBadge;
 
   final String label;

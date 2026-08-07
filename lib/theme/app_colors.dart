@@ -74,5 +74,5 @@ class AppColors {
   static const fitLevel1Badge = Color(0xFFEF5350); // 적합성 lv.1
   static const fitLevel2Badge = Color(0xFFFF9800); // 적합성 lv.2
   static const fitLevel3Badge = Color(0xFF4CAF50); // 적합성 lv.3
-  static const fitLevelPendingBadge = Color(0xFF9E9E9E); // 적합 레벨 배지(산정중)
+  static const fitLevelPendingBadge = Color(0xFF9E9E9E); // 적합 레벨 배지(산정 중)
 }
