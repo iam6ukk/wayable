@@ -24,13 +24,13 @@ const _kProfileOrder = [
   AccessibilityProfile.seniorCompanion,
 ];
 
+// 한 페이지에 보여줄 항목 개수
 const _kPageSize = 6;
 const _kPageWindowSize = 5;
 
-/// 페이지를 넘길 때마다 서버(Cloud Function)를 매번 호출하면 왕복 지연이
-/// 그대로 체감되므로, 한 번에 [_kBatchPages]페이지치([_kBatchSize]건)를 받아
-/// 캐시해두고 그 안에서는 네트워크 요청 없이 즉시 페이지를 넘긴다. 이 범위를
-/// 벗어날 때만(11페이지째 등) 다음 배치를 새로 요청한다.
+/// 한 번에 [_kBatchPages]페이지치([_kBatchSize]건)를 받아
+/// 캐시해두고 그 안에서는 네트워크 요청 없이 즉시 페이지를 넘김
+/// 이 범위를 벗어날 때만(11페이지째 등) 다음 배치를 새로 요청
 const _kBatchPages = 10;
 const _kBatchSize = _kPageSize * _kBatchPages;
 
@@ -41,7 +41,7 @@ AccessibilityField? _fieldFromName(String name) {
   return null;
 }
 
-/// 맞춤 여행지 탐색 화면.
+/// 맞춤 여행지 탐색 화면
 /// 검색 전에는 안내 문구만 보여주고, 검색하기를 누르면 Firestore tourSpots
 /// 컬렉션을 조회해 결과를 6개씩 페이징으로 보여준다.
 class ExploreScreen extends ConsumerStatefulWidget {
@@ -133,9 +133,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   }
 
   // 검색어 입력, 필터 추가/삭제는 전부 상태만 바꾸고, 실제 조회는 사용자가
-  // "검색하기"를 눌렀을 때(_handleSearch)만 실행한다 — 필터를 하나씩
-  // 만지작거릴 때마다 바로 로딩이 뜨고 결과가 바뀌면 아직 조건을 다 정하지
-  // 않은 상태에서도 검색이 실행된 것처럼 보여 흐름이 어색하다.
+  // "검색하기"를 눌렀을 때(_handleSearch)만 실행한다
   void _toggleProfile(AccessibilityProfile profile) {
     setState(() {
       if (_activeProfiles.contains(profile)) {
@@ -181,7 +179,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     });
   }
 
-  /// 무장애정보 상세필드/지역/카테고리 칩 목록. 각 칩의 x를 누르면 해당 조건만 해제한다.
+  /// 무장애정보 상세필드/지역/카테고리 칩 목록
+  /// 각 칩의 x를 누르면 해당 조건만 해제한다.
   List<_ActiveFilterChip> get _activeFilterChips {
     final chips = <_ActiveFilterChip>[];
 
@@ -349,14 +348,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // SingleChildScrollView를 non-positioned 자식으로 그대로 두면 이 Stack
-        // 자체의 높이가 "뷰포트 전체"가 아니라 "콘텐츠 실제 높이"만큼으로
-        // 정해진다(짧으면 줄고, 넘치면 뷰포트 한도까지 늘어남). 아래
-        // Positioned(bottom:20)인 상하단 이동 버튼은 그 가변적인 Stack 바닥을
-        // 기준으로 위치하다 보니, 필터 칩이 늘어 스크롤이 트리거될 때마다
-        // Stack이 커지면서 버튼도 같이 아래로 밀려 보였다. Positioned.fill로
-        // 감싸 이 자식을 Stack 크기 계산에서 빼면 Stack이 항상 뷰포트 전체
-        // 높이를 차지하게 되어, 버튼이 콘텐츠 길이와 무관하게 완전히 고정된다.
         Positioned.fill(child: _buildScrollableContent()),
         Positioned(
           right: 20.w,
@@ -411,10 +402,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         width: double.infinity,
         height: 47.h,
         child: ElevatedButton(
-          // 로딩 중에도 onPressed를 null로 바꾸지 않는다 — null이 되면
-          // disabledBackgroundColor로 버튼 색이 로딩 내내 바뀐 채로 유지돼
-          // 버튼이 눌렸을 때의 순간적인 탭 반응처럼 보이지 않는다. 중복 실행
-          // 방지는 _handleSearch 내부의 _isLoading 가드로 처리한다.
           onPressed: _handleSearch,
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
@@ -434,9 +421,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   }
 
   Widget _loadingOverlay() {
-    // 반투명 배경으로 아래 목록을 가려야 검색 중이라는 게 명확해진다 —
-    // 배경 없이 스피너만 띄우면 이전 검색 결과가 그대로 선명하게 보여서
-    // 새로 검색 중인지 구분이 안 됐다.
     return Positioned.fill(
       child: Container(
         color: Colors.white.withValues(alpha: 0.85),
@@ -447,13 +431,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   }
 
   Widget _buildScrollableContent() {
-    // 결과 그리드(_ResultGrid)는 내부적으로 GridView를 쓰는데, GridView 같은
-    // Viewport 기반 위젯은 IntrinsicHeight 조상 아래 있으면 "does not support
-    // returning intrinsic dimensions" 예외를 던지며 이 서브트리 전체가 렌더링에
-    // 실패한다(그래서 검색 결과가 있을 때 화면이 통째로 하얗게 비어 보였다).
-    // 그래서 결과가 없을 때(=GridView가 트리에 없을 때)만 IntrinsicHeight로
-    // 남은 공간을 계산해 정중앙 정렬하고, 결과가 있을 땐 그런 트릭 없이 원래
-    // 방식(그냥 스크롤 가능한 Column)으로 그린다.
     if (!_hasSearched || _totalCount == 0) {
       return LayoutBuilder(
         builder: (context, viewportConstraints) {
@@ -474,9 +451,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                     Expanded(
                       child: Stack(
                         children: [
-                          // 검색을 아직 한 번도 안 한 초기 상태와 로딩 중에는
-                          // "검색 결과가 없어요"를 보여주면 안 된다 — 그건
-                          // 실제로 검색을 마쳤는데 0건일 때만 맞는 문구다.
                           if (_hasSearched && !_isLoading)
                             const Center(child: _EmptyResultState()),
                           if (_isLoading) _loadingOverlay(),
@@ -569,9 +543,6 @@ class _ActiveFilterChipsRow extends StatelessWidget {
 
   Widget _buildChip(_ActiveFilterChip chip) {
     return Container(
-      // x 아이콘 자체에 탭 영역 확보용 4px 패딩이 이미 있어서, 컨테이너 좌측
-      // 여백을 오른쪽(10)보다 4 작게 둬야 아이콘부터 텍스트까지 실제 보이는
-      // 여백이 좌우 10으로 맞는다.
       padding: EdgeInsets.only(left: 6.w, right: 10.w, top: 4.h, bottom: 4.h),
       decoration: BoxDecoration(
         color: const Color(0xFFF8FCFF),
@@ -658,14 +629,6 @@ class _AccessibilityProfileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 피그마 실측 기준 아이콘 원 52px + 사이 간격 19px. 393dp 기준 디자인
-    // 값이라 그대로 쓰면 5개(52*5 + 19*4 = 336)가 360dp 폭 기기(좌우 패딩
-    // 24*2 제외 가용폭 312)에서 24px 오버플로우한다. ScreenUtil로 실제
-    // 화면 폭 대비 비례 스케일해 좁은 기기에서도 넘치지 않게 한다.
-    // 아이콘마다 라벨을 따로 FittedBox로 줄이면 "영유아"(3글자)와 "지체장애"
-    // (4글자)의 축소 비율이 달라져 같은 줄인데 라벨 크기가 제각각으로 보인다.
-    // 5개 라벨 중 가장 넓은 첫 줄 하나를 기준으로 공통 배율을 구해 전부
-    // 동일한 크기로 맞추되, 그 배율로도 절대 원(48.w) 폭을 넘지 않게 한다.
     final labelFontSize = _profileLabelFontSize(context);
     return Center(
       child: Row(
@@ -692,8 +655,6 @@ class _AccessibilityProfileRow extends StatelessWidget {
 
     var maxWidth = 0.0;
     for (final profile in _kProfileOrder) {
-      // 강제 줄바꿈된 두 줄 중 항상 더 넓은 건 띄어쓰기 앞부분이다(뒷부분은
-      // "보조"/"가족"/"동반"처럼 2글자로 고정).
       final firstLine = profile.label.split(' ').first;
       final painter = TextPainter(
         text: TextSpan(
@@ -718,9 +679,6 @@ class _AccessibilityProfileRow extends StatelessWidget {
     return GestureDetector(
       onTap: () => onToggle(profile),
       behavior: HitTestBehavior.opaque,
-      // 라벨 텍스트가 원(48px)보다 넓어서 그대로 두면 Column이 텍스트 폭만큼
-      // 늘어나 옆 아이콘과의 실제 간격이 벌어진다. 폭을 원 크기로 고정해
-      // 라벨이 필요하면 두 줄로 접히게 해서 원 기준 간격을 지킨다.
       child: SizedBox(
         width: 48.w,
         child: Column(
@@ -742,10 +700,6 @@ class _AccessibilityProfileRow extends StatelessWidget {
             ),
             SizedBox(height: 7.h),
             Text(
-              // 라벨의 띄어쓰기 위치에서 무조건 줄바꿈되도록 강제한다. 폭 기준
-              // 자동 줄바꿈에 맡기면 한글은 띄어쓰기와 무관하게 아무 글자
-              // 사이에서나 잘려서, "유모차 동반"이 "유모차 동"/"반"처럼
-              // 단어 중간에서 갈라지는 문제가 있었다.
               profile.label.replaceFirst(' ', '\n'),
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -794,9 +748,6 @@ class _EmptyResultState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 호출부(Expanded 안의 Center)가 이미 정중앙 정렬을 담당하므로, 여기서는
-    // 콘텐츠 폭만큼만 차지하면 된다. 상하 여백은 필터 칩이 한 줄 붙어도
-    // 남은 공간의 intrinsic 높이 계산에서 스크롤을 유발하지 않도록 작게 둔다.
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 20),
       child: Column(
@@ -830,10 +781,6 @@ class _ResultGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
-      // padding을 안 주면 GridView가 MediaQuery.padding(상태바 높이 등)을
-      // 자기 sliver의 상하 padding으로 자동으로 넣어버려서, 위에 있는
-      // "검색 결과 N건" 텍스트와의 여백을 아무리 줄여도 그 위에 상태바
-      // 높이만큼의 여백이 그대로 남아 있었다.
       padding: EdgeInsets.zero,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),

@@ -5,7 +5,7 @@ import '../theme/app_colors.dart';
 enum BottomNavTab {
   explore, // 맞춤 여행지 탐색
   map, // 지도 기반 탐색
-  home, // 메인
+  home, // 홈 메인
   bookmark, // 북마크(저장목록)
   myPage, // 마이페이지
 }

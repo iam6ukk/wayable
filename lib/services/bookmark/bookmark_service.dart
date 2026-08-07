@@ -110,4 +110,28 @@ class BookmarkService {
   Future<void> unsaveSpot(String uid, String folderId, String contentId) {
     return _spotsRef(uid, folderId).doc(contentId).delete();
   }
+
+  /// 회원탈퇴 시 유저의 모든 북마크(폴더 + 여행지)를 지운다. 여행지 문서를
+  /// 폴더 문서 삭제에 딸려가게 두지 않고 개별적으로 delete해야
+  /// bookmarkCountSync의 onBookmarkSpotDeleted 트리거가 여행지별로 정상
+  /// 발동해서 tourSpots.bookmarkCount도 같이 줄어든다.
+  Future<void> deleteAllBookmarks(String uid) async {
+    final folderDocs = await _foldersRef(uid).get();
+    final refs = <DocumentReference<Map<String, dynamic>>>[];
+    for (final folder in folderDocs.docs) {
+      final spotDocs = await _spotsRef(uid, folder.id).get();
+      refs.addAll(spotDocs.docs.map((doc) => doc.reference));
+      refs.add(folder.reference);
+    }
+
+    // Firestore 배치는 최대 500개 쓰기까지만 허용하므로 나눠서 커밋한다.
+    const chunkSize = 500;
+    for (var i = 0; i < refs.length; i += chunkSize) {
+      final batch = FirebaseFirestore.instance.batch();
+      for (final ref in refs.skip(i).take(chunkSize)) {
+        batch.delete(ref);
+      }
+      await batch.commit();
+    }
+  }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:wayable/utils/app_logger.dart';
+import 'package:wayable/widgets/app_dialog.dart';
 import '../../model/accessibility/accessibility_profile.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
@@ -22,6 +24,7 @@ class MyPageScreen extends ConsumerWidget {
     showAndroidToast(context, '준비 중인 기능입니다.');
   }
 
+  // 접근성 프로필 설정 화면으로 이동하는 함수
   void _openAccessibilitySetting(BuildContext context) {
     final myPageRoute = ModalRoute.of(context);
     Navigator.of(context).push(
@@ -36,18 +39,17 @@ class MyPageScreen extends ConsumerWidget {
   }
 
   Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
-    // TODO: 로그아웃 확인 다이얼로그. 일단 주석 처리.
-    // final confirmed = await showTwoButtonDialog(
-    //   context,
-    //   title: '로그아웃',
-    //   content: '로그아웃하시겠습니까?',
-    //   primaryLabel: '로그아웃',
-    //   secondaryLabel: '취소',
-    // );
-    // if (confirmed != true) {
-    //   AppLogger.debug('[Auth] 로그아웃 취소');
-    //   return;
-    // }
+    // 로그아웃 확인 다이얼로그
+    final confirmed = await showTwoButtonDialog(
+      context,
+      content: '로그아웃하시겠습니까?',
+      primaryLabel: '확인',
+      secondaryLabel: '취소',
+    );
+    if (confirmed != true) {
+      AppLogger.debug('[Auth] 로그아웃 취소');
+      return;
+    }
 
     final success = await ref.read(authStateProvider.notifier).logout();
 
@@ -64,18 +66,18 @@ class MyPageScreen extends ConsumerWidget {
   }
 
   Future<void> _handleDeleteAccount(BuildContext context, WidgetRef ref) async {
-    // TODO: 회원탈퇴 확인 다이얼로그. 일단 주석 처리.
-    // final confirmed = await showTwoButtonDialog(
-    //   context,
-    //   title: '회원탈퇴',
-    //   content: '탈퇴 시 계정 정보와 이용 기록이 모두 삭제되며 복구할 수 없습니다.\n탈퇴하시겠습니까?',
-    //   primaryLabel: '탈퇴',
-    //   secondaryLabel: '취소',
-    // );
-    // if (confirmed != true) {
-    //   AppLogger.debug('[Auth] 회원탈퇴 취소');
-    //   return;
-    // }
+    // 회원탈퇴 다이얼로그
+    final confirmed = await showTwoButtonDialog(
+      context,
+      title: '회원탈퇴 하시겠어요?',
+      content: '탈퇴하면 저장한 여행지, 접근성 프로필 등\n계정 정보가 삭제되며 복구할 수 없어요.',
+      primaryLabel: '탈퇴하기',
+      secondaryLabel: '취소',
+    );
+    if (confirmed != true) {
+      AppLogger.debug('[Auth] 회원탈퇴 취소');
+      return;
+    }
 
     final success = await ref.read(authStateProvider.notifier).deleteAccount();
 
@@ -124,7 +126,6 @@ class MyPageScreen extends ConsumerWidget {
                 '접근성 프로필 설정',
                 () => _openAccessibilitySetting(context),
               ),
-              _MenuEntry('앱 접근성 설정', () => _showNotReady(context)),
             ],
           ),
           _buildSection(
@@ -139,7 +140,7 @@ class MyPageScreen extends ConsumerWidget {
           _buildSection(
             title: '참여 및 문의',
             items: [
-              _MenuEntry('FAQ', () => _showNotReady(context)),
+              _MenuEntry('자주 묻는 질문', () => _showNotReady(context)),
               _MenuEntry('문의하기', () => _showNotReady(context)),
             ],
           ),
@@ -161,6 +162,7 @@ class MyPageScreen extends ConsumerWidget {
     );
   }
 
+  // 사용자의 현재 접근성 프로필을 보여주는 카드
   Widget _buildAccessibilityCard(
     BuildContext context,
     List<AccessibilityProfile> profiles,

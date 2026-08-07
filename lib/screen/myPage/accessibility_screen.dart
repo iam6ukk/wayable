@@ -8,6 +8,7 @@ import '../../widgets/app_dialog.dart';
 import '../../widgets/toast.dart';
 import 'accessibility_detail_screen.dart';
 
+// 접근성 프로필 대분류
 const _kProfileOrder = [
   AccessibilityProfile.physicalAssist,
   AccessibilityProfile.visionAssist,
@@ -22,8 +23,8 @@ const _kTotalSteps = 2;
 class AccessibilityScreen extends ConsumerStatefulWidget {
   const AccessibilityScreen({super.key, required this.onComplete});
 
-  /// 설정을 마치거나(저장) 건너뛰었을 때 호출된다. 진입 경로에 따라
-  /// 호출부에서 홈 화면 이동, 이전 화면으로 복귀 등을 결정한다.
+  /// 설정을 마치거나(저장) 건너뛰었을 때 호출된다.
+  /// 접근성 프로필 화면 진입 경로에 따라 리턴 페이지 결정
   final VoidCallback onComplete;
 
   @override
@@ -44,6 +45,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
     });
   }
 
+  // 건너뛰기 시 다이얼로그
   Future<void> _handleSkip(BuildContext context) async {
     final skip = await showTwoButtonDialog(
       context,
@@ -104,8 +106,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
               ),
             ),
             SizedBox(height: 12.h),
-            // 진행바/저장 버튼은 본문 텍스트(24.w)보다 살짝 넓은 16.5.w 여백을 쓴다
-            // (Figma상 두 요소만 폭이 더 넓게 잡혀있음).
+            // 진행 상태바
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.5.w),
               child: ClipRRect(
@@ -142,6 +143,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                 ),
               ),
             ),
+            // 접근성 프로필 대분류 버튼
             Expanded(
               child: Center(
                 child: Column(

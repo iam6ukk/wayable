@@ -10,16 +10,16 @@ import '../../widgets/app_dialog.dart';
 import '../../widgets/toast.dart';
 
 /// 폴더 한 줄의 고정 높이(피그마 기준 "기본 폴더"~"폴더 A" 행 간격 47px).
-/// 4줄까지는 이 높이만큼 시트가 늘어나고, 5개 이상부터는 늘어나지 않고
-/// 이 높이(4줄치) 안에서 스크롤된다.
+/// 4줄까지는 이 높이만큼 시트가 늘어나고,
+/// 5개 이상부터는 늘어나지 않고 이 높이(4줄치) 안에서 스크롤된다.
 const _kFolderRowHeight = 47.0;
 const _kMaxVisibleFolderRows = 4;
 
 /// '새로 만들기' 선택을 실제 폴더 id와 구분하기 위한 내부 sentinel 값.
 const _kCreateNewFolderValue = '__create_new_folder__';
 
-/// 여행지 상세화면 북마크 아이콘에서 호출한다. 폴더 선택 바텀시트를 띄우고
-/// '확인'을 누르면 선택한 폴더에 저장 + 안내 토스트를 보여준다.
+/// 여행지 상세화면 북마크 아이콘에서 호출한다.
+/// 폴더 선택 바텀시트를 띄우고 '확인'을 누르면 선택한 폴더에 저장 + 안내 토스트를 보여준다.
 /// '새로 만들기'를 누르면 바텀시트를 닫고 새 폴더 추가 다이얼로그를 띄운 뒤,
 /// 추가되면 그 폴더가 선택된 채로 바텀시트를 다시 띄운다.
 Future<void> showSaveToFolderSheet(
@@ -53,6 +53,7 @@ Future<void> showSaveToFolderSheet(
         .where((f) => f.id != 'default')
         .length;
     if (customFolderCount >= kMaxCustomFolders) {
+      // 폴더 생성 개수 제한
       showAndroidToast(context, '폴더는 최대 $kMaxCustomFolders개까지 만들 수 있어요.');
       return;
     }
@@ -77,9 +78,6 @@ Future<void> showSaveToFolderSheet(
       .read(bookmarkProvider)
       .folders
       .firstWhere((f) => f.id == result);
-  // Firestore 저장 왕복을 기다렸다가 토스트를 띄우면, 북마크 해제(즉시
-  // 토스트가 뜨는 unsaveSpot 경로)와 다르게 저장 쪽만 유독 늦게 뜬 것처럼
-  // 보인다 — 여기도 기다리지 않고 바로 토스트를 띄운다.
   ref.read(bookmarkProvider.notifier).saveSpotToFolder(folder.id, spot);
   showAndroidToast(context, "'${folder.name}'에 추가되었습니다.");
 }
@@ -105,8 +103,8 @@ class _SaveToFolderSheetState extends State<_SaveToFolderSheet> {
   void initState() {
     super.initState();
     // 새 폴더를 만들고 이 시트가 다시 뜰 때처럼, 미리 선택된 폴더가 스크롤
-    // 영역 밖에 있으면 그 위치까지 스크롤해서 보여준다 — 그래야 사용자가
-    // "아, 스크롤이 되는구나"를 바로 알 수 있다.
+    // 영역 밖에 있으면 그 위치까지 스크롤해서 보여준다
+    // 사용자에게 스크롤이 가능하다는 것을 보여주기 위함
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSelected());
   }
 
@@ -174,13 +172,6 @@ class _SaveToFolderSheetState extends State<_SaveToFolderSheet> {
           Expanded(
             child: InkWell(
               onTap: () => Navigator.of(context).pop(_kCreateNewFolderValue),
-              // Expanded 안에 바로 Column을 두면 Column이 Expanded의 전체
-              // 너비로 늘어나 버려서, crossAxisAlignment.center가 "새로
-              // 만들기" 텍스트가 아니라 그 넓은 영역 전체를 기준으로
-              // 가운데 정렬돼 버린다. Align으로 감싸면 Column이 자기
-              // 내용(텍스트 너비)만큼만 차지하면서 원래 위치(왼쪽)에
-              // 그대로 있고, 그 안에서 아이콘만 텍스트 너비 기준으로
-              // 가운데 정렬된다.
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Column(

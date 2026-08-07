@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../../model/accessibility/accessibility_profile.dart';
 import '../../model/bookmark/bookmark_folder.dart';
 import '../../model/tour/tour_spot.dart';
 import '../../providers/bookmark_provider.dart';
+import '../../services/location/location_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/image_placeholder.dart';
 import '../../widgets/scroll_fab.dart';
@@ -37,11 +39,32 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
   // 해당하는 폴더 id로 컨트롤러를 찾아 스크롤만 시킨다.
   final Map<String, ScrollController> _folderScrollControllers = {};
 
+  // 카드마다 GPS를 따로 조회하지 않고, 화면 진입 시 한 번만 구해서 모든
+  // 폴더 탭의 카드가 같은 현재 위치 기준으로 거리를 계산하게 공유한다.
+  final _locationService = LocationService();
+  Position? _currentPosition;
+
   @override
   void initState() {
     super.initState();
     _lastFolderCount = ref.read(bookmarkProvider).folders.length;
     _tabController = TabController(length: _lastFolderCount, vsync: this);
+    _loadCurrentPosition();
+  }
+
+  /// 이 탭을 벗어났다 다시 들어올 때마다 State가 새로 만들어져 매번 GPS
+  /// 새 fix를 기다리면 거리 표시가 한 박자 늦게 뜬다. 기기에 캐시된 마지막
+  /// 위치가 있으면 그걸로 먼저 즉시 보여준 뒤, 최신 위치가 도착하면 이어서
+  /// 갱신한다.
+  Future<void> _loadCurrentPosition() async {
+    final lastKnown = await Geolocator.getLastKnownPosition();
+    if (lastKnown != null && mounted) {
+      setState(() => _currentPosition = lastKnown);
+    }
+    final fresh = await _locationService.getCurrentPosition();
+    if (fresh != null && mounted) {
+      setState(() => _currentPosition = fresh);
+    }
   }
 
   void _registerFolderScrollController(
@@ -132,6 +155,7 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
                         (folder) => _FolderSpotList(
                           key: ValueKey(folder.id),
                           folder: folder,
+                          currentPosition: _currentPosition,
                           onScrollControllerReady:
                               _registerFolderScrollController,
                           onScrollControllerDisposed:
@@ -265,11 +289,16 @@ class _FolderSpotList extends ConsumerStatefulWidget {
   const _FolderSpotList({
     super.key,
     required this.folder,
+    required this.currentPosition,
     required this.onScrollControllerReady,
     required this.onScrollControllerDisposed,
   });
 
   final BookmarkFolder folder;
+
+  /// 카드의 거리 표시용 현재 위치. 화면 진입 시 한 번만 구해 모든 폴더 탭이
+  /// 공유하므로 null(아직 조회중/실패)일 수 있다.
+  final Position? currentPosition;
 
   /// 이 폴더 목록의 ScrollController가 준비되면 부모에게 폴더 id로 등록해준다
   /// — 상하단 이동 버튼이 "현재 보이는 탭"의 목록을 스크롤할 때 쓴다.
@@ -363,6 +392,7 @@ class _FolderSpotListState extends ConsumerState<_FolderSpotList> {
         final spot = spots[index];
         return _SavedSpotCard(
           spot: spot,
+          currentPosition: widget.currentPosition,
           isBookmarked: !_unsavedContentIds.contains(spot.contentId),
           onToggleBookmark: () => _handleToggleBookmark(spot),
         );
@@ -374,16 +404,35 @@ class _FolderSpotListState extends ConsumerState<_FolderSpotList> {
 class _SavedSpotCard extends StatelessWidget {
   const _SavedSpotCard({
     required this.spot,
+    required this.currentPosition,
     required this.isBookmarked,
     required this.onToggleBookmark,
   });
 
   final TourSpot spot;
+  final Position? currentPosition;
   final bool isBookmarked;
   final VoidCallback onToggleBookmark;
 
+  /// 좌표가 없는 저장 장소나 현재 위치를 아직 못 구한 상태에서는 거리를
+  /// 표시하지 않는다(map_screen.dart 검색 결과 카드와 같은 계산 방식).
+  String? get _distanceLabel {
+    final position = currentPosition;
+    final mapX = spot.mapX;
+    final mapY = spot.mapY;
+    if (position == null || mapX == null || mapY == null) return null;
+    final meters = Geolocator.distanceBetween(
+      position.latitude,
+      position.longitude,
+      mapY,
+      mapX,
+    );
+    return '${(meters / 1000).toStringAsFixed(1)}km';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final distanceLabel = _distanceLabel;
     return InkWell(
       onTap: () => Navigator.of(
         context,
@@ -411,15 +460,17 @@ class _SavedSpotCard extends StatelessWidget {
                       SizedBox(height: 8.h),
                       Row(
                         children: [
-                          // Text(
-                          //   '1.5km',
-                          //   style: TextStyle(
-                          //     fontSize: 12.sp,
-                          //     fontWeight: FontWeight.w600,
-                          //     color: _kSpotTextColor,
-                          //   ),
-                          // ),
-                          // SizedBox(width: 8.w),
+                          if (distanceLabel != null) ...[
+                            Text(
+                              distanceLabel,
+                              style: TextStyle(
+                                fontSize: 11.sp,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            SizedBox(width: 8.w),
+                          ],
                           Expanded(
                             child: Text(
                               spot.addr1,
@@ -475,11 +526,6 @@ class _SavedSpotCard extends StatelessWidget {
   }
 
   Widget _buildThumbnailRow() {
-    // 썸네일 + detailImage2로 받아온 추가 이미지까지 최대 3장. 개수가 3장이
-    // 안 되더라도 카드 한 장의 크기는 항상 "3장 기준" 크기로 고정하고, 없는
-    // 칸은 그만큼 빈 여백으로 남긴다(placeholder 카드로 채우지 않음) — 그래서
-    // 실제 있는 이미지 개수만큼만 카드를 그리고, 각 카드 크기를 Expanded 대신
-    // 화면 폭 기준 고정 폭(gap 2개 뺀 나머지의 1/3)으로 계산한다.
     final images = [
       spot.firstImage,
       ...spot.galleryImages,

@@ -181,10 +181,6 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                 ],
               ),
             ),
-            // 하단 탭바는 시각적 일관성을 위해 그대로 두되, 이 화면은 별도
-            // 탭 상태를 갖지 않는다. 그냥 pop만 하면 직전에 있던 탭(보통
-            // 탐색)으로 돌아갈 뿐이라, 눌린 탭을 tabSwitchRequestProvider에
-            // 담아 MainShell까지 pop한 뒤 그 탭으로 바로 전환되게 한다.
             BottomNavBar(
               currentTab: BottomNavTab.explore,
               onTabSelected: (tab) {
@@ -198,8 +194,8 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
     );
   }
 
-  /// 비회원이 북마크를 누르면 마이페이지/저장목록 탭과 동일한 로그인 유도
-  /// 다이얼로그를 띄운다 — 북마크는 저장목록과 마찬가지로 회원 전용 기능이다.
+  /// 비회원이 북마크를 누르면
+  /// 마이페이지/저장목록 탭과 동일한 로그인 유도 다이얼로그 띄움
   Future<void> _handleBookmarkTap(
     bool isBookmarked,
     TourSpot resolvedSpot,
@@ -250,6 +246,8 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
       // 저장목록 화면의 3장짜리 썸네일 줄에 각각 다른 사진이 보이게 한다.
       galleryImages: images.length > 1 ? images.sublist(1) : const [],
       contentTypeId: widget.spot.contentTypeId,
+      mapX: widget.spot.mapX,
+      mapY: widget.spot.mapY,
       lDongRegnCd: widget.spot.lDongRegnCd,
       lDongSignguCd: widget.spot.lDongSignguCd,
       supportedProfiles: widget.spot.supportedProfiles,
@@ -726,9 +724,7 @@ Map<AccessibilityField, String?> _physicalEntries(PhysicalDisabilityInfo p) => {
 
 // 고령자동반은 별도 응답 그룹이 없고 지체장애 필드의 부분집합을 그대로 쓰므로,
 // AccessibilityFieldMapping(공유 매핑 정의)에서 어떤 필드를 쓸지 가져와 지체장애
-// 데이터에서 해당 값만 추려낸다. 필드 목록을 여기서 다시 하드코딩하지 않는 이유는
-// 매핑이 바뀌었을 때 두 곳(탐색 화면의 supportedProfiles 계산과 여기)이 어긋나지
-// 않게 하기 위함이다.
+// 데이터에서 해당 값만 추려낸다.
 Map<AccessibilityField, String?> _seniorEntries(PhysicalDisabilityInfo p) {
   final physicalEntries = _physicalEntries(p);
   final seniorFields =
