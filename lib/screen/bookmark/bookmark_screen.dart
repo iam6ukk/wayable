@@ -375,9 +375,9 @@ class _FolderSpotListState extends ConsumerState<_FolderSpotList> {
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: Text(
-            '저장된 여행지가 없어요.\n여행지 상세화면에서 북마크 아이콘을 눌러 저장해보세요.',
+            '저장된 여행지가 없습니다..\n여행지 상세화면에서 북마크 아이콘을 눌러 저장해보세요.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13.sp, color: AppColors.textQuaternary),
+            style: TextStyle(fontSize: 14.sp, color: AppColors.textQuaternary),
           ),
         ),
       );
@@ -537,7 +537,10 @@ class _SavedSpotCard extends StatelessWidget {
       builder: (context, constraints) {
         final gap = 8.w;
         final cardWidth = (constraints.maxWidth - gap * 2) / 3;
-        final cardHeight = cardWidth * 88 / 115;
+        // 5:4(1.25) — 기존 115:88(1.31)보다 살짝 좁혀서, 크롭이 생기더라도
+        // 위아래보다 좌우 쪽으로 더 가게 해 사진 하단의 관광공사 로고가
+        // 잘릴 가능성을 줄인다.
+        final cardHeight = cardWidth * 4 / 5;
 
         return Row(
           children: [
@@ -551,6 +554,10 @@ class _SavedSpotCard extends StatelessWidget {
                   child: Image.network(
                     images[i],
                     fit: BoxFit.cover,
+                    // 관광공사 제공 사진 우하단에 로고가 찍혀있는 경우가
+                    // 많아서, 크롭이 생기더라도 그 모서리는 항상 보존되도록
+                    // 우하단 기준으로 자른다.
+                    alignment: Alignment.bottomRight,
                     errorBuilder: (context, error, stackTrace) =>
                         const ImagePlaceholder(),
                   ),

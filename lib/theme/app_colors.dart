@@ -71,6 +71,7 @@ class AppColors {
   static const scrollFabBackground = Color(0xFFF0F4F8); // 상하단 이동 버튼 배경
   static const scrollFabIcon = Color(0xFF767676); // 상하단 이동 버튼 아이콘
   static const myPageCardOverlay = Color(0xB2F2F2F2); // 마이페이지 카드 반투명 배경
+  static const fitLevel0Badge = Color(0xFF606060); // 적합성 lv.0
   static const fitLevel1Badge = Color(0xFFEF5350); // 적합성 lv.1
   static const fitLevel2Badge = Color(0xFFFF9800); // 적합성 lv.2
   static const fitLevel3Badge = Color(0xFF4CAF50); // 적합성 lv.3

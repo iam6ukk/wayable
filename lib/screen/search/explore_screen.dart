@@ -439,7 +439,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     ..._topContent(),
-                    const SizedBox(height: 24),
+                    SizedBox(height: 24.h),
                     Expanded(
                       child: _hasSearched && !_isLoading
                           ? const Center(child: _EmptyResultState())
@@ -461,7 +461,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ..._topContent(),
-          const SizedBox(height: 24),
+          SizedBox(height: 24.h),
           Text.rich(
             TextSpan(
               style: TextStyle(
@@ -486,7 +486,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           ),
           SizedBox(height: 16.h),
           _ResultGrid(items: _pageItems),
-          const SizedBox(height: 24),
+          SizedBox(height: 24.h),
           _PaginationBar(
             currentPage: _currentPage,
             totalPages: _totalPages,
@@ -727,22 +727,22 @@ class _EmptyResultState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 20),
+      padding: EdgeInsets.symmetric(vertical: 20.h),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Image.asset(
-            'assets/images/explore_empty_search.png',
-            width: 68,
-            height: 68,
+            'assets/images/empty_search.png',
+            width: 60.r,
+            height: 60.r,
           ),
-          const SizedBox(height: 24),
-          const Text(
-            '검색 결과가 없어요',
+          SizedBox(height: 16.h),
+          Text(
+            '검색 결과가 없습니다.',
             style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: AppColors.emptyStateText,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w400,
+              color: AppColors.textQuaternary,
             ),
           ),
         ],
@@ -763,10 +763,10 @@ class _ResultGrid extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: items.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        mainAxisSpacing: 20,
-        crossAxisSpacing: 16,
+        mainAxisSpacing: 20.h,
+        crossAxisSpacing: 16.w,
         childAspectRatio: 0.78,
       ),
       itemBuilder: (context, index) => _ResultCard(spot: items[index]),
@@ -792,12 +792,16 @@ class _ResultCard extends StatelessWidget {
           AspectRatio(
             aspectRatio: 172 / 113,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.r),
               child: spot.firstImage == null
                   ? _buildImagePlaceholder()
                   : Image.network(
                       spot.firstImage!,
                       fit: BoxFit.cover,
+                      // 관광공사 제공 사진 우하단에 로고가 찍혀있는 경우가
+                      // 많아서, 크롭이 생기더라도 그 모서리는 항상
+                      // 보존되도록 우하단 기준으로 자른다.
+                      alignment: Alignment.bottomRight,
                       errorBuilder: (context, error, stackTrace) =>
                           _buildImagePlaceholder(),
                       loadingBuilder: (context, child, progress) {
@@ -807,38 +811,39 @@ class _ResultCard extends StatelessWidget {
                     ),
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8.h),
           Text(
             spot.title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4.h),
           Text(
             spot.addr1,
-            style: const TextStyle(
-              fontSize: 13,
+            style: TextStyle(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w300,
               color: AppColors.textSecondary,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           if (spot.supportedProfiles.isNotEmpty) ...[
-            const SizedBox(height: 6),
+            SizedBox(height: 6.h),
             Row(
               children: _kProfileOrder
                   .where((p) => spot.supportedProfiles.contains(p))
                   .map(
                     (p) => Padding(
-                      padding: const EdgeInsets.only(right: 4),
+                      padding: EdgeInsets.only(right: 4.w),
                       child: Icon(
                         p.icon,
-                        size: 16,
+                        size: 14.r,
                         color: AppColors.toggleUnselected,
                       ),
                     ),
@@ -899,10 +904,10 @@ class _PaginationBar extends StatelessWidget {
           enabled: currentPage > 1,
           onTap: () => onPageSelected(currentPage - 1),
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: 8.w),
         ..._visiblePages.map(
           (page) => Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+            padding: EdgeInsets.symmetric(horizontal: 10.w),
             child: _PageNumberButton(
               page: page,
               isSelected: page == currentPage,
@@ -910,7 +915,7 @@ class _PaginationBar extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: 8.w),
         _NavTextButton(
           label: '다음',
           trailingIcon: Icons.chevron_right,
@@ -939,7 +944,7 @@ class _PageNumberButton extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 2),
+        padding: EdgeInsets.symmetric(vertical: 2.h),
         decoration: BoxDecoration(
           border: isSelected
               ? const Border(
@@ -950,8 +955,8 @@ class _PageNumberButton extends StatelessWidget {
         child: Text(
           '$page',
           style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
+            fontSize: 12.sp,
+            fontWeight: isSelected ? FontWeight.w400 : FontWeight.w300,
             color: isSelected ? AppColors.textPrimary : AppColors.textTertiary,
           ),
         ),
@@ -983,16 +988,17 @@ class _NavTextButton extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: Row(
         children: [
-          if (leadingIcon != null) Icon(leadingIcon, size: 16, color: color),
+          if (leadingIcon != null) Icon(leadingIcon, size: 16.r, color: color),
           Text(
             label,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 12.sp,
               fontWeight: FontWeight.w300,
               color: color,
             ),
           ),
-          if (trailingIcon != null) Icon(trailingIcon, size: 16, color: color),
+          if (trailingIcon != null)
+            Icon(trailingIcon, size: 16.r, color: color),
         ],
       ),
     );
