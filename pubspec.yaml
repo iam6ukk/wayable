@@ -74,6 +74,7 @@ flutter:
     - assets/data/
     - assets/images/home/
     - assets/animations/
+    - assets/licenses/
     - .env
 
   fonts:

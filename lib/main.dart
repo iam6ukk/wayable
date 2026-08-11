@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -12,6 +13,8 @@ import 'navigation/navigator_key.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  _registerFontLicenses();
 
   await dotenv.load(fileName: ".env");
   final kakaoNativeAppKey = dotenv.env['KAKAO_NATIVE_APP_KEY'];
@@ -31,6 +34,22 @@ void main() async {
   ]);
 
   runApp(const ProviderScope(child: MyApp()));
+}
+
+// showLicensePage는 pub 패키지 라이선스만 자동 수집하므로,
+// assets/fonts에 직접 번들한 Pretendard/CalSans 라이선스는 수동으로 등록
+void _registerFontLicenses() {
+  LicenseRegistry.addLicense(() async* {
+    final pretendard = await rootBundle.loadString(
+      'assets/licenses/pretendard_OFL.txt',
+    );
+    yield LicenseEntryWithLineBreaks(['Pretendard'], pretendard);
+
+    final calSans = await rootBundle.loadString(
+      'assets/licenses/cal_sans_OFL.txt',
+    );
+    yield LicenseEntryWithLineBreaks(['CalSans'], calSans);
+  });
 }
 
 // Android 기본 오버스크롤(당길 때 화면이 늘어나는 stretch) 효과 제거
