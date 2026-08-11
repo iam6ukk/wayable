@@ -293,7 +293,10 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
     final images = _images;
 
     return AspectRatio(
-      aspectRatio: 342 / 189,
+      // 맞춤 여행지 탐색 결과 카드(explore_screen.dart _ResultCard)와 동일한
+      // 비율 — 342:189(1.81)는 관광공사 사진 원본 비율과 차이가 커서 위아래
+      // 크롭이 심해지고, 사진 하단의 관광공사 로고가 잘리는 문제가 있었다.
+      aspectRatio: 172 / 113,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12.r),
         child: images.isEmpty
@@ -309,6 +312,10 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                       itemBuilder: (context, index) => Image.network(
                         images[index],
                         fit: BoxFit.cover,
+                        // 관광공사 제공 사진 우하단에 로고가 찍혀있는 경우가
+                        // 많아서, 크롭이 생기더라도 그 모서리는 항상
+                        // 보존되도록 우하단 기준으로 자른다.
+                        alignment: Alignment.bottomRight,
                         errorBuilder: (context, error, stackTrace) =>
                             _buildImagePlaceholder(),
                       ),
@@ -368,8 +375,8 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
         SizedBox(height: 12.h),
         if (fields == null || fields.isEmpty)
           Text(
-            '등록된 시설정보가 없어요',
-            style: TextStyle(fontSize: 14.sp, color: AppColors.textQuaternary),
+            '등록된 시설정보가 없습니다.',
+            style: TextStyle(fontSize: 12.sp, color: AppColors.textQuaternary),
           )
         else
           Builder(
@@ -541,8 +548,8 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
         SizedBox(height: 4.h),
         if (categories.isEmpty)
           Text(
-            '등록된 편의정보가 없어요',
-            style: TextStyle(fontSize: 13.sp, color: AppColors.textQuaternary),
+            '등록된 편의정보가 없습니다.',
+            style: TextStyle(fontSize: 12.sp, color: AppColors.textQuaternary),
           )
         else
           Text(

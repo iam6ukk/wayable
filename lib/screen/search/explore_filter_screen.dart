@@ -154,7 +154,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FCFF),
+        backgroundColor: AppColors.bottomSheetBackground,
         body: SafeArea(
           top: false,
           child: Stack(
@@ -165,7 +165,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
                   // 필터 항목 탭
                   TabBar(
                     labelColor: AppColors.textPrimary,
-                    unselectedLabelColor: const Color(0xFF9D9D9D),
+                    unselectedLabelColor: AppColors.textTertiary,
                     indicatorColor: AppColors.textPrimary,
                     indicatorSize: TabBarIndicatorSize.tab,
                     labelStyle: TextStyle(
@@ -184,7 +184,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
                       Tab(text: _tabLabel('카테고리', _categories.length)),
                     ],
                   ),
-                  Divider(height: 1, color: AppColors.mutedDivider),
+                  Divider(height: 1, color: AppColors.faintDivider),
                   Expanded(
                     child: TabBarView(
                       children: [
@@ -197,7 +197,8 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
                   _buildBottomBar(),
                 ],
               ),
-              if (_loadingAreaCodes) const Positioned.fill(child: LoadingOverlay()),
+              if (_loadingAreaCodes)
+                const Positioned.fill(child: LoadingOverlay()),
             ],
           ),
         ),
@@ -456,10 +457,9 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(20.r),
           border: Border.all(
-            color: isSelected
-                ? AppColors.textPrimary
-                : AppColors.chipInactiveBorder,
-            width: 1,
+            color: isSelected ? AppColors.textPrimary : AppColors.boldDivider,
+            width: isSelected ? 1 : 0.5,
+            strokeAlign: BorderSide.strokeAlignInside,
           ),
         ),
         child: Stack(
@@ -476,7 +476,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
               label,
               style: TextStyle(
                 fontSize: 12.sp,
-                fontWeight: isSelected ? FontWeight.w500 : FontWeight.w300,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 color: isSelected
                     ? AppColors.textPrimary
                     : AppColors.textTertiary,

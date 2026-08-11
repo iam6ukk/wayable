@@ -13,6 +13,7 @@ import '../../providers/navigation_provider.dart';
 import '../../services/location/location_service.dart';
 import '../../services/region/area_code_repository.dart';
 import '../../services/region/kakao_local_service.dart';
+import '../../services/tour/tour_detail_service.dart';
 import '../../services/tour/tour_spot_service.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/accessibility_fit_level.dart';
@@ -51,7 +52,22 @@ const _kTopBandHeightResults = 80.0;
 /// 바텀시트 카드 한 줄의 고정 높이. ListView가 이 간격으로 딱 맞춰 스크롤해야
 /// "지금 스크롤 offset ÷ 카드 높이"만으로 맨 위에 온 카드 index를 바로
 /// 계산할 수 있다(카카오맵 자체 장소 리스트가 이렇게 동작한다).
-const _kCardExtent = 214.0;
+/// 제목/주소/편의칩/이미지 사이 간격을 전부 [_kCardSectionGap]로 통일한 뒤
+/// 실제 콘텐츠 높이에 맞춰 다시 잰 값 — 여유 없이 딱 맞추면 폰트 렌더링
+/// 편차로 미세한 오버플로우가 나서 몇 px 여유를 더 둔다. 이미지 영역을
+/// 맞춤 여행지 탐색 결과 카드 크기로 키우면서 다시 실측(226 → 250).
+const _kCardExtent = 250.0;
+
+/// 카드 안 제목↔주소, 주소↔편의칩, 편의칩↔이미지 사이 "눈에 보이는" 간격을
+/// 전부 주소↔편의칩 간격과 같게 맞추기 위한 값들. 세 SizedBox에 같은 숫자를
+/// 넣어도 실제로는 다르게 보였는데, Text 줄은 폰트 자체의 줄간격(leading)이
+/// 라인 박스 아래쪽에 얼마씩 남아 SizedBox 여백에 더해지기 때문이다(제목은
+/// 15sp 볼드+뱃지라 leading이 커서 더 벌어져 보이고, 이미지는 테두리가
+/// 딱 붙는 Container라 leading이 없어 오히려 더 좁아 보였다). 그래서 세
+/// 값을 실측해서 다르게 잡아야 시각적으로 동일하게 보인다.
+const _kCardGapTitleToAddress = 0.0;
+const _kCardGapAddressToChips = 6.0;
+const _kCardGapChipsToImage = 8.0;
 const _kSheetHeightFraction = 0.45;
 // 시트를 아래로 내렸을 때 남는 최소 높이(필터 pill 줄 정도만 보이는 선) —
 // 다시 위로 끌어올릴 수 있는 손잡이 역할을 한다.
@@ -611,14 +627,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       canPop: _expandedFilter == null && !_hasSearched,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        setState(() {
-          if (_expandedFilter != null) {
-            _expandedFilter = null;
-          } else {
-            _hasSearched = false;
-            _showInfoTooltip = false;
-          }
-        });
+        if (_expandedFilter != null) {
+          setState(() => _expandedFilter = null);
+          return;
+        }
+        // 시트만 접는 게 아니라 검색 상태 자체를 초기화한다 — 그냥
+        // _hasSearched만 false로 돌리면 선택된 카테고리·마커·목록이 그대로
+        // 남아있어서, 지도 위 카테고리 칩은 선택된 것처럼 보이는데 그
+        // 상태로는 같은 칩을 다시 눌러도 검색이 자연스럽게 이어지지 않았다.
+        _resetSearchState();
       },
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -878,9 +895,20 @@ class _CategoryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final activeStyle = TextStyle(
+      fontSize: 12.sp,
+      fontWeight: FontWeight.w600,
+      color: AppColors.textPrimary,
+    );
+    final inactiveStyle = TextStyle(
+      fontSize: 12.sp,
+      fontWeight: FontWeight.w400,
+      color: AppColors.textTertiary,
+    );
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
         height: 28.h,
         padding: EdgeInsets.symmetric(horizontal: 16.w),
         alignment: Alignment.center,
@@ -888,19 +916,15 @@ class _CategoryChip extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(53.13.r),
           border: Border.all(
-            color: selected
-                ? AppColors.textPrimary
-                : AppColors.chipInactiveBorder,
-            width: 1,
+            color: selected ? AppColors.textPrimary : AppColors.boldDivider,
+            width: selected ? 1 : 0.5,
+            strokeAlign: BorderSide.strokeAlignInside,
           ),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12.sp,
-            fontWeight: selected ? FontWeight.w500 : FontWeight.w300,
-            color: selected ? AppColors.textPrimary : AppColors.textTertiary,
-          ),
+        child: _StableWeightLabel(
+          label: label,
+          style: selected ? activeStyle : inactiveStyle,
+          boldStyle: activeStyle,
         ),
       ),
     );
@@ -956,12 +980,13 @@ class _ResearchAreaButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.refresh, size: 16.r, color: AppColors.textSecondary),
+              Icon(Icons.refresh, size: 19.r, color: AppColors.bottomNavActive),
               SizedBox(width: 4.w),
               Text(
                 '이 장소 재검색',
                 style: TextStyle(
                   fontSize: 12.sp,
+                  fontWeight: FontWeight.w400,
                   color: AppColors.textSecondary,
                 ),
               ),
@@ -1090,10 +1115,12 @@ class _ResultSheet extends StatelessWidget {
                       onMinFitLevelSelected: onMinFitLevelSelected,
                       onInfoTap: onInfoTap,
                     ),
-                    // 필터가 펼쳐진 상태면 _FilterSection이 옵션 줄 아래
-                    // 여백을 이미 만들어주므로, 여기서 또 더하지 않는다.
-                    if (expandedFilter == null) SizedBox(height: 18.h),
-                    Container(height: 0.5.h, color: AppColors.hairlineDivider),
+                    // 1차 영역 바로 아래 구분선은 _FilterSection이 항상
+                    // 그려주므로(펼침 여부와 무관하게 고정 위치), 여기서는
+                    // 2차 옵션 줄까지 펼쳐졌을 때 그 아래를 마저 닫는
+                    // 구분선만 추가로 그린다.
+                    if (expandedFilter != null)
+                      Container(height: 0.5.h, color: AppColors.faintDivider),
                   ],
                 ),
               ),
@@ -1122,11 +1149,36 @@ class _ResultSheet extends StatelessWidget {
     // 겹쳐 보인다.
     if (results.isEmpty) {
       if (isLoading) return const SizedBox.shrink();
-      return Center(
-        child: Text(
-          '주변에 조건에 맞는 여행지가 없어요',
-          style: TextStyle(fontSize: 13.sp, color: AppColors.textQuaternary),
-        ),
+      // 그냥 Center만 쓰면 이 안에 스크롤 가능한 위젯이 하나도 없어서,
+      // DraggableScrollableSheet가 드래그를 넘겨받을 스크롤 컨트롤러를 못
+      // 찾아 결과가 없을 때는 시트를 내렸다 올렸다 할 수 없었다. 실제
+      // 내용은 없어도 같은 scrollController를 쓰는 스크롤 영역을 둬서
+      // 헤더가 아닌 본문에서도 드래그가 먹게 한다.
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          return ListView(
+            controller: scrollController,
+            // 결과 카드 목록과 같은 이유로 명시한다 — 없으면 MediaQuery
+            // 상하 인셋이 자동으로 끼워들어가 중앙 정렬한 문구가 진짜
+            // 중앙보다 아래로 처져 보였다.
+            padding: EdgeInsets.zero,
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              SizedBox(
+                height: constraints.maxHeight,
+                child: Center(
+                  child: Text(
+                    '주변에 조건에 맞는 여행지가 없습니다.',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: AppColors.textQuaternary,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       );
     }
 
@@ -1292,13 +1344,14 @@ class _FilterSection extends StatelessWidget {
             ],
           ),
         ),
-        // 옵션 칩 줄 위/아래 여백을 같은 값(8h)으로 둬서 그 칸 안에서
-        // 위나 아래로 쏠리지 않고 가운데에 오게 한다.
-        if (expandedFilter != null) ...[
-          SizedBox(height: 12.h),
-          Container(height: 0.5.h, color: AppColors.hairlineDivider),
-          SizedBox(height: 8.h),
-        ],
+        // 1차 필터 영역(pill 줄)의 자기 높이는 2차가 열리든 닫히든 항상
+        // 같아야 한다 — 2차 옵션 줄은 그 아래에 "추가"되는 것이지, 1차
+        // 영역 자체의 경계선(구분선)을 밀어 올리거나 내리면 안 된다. 그래서
+        // 이 구분선은 펼침 여부와 무관하게 항상 그리고, 2차 옵션 줄만
+        // 조건부로 그 아래에 덧붙인다.
+        SizedBox(height: 16.h),
+        Container(height: 0.5.h, color: AppColors.hairlineDivider),
+        if (expandedFilter != null) SizedBox(height: 13.h),
         if (expandedFilter == _FilterKind.category)
           SizedBox(
             height: 27.481.h,
@@ -1363,7 +1416,33 @@ class _FilterSection extends StatelessWidget {
               ],
             ),
           ),
-        if (expandedFilter != null) SizedBox(height: 8.h),
+        if (expandedFilter != null) SizedBox(height: 13.h),
+      ],
+    );
+  }
+}
+
+/// 굵기가 바뀌는 라벨(선택/활성 시 볼드)이 폭까지 따라 바뀌어 옆 위젯을
+/// 밀어내지 않도록, 안 보이는 텍스트를 가장 굵은 스타일로 뒤에 깔아 자리를
+/// 미리 잡아둔다(explore_filter_screen.dart 칩과 같은 기법).
+class _StableWeightLabel extends StatelessWidget {
+  const _StableWeightLabel({
+    required this.label,
+    required this.style,
+    required this.boldStyle,
+  });
+
+  final String label;
+  final TextStyle style;
+  final TextStyle boldStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Opacity(opacity: 0, child: Text(label, style: boldStyle)),
+        Text(label, style: style),
       ],
     );
   }
@@ -1383,9 +1462,23 @@ class _FilterPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final activeStyle = TextStyle(
+      fontSize: 12.sp,
+      fontWeight: FontWeight.w600,
+      color: AppColors.textPrimary,
+    );
+    final inactiveStyle = TextStyle(
+      fontSize: 12.sp,
+      fontWeight: FontWeight.w400,
+      color: AppColors.textTertiary,
+    );
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      // 통합필터선택 칩과 동일하게 AnimatedContainer로 색/테두리 전환을
+      // 부드럽게 하고, 라벨은 _StableWeightLabel로 감싸 굵어져도 pill
+      // 너비가 안 흔들리게 한다.
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
         height: 33.h,
         padding: EdgeInsets.symmetric(horizontal: 14.w),
         alignment: Alignment.center,
@@ -1393,29 +1486,25 @@ class _FilterPill extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(27.481.r),
           border: Border.all(
-            color: isExpanded ? Colors.black : AppColors.boldDivider,
+            color: isExpanded ? AppColors.textPrimary : AppColors.boldDivider,
             width: isExpanded ? 1 : 0.5,
+            strokeAlign: BorderSide.strokeAlignInside,
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12.sp,
-                fontWeight: isExpanded ? FontWeight.w700 : FontWeight.w500,
-                color: isExpanded
-                    ? AppColors.textPrimary
-                    : AppColors.textSecondary,
-              ),
+            _StableWeightLabel(
+              label: label,
+              style: isExpanded ? activeStyle : inactiveStyle,
+              boldStyle: activeStyle,
             ),
             SizedBox(width: 4.w),
             _Chevron(
               pointsUp: isExpanded,
               color: isExpanded
                   ? AppColors.textPrimary
-                  : AppColors.textSecondary,
+                  : AppColors.textTertiary,
             ),
           ],
         ),
@@ -1507,7 +1596,8 @@ class _OptionPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
         height: 27.481.h,
         padding: EdgeInsets.symmetric(horizontal: 14.w),
         alignment: Alignment.center,
@@ -1515,8 +1605,9 @@ class _OptionPill extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(27.481.r),
           border: Border.all(
-            color: selected ? Colors.black : AppColors.boldDivider,
+            color: selected ? AppColors.textPrimary : AppColors.boldDivider,
             width: selected ? 1 : 0.5,
+            strokeAlign: BorderSide.strokeAlignInside,
           ),
         ),
         child: Text(
@@ -1524,7 +1615,7 @@ class _OptionPill extends StatelessWidget {
           style: TextStyle(
             fontSize: 12.sp,
             fontWeight: FontWeight.w500,
-            color: selected ? AppColors.textPrimary : AppColors.textSecondary,
+            color: selected ? AppColors.textPrimary : AppColors.textTertiary,
           ),
         ),
       ),
@@ -1570,8 +1661,35 @@ class _SpotListCard extends ConsumerWidget {
       ref.read(bookmarkProvider.notifier).unsaveSpot(spot.contentId);
       showAndroidToast(context, '북마크가 해제되었습니다.');
     } else {
-      showSaveToFolderSheet(context, ref, spot);
+      final enrichedSpot = await _withGalleryImages(spot);
+      if (!context.mounted) return;
+      showSaveToFolderSheet(context, ref, enrichedSpot);
     }
+  }
+
+  /// 지도 검색 결과 카드는 firstImage 하나만 갖고 있어서, 상세 화면을 거치지
+  /// 않고 지도에서 바로 북마크하면 저장목록 화면의 3장짜리 썸네일 줄이
+  /// 1장으로만 보인다. 상세 화면(SpotDetailScreen._buildHeader)이 북마크
+  /// 저장 시 하는 것과 동일하게, 저장 시점에 갤러리 이미지를 미리 채워서
+  /// 저장목록에서도 항상 3장까지 보이게 한다.
+  Future<TourSpot> _withGalleryImages(TourSpot spot) async {
+    final fetched = await TourDetailService().fetchImages(spot.contentId);
+    final gallery = fetched.where((url) => url != spot.firstImage).toList();
+    return TourSpot(
+      contentId: spot.contentId,
+      title: spot.title,
+      addr1: spot.addr1,
+      addr2: spot.addr2,
+      firstImage: spot.firstImage,
+      galleryImages: gallery.take(2).toList(),
+      contentTypeId: spot.contentTypeId,
+      mapX: spot.mapX,
+      mapY: spot.mapY,
+      lDongRegnCd: spot.lDongRegnCd,
+      lDongSignguCd: spot.lDongSignguCd,
+      supportedProfiles: spot.supportedProfiles,
+      populatedFields: spot.populatedFields,
+    );
   }
 
   @override
@@ -1587,17 +1705,24 @@ class _SpotListCard extends ConsumerWidget {
       if (spot.firstImage != null) spot.firstImage!,
       ...spot.galleryImages,
     ].take(3).toList();
+    // 맞춤 여행지 탐색 결과 카드(explore_screen.dart _ResultGrid: 2열 그리드,
+    // 좌우 여백 16.w, 칼럼 사이 간격 16.w)의 이미지 영역과 정확히 같은
+    // 크기가 되도록 동일한 계산식을 그대로 가져와 쓴다.
+    final resultCardImageWidth = (1.sw - 16.w * 2 - 16.w) / 2;
+    final resultCardImageHeight = resultCardImageWidth * 113 / 172;
     final facilityLabels = AccessibilityField.values
         .where(spot.populatedFields.contains)
         .take(_kMaxFacilityChips)
         .map((field) => field.label)
         .toList();
 
-    Widget? levelBadge;
+    final Widget levelBadge;
     if (!fit.isComputable) {
       levelBadge = const _FitLevelBadge.pending();
     } else if (fit.level != null) {
       levelBadge = _FitLevelBadge.level(fit.level!);
+    } else {
+      levelBadge = const _FitLevelBadge.zero();
     }
 
     return GestureDetector(
@@ -1606,12 +1731,11 @@ class _SpotListCard extends ConsumerWidget {
       ).push(MaterialPageRoute(builder: (_) => SpotDetailScreen(spot: spot))),
       behavior: HitTestBehavior.opaque,
       child: Container(
-        // 여행지 목록 리스트
-        padding: EdgeInsets.all(14.w),
+        padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 14.h),
         decoration: BoxDecoration(
           color: active ? AppColors.background : null,
           border: Border(
-            bottom: BorderSide(color: AppColors.hairlineDivider, width: 0.5),
+            bottom: BorderSide(color: AppColors.faintDivider, width: 0.5),
           ),
         ),
         child: Column(
@@ -1630,16 +1754,14 @@ class _SpotListCard extends ConsumerWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 15.sp,
+                            fontSize: 16.sp,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary,
                           ),
                         ),
                       ),
-                      if (levelBadge != null) ...[
-                        SizedBox(width: 6.w),
-                        levelBadge,
-                      ],
+                      SizedBox(width: 6.w),
+                      levelBadge,
                     ],
                   ),
                 ),
@@ -1656,13 +1778,13 @@ class _SpotListCard extends ConsumerWidget {
                 ),
               ],
             ),
-            SizedBox(height: 4.h),
+            SizedBox(height: _kCardGapTitleToAddress.h),
             Row(
               children: [
                 Text(
                   '${(distanceMeters / 1000).toStringAsFixed(1)}km',
                   style: TextStyle(
-                    fontSize: 11.sp,
+                    fontSize: 12.sp,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
                   ),
@@ -1674,64 +1796,54 @@ class _SpotListCard extends ConsumerWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 11.sp,
+                      fontSize: 12.sp,
                       color: AppColors.textTertiary,
                     ),
                   ),
                 ),
               ],
             ),
-            if (facilityLabels.isNotEmpty) ...[
-              SizedBox(height: 6.h),
-              SizedBox(
-                height: 20.h,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      for (var i = 0; i < facilityLabels.length; i++) ...[
-                        if (i > 0) SizedBox(width: 5.w),
-                        _FacilityChip(label: facilityLabels[i]),
-                      ],
+            // 편의칩 유무와 무관하게 항상 이 줄 높이만큼 자리를 잡아둬서,
+            // 카드마다 콘텐츠 총 높이가 달라지지 않게 한다 — 그래야 카드
+            // 높이가 고정([_kCardExtent])인 상태에서도 상하 패딩이 실제로
+            // 동일하게 보인다.
+            SizedBox(height: _kCardGapAddressToChips.h),
+            SizedBox(
+              height: 20.h,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (var i = 0; i < facilityLabels.length; i++) ...[
+                      if (i > 0) SizedBox(width: 5.w),
+                      _FacilityChip(label: facilityLabels[i]),
                     ],
-                  ),
+                  ],
                 ),
               ),
-            ],
-            SizedBox(height: 8.h),
-            // 여행지 이미지 영역
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final list = images.isEmpty ? const [null] : images;
-                final gap = 8.w;
-                final cardWidth = (constraints.maxWidth - gap * 2) / 3;
-                final cardHeight = cardWidth * 88 / 115;
-                return SizedBox(
-                  height: cardHeight,
-                  child: Row(
-                    children: [
-                      for (var i = 0; i < list.length; i++) ...[
-                        if (i > 0) SizedBox(width: gap),
-                        SizedBox(
-                          width: cardWidth,
-                          height: cardHeight,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12.r),
-                            child: list[i] == null
-                                ? const ImagePlaceholder()
-                                : Image.network(
-                                    list[i]!,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, _, _) =>
-                                        const ImagePlaceholder(),
-                                  ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                );
-              },
+            ),
+            SizedBox(height: _kCardGapChipsToImage.h),
+            // 여행지 이미지 영역. 지도 검색 결과는 firstImage 한 장만 갖고
+            // 있어서(갤러리는 상세화면에서만 조회) 맞춤 여행지 탐색 결과
+            // 카드와 동일한 크기(resultCardImageWidth/Height)로 한 장만
+            // 보여준다.
+            SizedBox(
+              width: resultCardImageWidth,
+              height: resultCardImageHeight,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12.r),
+                child: images.isEmpty
+                    ? const ImagePlaceholder()
+                    : Image.network(
+                        images.first,
+                        fit: BoxFit.cover,
+                        // 관광공사 제공 사진 우하단에 로고가 찍혀있는 경우가
+                        // 많아서, 크롭이 생기더라도 그 모서리는 항상
+                        // 보존되도록 우하단 기준으로 자른다.
+                        alignment: Alignment.bottomRight,
+                        errorBuilder: (_, _, _) => const ImagePlaceholder(),
+                      ),
+              ),
             ),
           ],
         ),
@@ -1755,10 +1867,17 @@ class _FacilityChip extends StatelessWidget {
         border: Border.all(color: AppColors.faintDivider, width: 0.5),
         borderRadius: BorderRadius.circular(2.748.r),
       ),
-      child: Text(
-        label,
-        textAlign: TextAlign.center,
-        style: TextStyle(fontSize: 10.sp, color: AppColors.textTertiary),
+      // 폰트(Pretendard) 자체의 위아래 여백이 비대칭이라 alignment: center만
+      // 으로는 글자가 살짝 아래로 치우쳐 보인다. Transform은 페인트 단계에서만
+      // 위치를 옮기고 레이아웃 크기(박스 크기)는 그대로 두므로, 칩 크기를
+      // 안 건드리면서 글자만 위로 보정할 수 있다.
+      child: Transform.translate(
+        offset: Offset(0, -1.h),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 10.sp, color: AppColors.textTertiary),
+        ),
       ),
     );
   }
@@ -1772,6 +1891,11 @@ class _FitLevelBadge extends StatelessWidget {
         AccessibilityFitLevel.lv2 => AppColors.fitLevel2Badge,
         AccessibilityFitLevel.lv3 => AppColors.fitLevel3Badge,
       };
+
+  // 매칭률은 계산됐지만 Lv.1 기준(30%)에도 못 미치는 경우.
+  const _FitLevelBadge.zero()
+    : label = '적합성 Lv.0',
+      color = AppColors.fitLevel0Badge;
 
   const _FitLevelBadge.pending()
     : label = '레벨 산정 중',
