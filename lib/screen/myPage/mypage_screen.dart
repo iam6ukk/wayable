@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:wayable/utils/app_logger.dart';
 import 'package:wayable/widgets/app_dialog.dart';
 import '../../model/accessibility/accessibility_profile.dart';
@@ -9,6 +10,13 @@ import '../../theme/app_colors.dart';
 import '../../widgets/toast.dart';
 import '../auth/login_screen.dart';
 import 'accessibility_screen.dart';
+import 'faq_screen.dart';
+
+const _inquiryFormUrl = 'https://forms.gle/gLR5yczAz5C7BHvp6';
+const _privacyPolicyUrl =
+    'https://tattered-kookaburra-e94.notion.site/Wayable-3b49b554d701800189f1faf79b9d16ed';
+const _termsOfServiceUrl =
+    'https://tattered-kookaburra-e94.notion.site/Wayable-3b49b554d70180cd99d0ec6cfb850997';
 
 AccessibilityProfile? _profileFromName(String name) {
   for (final profile in AccessibilityProfile.values) {
@@ -20,8 +28,23 @@ AccessibilityProfile? _profileFromName(String name) {
 class MyPageScreen extends ConsumerWidget {
   const MyPageScreen({super.key});
 
-  void _showNotReady(BuildContext context) {
-    showAndroidToast(context, '준비 중인 기능입니다.');
+  void _openOpenSourceLicenses(BuildContext context) {
+    showLicensePage(context: context, applicationName: 'Wayable');
+  }
+
+  Future<void> _openExternalLink(BuildContext context, String url) async {
+    final uri = Uri.parse(url);
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+    if (!launched && context.mounted) {
+      showAndroidToast(context, '페이지를 열 수 없습니다.');
+    }
+  }
+
+  void _openFaq(BuildContext context) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const FaqScreen()));
   }
 
   // 접근성 프로필 설정 화면으로 이동하는 함수
@@ -131,17 +154,25 @@ class MyPageScreen extends ConsumerWidget {
           _buildSection(
             title: '정보 안내',
             items: [
-              _MenuEntry('접근성 정보 기준', () => _showNotReady(context)),
-              _MenuEntry('오픈소스 라이브러리', () => _showNotReady(context)),
-              _MenuEntry('이용약관', () => _showNotReady(context)),
-              _MenuEntry('개인정보처리방침', () => _showNotReady(context)),
+              _MenuEntry('오픈소스 라이브러리', () => _openOpenSourceLicenses(context)),
+              _MenuEntry(
+                '이용약관',
+                () => _openExternalLink(context, _termsOfServiceUrl),
+              ),
+              _MenuEntry(
+                '개인정보처리방침',
+                () => _openExternalLink(context, _privacyPolicyUrl),
+              ),
             ],
           ),
           _buildSection(
             title: '참여 및 문의',
             items: [
-              _MenuEntry('자주 묻는 질문', () => _showNotReady(context)),
-              _MenuEntry('문의하기', () => _showNotReady(context)),
+              _MenuEntry('자주 묻는 질문', () => _openFaq(context)),
+              _MenuEntry(
+                '문의하기',
+                () => _openExternalLink(context, _inquiryFormUrl),
+              ),
             ],
           ),
           SizedBox(height: 11.h),
