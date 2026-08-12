@@ -19,6 +19,7 @@ import '../../theme/app_colors.dart';
 import '../../utils/accessibility_fit_level.dart';
 import '../../utils/app_logger.dart';
 import '../../widgets/app_dialog.dart';
+import '../../widgets/chevron_icon.dart';
 import '../../widgets/image_placeholder.dart';
 import '../../widgets/loading_overlay.dart';
 import '../../widgets/toast.dart';
@@ -1500,7 +1501,7 @@ class _FilterPill extends StatelessWidget {
               boldStyle: activeStyle,
             ),
             SizedBox(width: 4.w),
-            _Chevron(
+            ChevronIcon(
               pointsUp: isExpanded,
               color: isExpanded
                   ? AppColors.textPrimary
@@ -1513,72 +1514,6 @@ class _FilterPill extends StatelessWidget {
   }
 }
 
-class _Chevron extends StatelessWidget {
-  const _Chevron({required this.pointsUp, required this.color});
-
-  final bool pointsUp;
-  final Color color;
-
-  static const _aspectWidth = 11.6753;
-  static const _aspectHeight = 6.98731;
-  static const _strokeWidth = 0.916031;
-
-  @override
-  Widget build(BuildContext context) {
-    final width = 11.r;
-    final height = width * _aspectHeight / _aspectWidth;
-    return SizedBox(
-      width: width,
-      height: height,
-      child: CustomPaint(
-        painter: _ChevronPainter(
-          pointsUp: pointsUp,
-          color: color,
-          strokeWidth: width * _strokeWidth / _aspectWidth,
-        ),
-      ),
-    );
-  }
-}
-
-class _ChevronPainter extends CustomPainter {
-  const _ChevronPainter({
-    required this.pointsUp,
-    required this.color,
-    required this.strokeWidth,
-  });
-
-  final bool pointsUp;
-  final Color color;
-  final double strokeWidth;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    final path = Path();
-    if (pointsUp) {
-      path.moveTo(0, size.height);
-      path.lineTo(size.width / 2, 0);
-      path.lineTo(size.width, size.height);
-    } else {
-      path.moveTo(0, 0);
-      path.lineTo(size.width / 2, size.height);
-      path.lineTo(size.width, 0);
-    }
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _ChevronPainter oldDelegate) =>
-      oldDelegate.pointsUp != pointsUp ||
-      oldDelegate.color != color ||
-      oldDelegate.strokeWidth != strokeWidth;
-}
 
 /// 2차 필터 탭
 class _OptionPill extends StatelessWidget {

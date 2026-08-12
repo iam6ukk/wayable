@@ -76,4 +76,5 @@ class AppColors {
   static const fitLevel2Badge = Color(0xFFFF9800); // 적합성 lv.2
   static const fitLevel3Badge = Color(0xFF4CAF50); // 적합성 lv.3
   static const fitLevelPendingBadge = Color(0xFF9E9E9E); // 적합 레벨 배지(산정 중)
+  static const faqAnswerBackground = Color(0xFFF6FCFF); // FAQ 펼친 답변 배경
 }
