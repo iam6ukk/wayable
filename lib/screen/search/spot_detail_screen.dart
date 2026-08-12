@@ -16,6 +16,7 @@ import '../../services/tour/tour_detail_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_dialog.dart';
 import '../../widgets/bottom_nav_bar.dart';
+import '../../widgets/chevron_icon.dart';
 import '../../widgets/image_placeholder.dart';
 import '../../widgets/loading_overlay.dart';
 import '../../widgets/top_logo_banner.dart';
@@ -622,14 +623,14 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                 GestureDetector(
                   onTap: () => _toggleCategory(index),
                   behavior: HitTestBehavior.opaque,
-                  child: Padding(
-                    padding: EdgeInsets.all(4.r),
-                    child: Icon(
-                      isExpanded
-                          ? Icons.keyboard_arrow_up
-                          : Icons.keyboard_arrow_down,
-                      size: 20.r,
-                      color: AppColors.boldDivider,
+                  child: SizedBox(
+                    width: 28.r,
+                    height: 28.r,
+                    child: Center(
+                      child: ChevronIcon(
+                        pointsUp: isExpanded,
+                        color: AppColors.boldDivider,
+                      ),
                     ),
                   ),
                 ),
