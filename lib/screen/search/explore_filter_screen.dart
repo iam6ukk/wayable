@@ -178,7 +178,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
                     ),
                     tabs: [
                       Tab(
-                        text: _tabLabel('무장애정보', _accessibilitySelectionCount),
+                        text: _tabLabel('편의정보', _accessibilitySelectionCount),
                       ),
                       Tab(text: _tabLabel('지역', _regionSelectionCount)),
                       Tab(text: _tabLabel('카테고리', _categories.length)),
@@ -252,7 +252,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
         child: Padding(
           padding: EdgeInsets.all(24.r),
           child: Text(
-            '탐색 화면에서 접근성 대분류를 먼저 선택해주세요.',
+            '탐색 화면에서 접근성 대분류를 먼저 선택해 주세요.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 14.sp, color: AppColors.textQuaternary),
           ),
@@ -281,7 +281,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
             Icon(profile.icon, size: 24.r, color: AppColors.primary),
             SizedBox(width: 6.w),
             Text(
-              '무장애정보 > ${profile.label}',
+              '편의정보 > ${profile.label}',
               style: TextStyle(
                 fontSize: 13.sp,
                 fontWeight: FontWeight.w600,

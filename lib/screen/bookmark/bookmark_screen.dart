@@ -375,7 +375,7 @@ class _FolderSpotListState extends ConsumerState<_FolderSpotList> {
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: Text(
-            '저장된 여행지가 없습니다..\n여행지 상세화면에서 북마크 아이콘을 눌러 저장해보세요.',
+            '저장된 여행지가 없습니다.\n여행지 상세 화면에서 북마크 아이콘을 눌러 저장해보세요.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 14.sp, color: AppColors.textQuaternary),
           ),

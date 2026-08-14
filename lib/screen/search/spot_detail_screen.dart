@@ -554,7 +554,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
           )
         else
           Text(
-            '장애유형별 편의시설 정보를 확인하세요.',
+            '장애 유형별 편의시설 정보를 확인하세요.',
             style: TextStyle(
               fontSize: 12.sp,
               fontWeight: FontWeight.w500,

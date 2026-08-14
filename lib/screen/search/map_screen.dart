@@ -74,7 +74,7 @@ const _kSheetHeightFraction = 0.45;
 // 다시 위로 끌어올릴 수 있는 손잡이 역할을 한다.
 const _kSheetMinHeightFraction = 0.16;
 
-/// 무장애 정보 칩은 카드 한 줄에 다 담기 어려우니 최대 5개까지만 보여준다
+/// 편의정보 칩은 카드 한 줄에 다 담기 어려우니 최대 5개까지만 보여준다
 /// (피그마 831:763 등 결과 카드가 항상 칩 5개짜리 슬롯으로 그려져 있음).
 const _kMaxFacilityChips = 5;
 
@@ -1513,7 +1513,6 @@ class _FilterPill extends StatelessWidget {
     );
   }
 }
-
 
 /// 2차 필터 탭
 class _OptionPill extends StatelessWidget {

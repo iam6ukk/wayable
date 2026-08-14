@@ -116,7 +116,7 @@ class _AccessibilityDetailScreenState
     if (hasUnselectedProfile) {
       final confirmed = await showTwoButtonDialog(
         context,
-        content: '무장애 정보를 선택하지 않은 경우,\n전체 항목을 기준으로 정보가 제공됩니다.',
+        content: '편의정보를 선택하지 않은 경우,\n전체 항목을 기준으로 정보가 제공됩니다.',
         primaryLabel: '확인',
         secondaryLabel: '취소',
       );
@@ -140,7 +140,7 @@ class _AccessibilityDetailScreenState
       ref.read(authStateProvider.notifier).setUser(updatedUser);
     } catch (e) {
       if (!mounted) return;
-      await showInfoDialog(context, content: '저장에 실패했습니다.\n다시 시도해주세요.');
+      await showInfoDialog(context, content: '저장에 실패했습니다.\n다시 시도해 주세요.');
       return;
     }
 
@@ -252,7 +252,7 @@ class _AccessibilityDetailScreenState
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24.w),
               child: Text(
-                '필요하신 무장애 정보를 선택해주세요',
+                '필요하신 편의정보를 선택해 주세요.',
                 style: TextStyle(
                   fontSize: 19.sp,
                   fontWeight: FontWeight.w500,
@@ -264,7 +264,7 @@ class _AccessibilityDetailScreenState
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24.w),
               child: Text(
-                '선택해주신 항목 기준으로 정보를 안내해드려요',
+                '선택해 주신 항목 기준으로 정보를 안내해 드려요.',
                 style: TextStyle(
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w300,

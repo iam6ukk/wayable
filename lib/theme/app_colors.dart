@@ -47,10 +47,8 @@ class AppColors {
   // 값도 있고 한 화면 전용인 값도 있지만, 새로 만들 때 파일마다 다시
   // 선언하지 말고 여기부터 확인한다.
   static const mutedDivider = Color(0xFFE3E3E3); // 통합필터/마이페이지 구분선
-  static const chipInactiveBorder = Color(0xFFC8C8C8); // 통합필터 칩 미선택 테두리
   static const searchBarBackground = Color(0x80D9D9D9); // 탐색 화면 검색창 배경
   static const inactiveSurface = Color(0xFFF2F2F2); // 탐색 화면 비활성 원형 배경
-  static const emptyStateText = Color(0xFFACACAC); // 탐색 화면 빈 결과 안내 텍스트
   static const locationText = Color(0xFFBFBFBF); // 홈 화면 위치 텍스트
   static const pageBadgeBackground = Color(0xCCFFFFFF); // 홈 화면 배너 페이지 뱃지 배경
   static const pageBadgeText = Color(0xCC2D2D2D); // 홈 화면 배너 페이지 뱃지 텍스트
@@ -76,5 +74,4 @@ class AppColors {
   static const fitLevel2Badge = Color(0xFFFF9800); // 적합성 lv.2
   static const fitLevel3Badge = Color(0xFF4CAF50); // 적합성 lv.3
   static const fitLevelPendingBadge = Color(0xFF9E9E9E); // 적합 레벨 배지(산정 중)
-  static const faqAnswerBackground = Color(0xFFF6FCFF); // FAQ 펼친 답변 배경
 }

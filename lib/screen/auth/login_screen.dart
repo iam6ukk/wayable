@@ -72,7 +72,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         if (navigatorKey.currentState?.canPop() ?? false) {
           navigatorKey.currentState?.pop();
         }
-        showInfoDialog(context, title: '로그인에 실패했습니다.', content: '다시 시도해주세요.');
+        showInfoDialog(context, title: '로그인에 실패했습니다.', content: '다시 시도해 주세요.');
       }
     });
 

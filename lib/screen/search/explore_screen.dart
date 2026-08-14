@@ -392,7 +392,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       _FilterSelectRow(onTap: _openFilterScreen),
       SizedBox(height: 4.h),
       Text(
-        '지역과 카테고리를 선택할 수 있어요',
+        '편의정보와 지역, 카테고리를 선택할 수 있어요.',
         style: TextStyle(fontSize: 10.sp, color: AppColors.textTertiary),
       ),
       if (_activeFilterChips.isNotEmpty) ...[

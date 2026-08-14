@@ -123,7 +123,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24.w),
               child: Text(
-                '$nickname님의 관심유형을 선택해주세요',
+                '$nickname님의 관심유형을 선택해 주세요.',
                 style: TextStyle(
                   fontSize: 19.sp,
                   fontWeight: FontWeight.w500,
@@ -135,7 +135,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24.w),
               child: Text(
-                '선택해주신 관심유형에 맞춰 추천해드려요',
+                '선택해 주신 관심유형에 맞춰 추천해 드려요.',
                 style: TextStyle(
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w300,
@@ -178,7 +178,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                 child: ElevatedButton(
                   onPressed: () {
                     if (_selectedProfiles.isEmpty) {
-                      showAndroidToast(context, '하나 이상의 관심 유형을 선택해주세요.');
+                      showAndroidToast(context, '하나 이상의 관심 유형을 선택해 주세요.');
                       return;
                     }
                     Navigator.of(context).push(

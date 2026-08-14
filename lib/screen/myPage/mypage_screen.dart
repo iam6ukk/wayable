@@ -84,7 +84,7 @@ class MyPageScreen extends ConsumerWidget {
         (route) => false,
       );
     } else {
-      showAndroidToast(context, '로그아웃에 실패했습니다. 다시 시도해주세요.');
+      showAndroidToast(context, '로그아웃에 실패했습니다. 다시 시도해 주세요.');
     }
   }
 
@@ -112,7 +112,7 @@ class MyPageScreen extends ConsumerWidget {
         (route) => false,
       );
     } else {
-      showAndroidToast(context, '회원탈퇴에 실패했습니다. 다시 시도해주세요.');
+      showAndroidToast(context, '회원 탈퇴에 실패했습니다. 다시 시도해 주세요.');
     }
   }
 
@@ -219,7 +219,7 @@ class MyPageScreen extends ConsumerWidget {
           SizedBox(height: 12.h),
           if (profiles.isEmpty)
             Text(
-              '접근성 프로필이 설정되지 않았습니다.\n프로필을 수정하여 접근성 프로필을 생성해주세요.',
+              '접근성 프로필이 설정되지 않았습니다.\n프로필을 수정하여 접근성 프로필을 생성해 주세요.',
               style: TextStyle(
                 fontSize: 13.sp,
                 color: AppColors.textSecondary,
