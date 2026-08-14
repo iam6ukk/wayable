@@ -56,8 +56,22 @@ class GoogleAuthService {
         return (user: newUser, isNewUser: true);
       } else {
         // 기존 유저 → Firestore에서 불러오기
-        final existingUser = await _userService.getUser(uid);
+        var existingUser = await _userService.getUser(uid);
         AppLogger.info('[Auth] 기존 구글 유저 로그인');
+
+        // 가입 당시 표시 이름을 못 받아와 저장을 못 한 경우, 이번 로그인에서
+        // 받아온 닉네임으로 보정한다.
+        final freshNickname = firebaseUser.displayName;
+        if (existingUser != null &&
+            (existingUser.nickname == null ||
+                existingUser.nickname!.isEmpty) &&
+            freshNickname != null &&
+            freshNickname.isNotEmpty) {
+          existingUser = existingUser.copyWith(nickname: freshNickname);
+          await _userService.updateUser(existingUser);
+          AppLogger.info('[Auth] 기존 구글 유저 닉네임 보정 완료');
+        }
+
         return (user: existingUser, isNewUser: false);
       }
     } on GoogleSignInException catch (e) {

@@ -1,19 +1,30 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:wayable/model/accessibility/accessibility_profile.dart';
 import 'package:wayable/model/region/area_code.dart';
+import 'package:wayable/providers/auth_provider.dart';
+import 'package:wayable/providers/navigation_provider.dart';
+import 'package:wayable/screen/search/spot_detail_screen.dart';
 import 'package:wayable/theme/app_colors.dart';
 import 'package:wayable/model/tour/tour_spot.dart';
 import 'package:wayable/services/location/location_service.dart';
 import 'package:wayable/services/region/area_code_repository.dart';
 import 'package:wayable/services/region/kakao_local_service.dart';
+import 'package:wayable/services/tour/tour_detail_service.dart';
 import 'package:wayable/services/tour/tour_spot_service.dart';
 import 'package:wayable/utils/app_logger.dart';
+import 'package:wayable/widgets/bottom_nav_bar.dart';
 
-const _kHeroLoopMultiplier = 1000;
+const _kCarouselLoopMultiplier = 1000;
 const _kHeroAutoPlayInterval = Duration(seconds: 5);
+const _kMostSavedCardHeight = 203.15;
+const _kMostSavedShadowClearance = 10.0;
 
 /// 3~5월 봄, 6~8월 여름, 9~11월 가을, 12~2월 겨울.
 enum _Season { spring, summer, fall, winter }
@@ -25,7 +36,7 @@ _Season _seasonForMonth(int month) {
   return _Season.winter; // 12, 1, 2
 }
 
-// TO-DO: 실제 계절별 안내형 슬라이드 디자인으로 교체
+// TO-DO: 나머지 달(1~7월) 배너 이미지가 준비되면 이 색상+문구 폴백은 걷어낸다.
 const _kSeasonGuideColors = {
   _Season.spring: AppColors.seasonSpring,
   _Season.summer: AppColors.seasonSummer,
@@ -40,13 +51,48 @@ const _kSeasonLabels = {
   _Season.winter: '겨울',
 };
 
+// 월별 안내 슬라이드 이미지. 아직 준비되지 않은 달(1~7월)은 이 맵에 없고,
+// 그런 달엔 _buildGuideSlide()가 기존 계절색+문구 폴백을 그대로 보여준다.
+const _kMonthGuideImages = {
+  8: 'assets/images/home/aug.jpg',
+  9: 'assets/images/home/sep.jpg',
+  10: 'assets/images/home/oct.jpg',
+  11: 'assets/images/home/nov.jpg',
+  12: 'assets/images/home/dec.jpg',
+};
+
+const _kAccessibilityCardLabels = {
+  AccessibilityProfile.physicalAssist: '지체장애 맞춤',
+  AccessibilityProfile.hearingAssist: '청각장애 맞춤',
+  AccessibilityProfile.visionAssist: '시각장애 맞춤',
+  AccessibilityProfile.infantFamily: '영유아가족 맞춤',
+  AccessibilityProfile.seniorCompanion: '고령자 맞춤',
+};
+
+const _kAccessibilityCardImages = {
+  AccessibilityProfile.physicalAssist: 'assets/images/home/physical.png',
+  AccessibilityProfile.hearingAssist: 'assets/images/home/hearing.png',
+  AccessibilityProfile.visionAssist: 'assets/images/home/visual.png',
+  AccessibilityProfile.infantFamily: 'assets/images/home/children.jpg',
+  AccessibilityProfile.seniorCompanion: 'assets/images/home/elderly.png',
+};
+
+const _kAccessibilityCardImageScale = {
+  AccessibilityProfile.physicalAssist: 1.15,
+  AccessibilityProfile.hearingAssist: 1.3,
+  AccessibilityProfile.visionAssist: 1.3,
+  AccessibilityProfile.seniorCompanion: 1.15,
+};
+
 class _FeaturedSpot {
   const _FeaturedSpot({
+    required this.contentId,
     required this.title,
     required this.regionName,
     required this.imageUrl,
   });
 
+  final String contentId;
   final String title;
   final String regionName;
   final String imageUrl;
@@ -73,76 +119,30 @@ class _DiscoverySpot {
   final String imageUrl;
 }
 
-class _CategorySpot {
-  const _CategorySpot({
-    required this.label,
-    required this.imageAsset,
-    required this.background,
-    required this.labelColor,
-    this.imageAlignment = Alignment.center,
-  });
-
-  final String label;
-  final String imageAsset;
-  final Gradient background;
-  final Color labelColor;
-  final Alignment imageAlignment;
-}
-
 // 이 시즌(2025년 봄)에 통합필터선택 지역 목록의 첫 번째(서울)가 걸리도록 잡은 기준점.
 final _kRegionRotationAnchor = DateTime(2025, 3, 1);
 
-final _categorySpots = [
-  _CategorySpot(
-    label: '문화시설',
-    imageAsset: 'assets/images/home/category_culture.png',
-    background: const LinearGradient(
-      colors: [AppColors.cultureCardColor, AppColors.cultureCardColor],
-    ),
-    labelColor: Colors.white,
-    imageAlignment: Alignment.topCenter,
-  ),
-  _CategorySpot(
-    label: '음식점',
-    imageAsset: 'assets/images/home/category_restaurant.png',
-    background: LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: AppColors.restaurantCardGradient,
-    ),
-    labelColor: AppColors.textPrimary,
-    imageAlignment: Alignment.center,
-  ),
-  _CategorySpot(
-    label: '숙박',
-    imageAsset: 'assets/images/home/category_lodging.png',
-    background: const LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: AppColors.lodgingCardGradient,
-    ),
-    labelColor: AppColors.textPrimary,
-    imageAlignment: Alignment.bottomCenter,
-  ),
-];
-
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   PageController _heroController = PageController();
   int _heroPage = 0;
   // null이면 로딩 중 → _buildHeroBanner()가 스켈레톤을 보여준다.
   List<_FeaturedSpot>? _featuredSpots;
   Timer? _heroAutoPlayTimer;
 
+  final _accessibilityScrollController = ScrollController();
+  int _accessibilityCardIndex = 0;
+
   final _locationService = LocationService();
   final _kakaoLocalService = KakaoLocalService();
   final _tourSpotService = TourSpotService();
+  final _tourDetailService = TourDetailService();
 
   // null이면 로딩 중 → _buildDiscoverySection()이 실제 값 대신 스켈레톤을 보여준다.
   _DiscoverySpot? _discoverySpot;
@@ -155,19 +155,97 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Map<String, SigunguCode> _sigunguByMemberCode = const {};
   Map<String, AreaCode> _areaCodeBySidoName = const {};
+  Map<String, AreaCode> _areaCodeByCode = const {};
+
+  // null이면 로딩 중 → _buildMostSavedSection()이 스켈레톤을 보여준다.
+  List<TourSpot>? _mostSavedSpots;
+  PageController _mostSavedController = PageController(viewportFraction: 0.402);
+  // 히어로 배너처럼 실제 개수보다 훨씬 큰 가상 인덱스를 쓰고 나머지 연산으로
+  // 되돌려서, 5번에서 다음으로 넘기면 1번으로 자연스럽게 돌아가게 한다.
+  int _mostSavedPage = 0;
 
   @override
   void initState() {
     super.initState();
     _loadDiscoverySpot();
     _loadFeaturedSpots();
+    _loadMostSavedSpots();
+    _accessibilityScrollController.addListener(_onAccessibilityScroll);
   }
 
   @override
   void dispose() {
     _heroAutoPlayTimer?.cancel();
     _heroController.dispose();
+    _accessibilityScrollController.dispose();
+    _mostSavedController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadMostSavedSpots() async {
+    final spots = await _tourSpotService.fetchMostBookmarked();
+    final withImages = spots
+        .where((spot) => (spot.firstImage ?? '').isNotEmpty)
+        .take(5)
+        .toList();
+    if (!mounted) return;
+    final oldController = _mostSavedController;
+    final centerVirtualPage = withImages.isEmpty
+        ? 0
+        : (withImages.length * _kCarouselLoopMultiplier) ~/ 2;
+    setState(() {
+      _mostSavedSpots = withImages;
+      _mostSavedPage = centerVirtualPage;
+      _mostSavedController = PageController(
+        viewportFraction: 0.402,
+        initialPage: centerVirtualPage,
+      );
+    });
+    oldController.dispose();
+  }
+
+  void _goToPreviousMostSaved() {
+    if (!_mostSavedController.hasClients) return;
+    _mostSavedController.previousPage(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
+  }
+
+  void _goToNextMostSaved() {
+    if (!_mostSavedController.hasClients) return;
+    _mostSavedController.nextPage(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
+  }
+
+  /// 홈페이지 URL이 있으면 외부 브라우저로 열고, 없으면 아무 동작도 하지 않는다.
+  Future<void> _onFeaturedSpotTap(String contentId) async {
+    final info = await _tourDetailService.fetchCommonInfo(contentId);
+    final homepage = info?.homepage;
+    if (homepage == null || homepage.isEmpty) return;
+    final uri = Uri.tryParse(homepage);
+    if (uri == null) return;
+    if (!mounted) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  /// 맞춤 무장애 여행 관련, 대분류 데이터만 가지고 이동함.
+  void _onAccessibilityCardTap(AccessibilityProfile profile) {
+    ref.read(pendingAccessibilityRequestProvider.notifier).state = profile;
+    ref.read(tabSwitchRequestProvider.notifier).state = BottomNavTab.explore;
+  }
+
+  void _onAccessibilityScroll() {
+    final lastIndex = AccessibilityProfile.values.length - 1;
+    final position = _accessibilityScrollController.position;
+    final index = position.pixels >= position.maxScrollExtent - 1
+        ? lastIndex
+        : (position.pixels / (145.w + 7.w)).round().clamp(0, lastIndex);
+    if (index != _accessibilityCardIndex) {
+      setState(() => _accessibilityCardIndex = index);
+    }
   }
 
   void _startHeroAutoPlay() {
@@ -185,16 +263,15 @@ class _HomeScreenState extends State<HomeScreen> {
     final areaCodes = await AreaCodeRepository.load();
     final byMemberCode = <String, SigunguCode>{};
     final bySidoName = <String, AreaCode>{};
+    final byCode = <String, AreaCode>{};
     for (final area in areaCodes) {
       bySidoName[_normalizeSidoName(area.name)] = area;
+      byCode[area.code] = area;
       for (final sigungu in area.sigungu) {
         for (final code in sigungu.memberCodes) {
           byMemberCode[_regionKey(area.code, code)] = sigungu;
         }
       }
-      // 이 데이터셋의 code "12"는 광주광역시 + 전라남도를 합쳐 담고 있어서,
-      // 접미사 제거 정규화만으로는 카카오가 실제로 내려주는 "광주광역시"/"전라남도"와 걸리지 않음.
-      // 별칭으로 직접 등록
       if (area.code == '12') {
         bySidoName['광주'] = area;
         bySidoName['전라남'] = area;
@@ -202,6 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     _sigunguByMemberCode = byMemberCode;
     _areaCodeBySidoName = bySidoName;
+    _areaCodeByCode = byCode;
   }
 
   String _regionKey(String? regnCd, String? signguCd) => '$regnCd:$signguCd';
@@ -301,7 +379,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _discoverySpot = _DiscoverySpot(
       name: spot.title,
       location: location,
-      // 위치는 항상 firstImage가 있는 후보 목록에서만 뽑힌다.
       imageUrl: spot.firstImage!,
     );
   }
@@ -361,9 +438,9 @@ class _HomeScreenState extends State<HomeScreen> {
         .take(5)
         .map(
           (spot) => _FeaturedSpot(
+            contentId: spot.contentId,
             title: spot.title,
             regionName: region.name,
-            // 위치는 항상 firstImage가 있는 후보 목록에서만 뽑힌다.
             imageUrl: spot.firstImage!,
           ),
         )
@@ -371,11 +448,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (!mounted) return;
     final oldController = _heroController;
-    // +1은 맨 앞에 고정으로 붙는 안내형 슬라이드
     final totalSlideCount = featured.isEmpty ? 0 : featured.length + 1;
     final centerVirtualPage = totalSlideCount == 0
         ? 0
-        : (totalSlideCount * _kHeroLoopMultiplier) ~/ 2;
+        : (totalSlideCount * _kCarouselLoopMultiplier) ~/ 2;
     setState(() {
       _featuredSpots = featured;
       _heroPage = 0;
@@ -387,31 +463,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final nickname = ref.watch(authStateProvider).user?.nickname;
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeroBanner(),
-          SizedBox(height: 41.h),
+          SizedBox(height: 30.h),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.w),
             child: _buildDiscoverySection(),
           ),
-          SizedBox(height: 41.h),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
-            child: Text(
-              '카테고리 별 추천 장소',
-              style: TextStyle(
-                fontSize: 19.sp,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
-          SizedBox(height: 18.h),
-          _buildCategoryList(),
-          SizedBox(height: 24.h),
+          SizedBox(height: 30.h),
+          _buildAccessibilityRecommendationSection(nickname),
+          _buildMostSavedSection(),
+          SizedBox(height: 30.h),
         ],
       ),
     );
@@ -444,7 +510,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           PageView.builder(
             controller: _heroController,
-            itemCount: slides.length * _kHeroLoopMultiplier,
+            itemCount: slides.length * _kCarouselLoopMultiplier,
             onPageChanged: (index) {
               setState(() => _heroPage = index % slides.length);
               // 페이지가 바뀐 시점부터 다시 5초를 카운트.
@@ -455,28 +521,28 @@ class _HomeScreenState extends State<HomeScreen> {
               if (slide.isGuide) return _buildGuideSlide();
 
               final spot = slide.spot!;
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  Image.network(
-                    spot.imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => _buildImageErrorPlaceholder(),
-                  ),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withValues(alpha: 0),
-                          Colors.black.withValues(alpha: 0.65),
-                        ],
-                        stops: const [0.4, 1],
+              return GestureDetector(
+                onTap: () => _onFeaturedSpotTap(spot.contentId),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.network(
+                      spot.imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => _buildImageErrorPlaceholder(),
+                    ),
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [Color(0xCC000000), Color(0x00000000)],
+                          stops: [0, 0.5],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               );
             },
           ),
@@ -546,6 +612,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                SizedBox(height: 10.h),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -574,8 +641,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           onTap: _refreshDiscoverySpot,
                           child: Image.asset(
                             'assets/images/refresh.png',
-                            width: 14.r,
-                            height: 14.r,
+                            width: 22.r,
+                            height: 22.r,
+                            color: AppColors.textPrimary,
+                            colorBlendMode: BlendMode.srcIn,
                           ),
                         ),
                       ],
@@ -585,10 +654,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 SizedBox(height: 8.h),
                 Row(
                   children: [
-                    Icon(
-                      Icons.location_on_outlined,
-                      size: 16.r,
-                      color: AppColors.locationText,
+                    Image.asset(
+                      'assets/images/pin.png',
+                      width: 24.r,
+                      height: 24.r,
                     ),
                     SizedBox(width: 4.w),
                     Expanded(
@@ -632,22 +701,27 @@ class _HomeScreenState extends State<HomeScreen> {
                               gradient: LinearGradient(
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
-                                colors: [Color(0x99000000), Color(0x00000000)],
-                                stops: [0, 0.5],
+                                colors: [
+                                  Color(0x1A000000),
+                                  Color(0x1A000000),
+                                  Color(0xFF000000),
+                                  Color(0xFF000000),
+                                ],
+                                stops: [0, 0.692, 0.996, 1],
                               ),
                             ),
                           ),
                           Positioned(
                             left: 12.w,
                             right: 13.w,
-                            top: 12.h,
+                            bottom: 12.h,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
                                   spot.name,
                                   style: TextStyle(
-                                    fontSize: 16.sp,
+                                    fontSize: 19.sp,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.white,
                                   ),
@@ -662,6 +736,135 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAccessibilityRecommendationSection(String? nickname) {
+    final displayName = (nickname == null || nickname.isEmpty)
+        ? '회원'
+        : nickname;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$displayName님이 찾던 무장애 여행',
+                style: TextStyle(
+                  fontSize: 19.sp,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              SizedBox(height: 6.h),
+              Text(
+                '관심있는 유형에 맞는 맞춤 여행지를 추천해드려요.',
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 20.h),
+        SizedBox(
+          height: 199.h,
+          child: ListView.separated(
+            controller: _accessibilityScrollController,
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            itemCount: AccessibilityProfile.values.length,
+            separatorBuilder: (_, _) => SizedBox(width: 7.w),
+            itemBuilder: (context, index) =>
+                _buildAccessibilityCard(AccessibilityProfile.values[index]),
+          ),
+        ),
+        SizedBox(height: 13.h),
+        Center(child: _buildAccessibilityIndicator()),
+        SizedBox(height: 30.h),
+      ],
+    );
+  }
+
+  Widget _buildAccessibilityCard(AccessibilityProfile profile) {
+    final isPhotoAsset = profile == AccessibilityProfile.infantFamily;
+    final image = Image.asset(
+      _kAccessibilityCardImages[profile]!,
+      fit: BoxFit.cover,
+      alignment: isPhotoAsset ? Alignment.bottomRight : Alignment.center,
+    );
+    return Material(
+      color: AppColors.background,
+      borderRadius: BorderRadius.circular(10.r),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _onAccessibilityCardTap(profile),
+        child: SizedBox(
+          width: 145.w,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: isPhotoAsset
+                    ? image
+                    : Transform.scale(
+                        scale: _kAccessibilityCardImageScale[profile]!,
+                        child: image,
+                      ),
+              ),
+              Positioned(
+                right: 10.w,
+                bottom: 10.h,
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 10.w,
+                    vertical: 3.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.pageBadgeBackground,
+                    borderRadius: BorderRadius.circular(16.r),
+                  ),
+                  child: Text(
+                    _kAccessibilityCardLabels[profile]!,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.pageBadgeText,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccessibilityIndicator() {
+    final dots = List.generate(AccessibilityProfile.values.length, (index) {
+      final isActive = index == _accessibilityCardIndex;
+      return Container(
+        width: 4.r,
+        height: 4.r,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isActive ? AppColors.primary : AppColors.faintDivider,
+        ),
+      );
+    });
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < dots.length; i++) ...[
+          if (i != 0) SizedBox(width: 2.w),
+          dots[i],
+        ],
+      ],
     );
   }
 
@@ -684,9 +887,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // TO-DO: 실제 계절별 안내형 슬라이드 디자인으로 교체
   Widget _buildGuideSlide() {
-    final season = _seasonForMonth(_nowInKst().month);
+    final month = _nowInKst().month;
+    final monthImage = _kMonthGuideImages[month];
+    if (monthImage != null) {
+      return Image.asset(monthImage, fit: BoxFit.cover);
+    }
+
+    // 아직 배너 이미지가 없는 달(1~7월)은 기존 계절색+문구 폴백을 보여준다.
+    final season = _seasonForMonth(month);
     return DecoratedBox(
       decoration: BoxDecoration(color: _kSeasonGuideColors[season]),
       child: Center(
@@ -716,53 +925,353 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCategoryList() {
-    return SizedBox(
-      height: 187.h,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: 16.w),
-        itemCount: _categorySpots.length,
-        separatorBuilder: (_, _) => SizedBox(width: 12.w),
-        itemBuilder: (context, index) =>
-            _buildCategoryCard(_categorySpots[index]),
+  Widget _buildMostSavedSection() {
+    final spots = _mostSavedSpots;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          child: Text(
+            '가장 많이 저장된 여행지',
+            style: TextStyle(
+              fontSize: 19.sp,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ),
+        SizedBox(height: 20.h),
+        if (spots == null || spots.isEmpty)
+          _buildMostSavedSkeleton()
+        else
+          SizedBox(
+            width: double.infinity,
+            height: (_kMostSavedCardHeight + _kMostSavedShadowClearance).h,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                PageView.builder(
+                  controller: _mostSavedController,
+                  itemCount: spots.length * _kCarouselLoopMultiplier,
+                  onPageChanged: (index) =>
+                      setState(() => _mostSavedPage = index),
+                  itemBuilder: (context, index) {
+                    final normalizedIndex = index % spots.length;
+                    return AnimatedBuilder(
+                      animation: _mostSavedController,
+                      builder: (context, _) {
+                        var focus = index == _mostSavedPage ? 1.0 : 0.0;
+                        if (_mostSavedController.position.haveDimensions) {
+                          final page =
+                              _mostSavedController.page ??
+                              _mostSavedPage.toDouble();
+                          final distance = (page - index).abs().clamp(0.0, 1.0);
+                          focus = 1 - distance;
+                        }
+                        return Align(
+                          alignment: Alignment.topCenter,
+                          child: _buildMostSavedCard(
+                            spots[normalizedIndex],
+                            normalizedIndex + 1,
+                            focus,
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+                Positioned(
+                  left: 16.w,
+                  top: 0,
+                  bottom: _kMostSavedShadowClearance.h,
+                  child: Center(
+                    child: _buildCarouselNavButton(
+                      'assets/images/left.png',
+                      onTap: _goToPreviousMostSaved,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 16.w,
+                  top: 0,
+                  bottom: _kMostSavedShadowClearance.h,
+                  child: Center(
+                    child: _buildCarouselNavButton(
+                      'assets/images/right.png',
+                      onTap: _goToNextMostSaved,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  String _truncateLocationToDistrict(String address) {
+    final tokens = address.trim().split(RegExp(r'\s+'));
+    final districtIndex = tokens.indexWhere((token) => token.endsWith('구'));
+    if (districtIndex == -1 || districtIndex >= tokens.length - 1) {
+      return address;
+    }
+    return '${tokens.sublist(0, districtIndex + 1).join(' ')}...';
+  }
+
+  Widget _buildMostSavedSkeleton() {
+    const sideCardCount = 2;
+    final sideWidth = 109.2.w;
+    final centerWidth = 154.44.w;
+    final gap = 11.5.w;
+    final totalRowWidth = sideWidth * sideCardCount + centerWidth + gap * 2;
+    return ClipRect(
+      child: SizedBox(
+        width: double.infinity,
+        height: (_kMostSavedCardHeight + _kMostSavedShadowClearance).h,
+        child: OverflowBox(
+          minWidth: totalRowWidth,
+          maxWidth: totalRowWidth,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildMostSavedSkeletonCard(focus: 0),
+              SizedBox(width: gap),
+              _buildMostSavedSkeletonCard(focus: 1),
+              SizedBox(width: gap),
+              _buildMostSavedSkeletonCard(focus: 0),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  // TO-DO : 카테고리별 추천 장소는 제공하기 어려운 이슈로 보류
-  Widget _buildCategoryCard(_CategorySpot spot) {
-    return Container(
-      width: 132.w,
-      decoration: BoxDecoration(
-        gradient: spot.background,
-        borderRadius: BorderRadius.circular(16.r),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Image.asset(
-              spot.imageAsset,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              alignment: spot.imageAlignment,
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.only(left: 19.5.w, bottom: 10.h),
-            child: Text(
-              spot.label,
-              style: TextStyle(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
-                color: spot.labelColor,
+  Widget _buildMostSavedSkeletonCard({required double focus}) {
+    final imageWidth = (lerpDouble(109.2, 154.44, focus)!).w;
+    final imageHeight = (lerpDouble(143.64, 203.15, focus)!).h;
+    final panelWidthInset = (lerpDouble(0, 21, focus)!).w;
+    final panelWidth = imageWidth - panelWidthInset;
+    final panelHeight = (lerpDouble(46.2, 78, focus)!).h;
+    final panelTop = (lerpDouble(98, 125, focus)!).h;
+    final topOffset = (_kMostSavedCardHeight.h - imageHeight) / 2;
+
+    return Padding(
+      padding: EdgeInsets.only(top: topOffset),
+      child: SizedBox(
+        width: imageWidth,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: imageWidth,
+              height: imageHeight,
+              decoration: BoxDecoration(
+                color: AppColors.skeletonColor,
+                borderRadius: BorderRadius.circular(15.r),
               ),
             ),
-          ),
-        ],
+            Positioned(
+              top: panelTop,
+              left: 0,
+              child: Container(
+                width: panelWidth,
+                height: panelHeight,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(15.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF000000).withValues(alpha: 0.15),
+                      blurRadius: 4,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                padding: EdgeInsets.all(10.r),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: panelWidth * 0.6,
+                      height: 10.h,
+                      color: AppColors.skeletonColor,
+                    ),
+                    SizedBox(height: 6.h),
+                    Container(
+                      width: panelWidth * 0.4,
+                      height: 8.h,
+                      color: AppColors.skeletonColor,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildMostSavedPanelText({
+    required String text,
+    required double fontSize,
+    required FontWeight fontWeight,
+    required Color color,
+    required double maxWidth,
+  }) {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: SizedBox(
+        width: maxWidth,
+        child: Text(
+          text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: fontSize,
+            fontWeight: fontWeight,
+            height: 0.85,
+            color: color,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMostSavedCard(TourSpot spot, int rank, double focus) {
+    final district =
+        _sigunguByMemberCode[_regionKey(spot.lDongRegnCd, spot.lDongSignguCd)]
+            ?.name;
+    final sidoName = _areaCodeByCode[spot.lDongRegnCd]?.name;
+    final rawLocation = district != null && sidoName != null
+        ? (sidoName == district ? district : '$sidoName $district')
+        : (district ?? spot.addr1);
+    final location = _truncateLocationToDistrict(rawLocation);
+
+    final imageWidth = (lerpDouble(109.2, 154.44, focus)!).w;
+    final imageHeight = (lerpDouble(143.64, 203.15, focus)!).h;
+    final panelWidthInset = (lerpDouble(0, 21, focus)!).w;
+    final panelWidth = imageWidth - panelWidthInset;
+    final panelHeight = (lerpDouble(46.2, 78, focus)!).h;
+    final panelTop = (lerpDouble(98, 125, focus)!).h;
+    final titleFontSize = (lerpDouble(9, 15, focus)!).sp;
+    final locationFontSize = (lerpDouble(8, 13, focus)!).sp;
+    final panelPaddingH = (lerpDouble(10, 12, focus)!).w;
+    final panelPaddingTop = (lerpDouble(10, 17, focus)!).h;
+    final panelPaddingBottom = (lerpDouble(10, 24, focus)!).h;
+    final titleLocationGap = (lerpDouble(5, 10, focus)!).h;
+    final badgeOffset = (lerpDouble(5, 7, focus)!);
+    final topOffset = (_kMostSavedCardHeight.h - imageHeight) / 2;
+    final panelContentWidth = panelWidth - panelPaddingH * 2;
+
+    return Padding(
+      padding: EdgeInsets.only(top: topOffset),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 5.7.w),
+        child: GestureDetector(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => SpotDetailScreen(spot: spot)),
+          ),
+          child: SizedBox(
+            width: imageWidth,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(15.r),
+                  child: Image.network(
+                    spot.firstImage!,
+                    width: imageWidth,
+                    height: imageHeight,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => _buildImageErrorPlaceholder(),
+                  ),
+                ),
+                Positioned(
+                  top: badgeOffset.h,
+                  left: badgeOffset.w,
+                  child: _buildRankBadge(rank, focus),
+                ),
+                Positioned(
+                  top: panelTop,
+                  left: 0,
+                  child: Container(
+                    width: panelWidth,
+                    height: panelHeight,
+                    clipBehavior: Clip.antiAlias,
+                    padding: EdgeInsets.only(
+                      left: panelPaddingH,
+                      right: panelPaddingH,
+                      top: panelPaddingTop,
+                      bottom: panelPaddingBottom,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15.r),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(
+                            0xFF000000,
+                          ).withValues(alpha: 0.15),
+                          blurRadius: 4,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        Flexible(
+                          child: _buildMostSavedPanelText(
+                            text: spot.title,
+                            fontSize: titleFontSize,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                            maxWidth: panelContentWidth,
+                          ),
+                        ),
+                        SizedBox(height: titleLocationGap),
+                        Flexible(
+                          child: _buildMostSavedPanelText(
+                            text: location,
+                            fontSize: locationFontSize,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.textSecondary,
+                            maxWidth: panelContentWidth,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 등수 이미지: 중앙(focus=1) 28*35, 그 외(focus=0) 22.4*28.
+  Widget _buildRankBadge(int rank, double focus) {
+    final width = (lerpDouble(22.4, 28, focus)!).w;
+    final height = (lerpDouble(28, 35, focus)!).h;
+    return Image.asset(
+      'assets/images/${rank}st.png',
+      width: width,
+      height: height,
+    );
+  }
+
+  Widget _buildCarouselNavButton(String asset, {required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Image.asset(asset, width: 32.r, height: 32.r),
     );
   }
 }

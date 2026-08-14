@@ -84,6 +84,23 @@ class TourSpotService {
     }
   }
 
+  /// 홈 화면 "가장 많이 저장된 여행지" 캐러셀용. 컬렉션 전체를 bookmarkCount
+  /// 내림차순으로 가져온 뒤(정렬은 Firestore가 서버에서 처리) 호출부에서 상위
+  /// 몇 개만 뽑아 쓴다.
+  Future<List<TourSpot>> fetchMostBookmarked() async {
+    try {
+      final snapshot = await _collection
+          .orderBy('bookmarkCount', descending: true)
+          .get();
+      return snapshot.docs
+          .map((doc) => TourSpot.fromFirestore(doc.id, doc.data()))
+          .toList();
+    } catch (e) {
+      AppLogger.error('[TourSpotService] 최다 저장 여행지 조회 실패', error: e);
+      return [];
+    }
+  }
+
   /// [regionCode](TourSpot.lDongRegnCd, 시/도 코드)에 속하는 여행지를 콘텐츠
   /// 타입 구분 없이 전부 서버 쿼리로 가져온다 (홈 화면 "이번 달 추천 도시" 배너용).
   Future<List<TourSpot>> searchByRegion(String regionCode) async {

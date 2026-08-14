@@ -53,15 +53,6 @@ class AppColors {
   static const pageBadgeBackground = Color(0xCCFFFFFF); // 홈 화면 배너 페이지 뱃지 배경
   static const pageBadgeText = Color(0xCC2D2D2D); // 홈 화면 배너 페이지 뱃지 텍스트
   static const skeletonColor = Color(0xFFEDEDED); // 홈 화면 로딩 스켈레톤
-  static const cultureCardColor = Color(0xFF548389); // 홈 화면 문화 카테고리 카드
-  static const restaurantCardGradient = [
-    Color(0xFFE5B081),
-    Color(0xFFE9C6A8),
-  ]; // 홈 화면 맛집 카테고리 카드
-  static const lodgingCardGradient = [
-    Color(0xFFFFEADC),
-    Color(0xFFFFBBA2),
-  ]; // 홈 화면 숙소 카테고리 카드
   static const seasonSpring = Color(0xFF7CB342); // 홈 화면 계절 안내(임시, TO-DO)
   static const seasonSummer = Color(0xFF039BE5);
   static const seasonFall = Color(0xFFEF6C00);

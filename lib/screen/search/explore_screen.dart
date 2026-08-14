@@ -8,6 +8,7 @@ import '../../model/region/area_code.dart';
 import '../../model/tour/tour_category.dart';
 import '../../model/tour/tour_spot.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/navigation_provider.dart';
 import '../../services/tour/tour_spot_service.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/app_logger.dart';
@@ -97,6 +98,25 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               .whereType<AccessibilityField>()
               .toSet(),
     };
+
+    // 홈 화면의 무장애 카드를 눌러 들어온 경우, 저장된 프로필 대신 그
+    // 카드의 대분류만 활성화하고 상세 카테고리는 전체로 바로 검색한다.
+    final pendingProfile = ref.read(pendingAccessibilityRequestProvider);
+    if (pendingProfile != null) {
+      _applyPendingAccessibilityRequest(pendingProfile);
+    }
+  }
+
+  /// [profile] 대분류만 켜고 상세 카테고리는 "전체"(빈 Set)로 맞춘 뒤,
+  /// 첫 프레임이 끝나면 요청 값을 비우고 바로 검색을 실행한다.
+  void _applyPendingAccessibilityRequest(AccessibilityProfile profile) {
+    _activeProfiles = {profile};
+    _selectedFields = {profile: {}};
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(pendingAccessibilityRequestProvider.notifier).state = null;
+      _handleSearch();
+    });
   }
 
   @override
@@ -347,6 +367,22 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 탐색 탭은 한 번 방문하면 Offstage로 숨겨질 뿐 다시 initState가 돌지
+    // 않으므로(MainShell의 탭 유지 방식), 이미 떠 있는 상태에서 다른 무장애
+    // 카드를 다시 눌렀을 때도 여기서 감지해 대분류를 갈아끼운다.
+    ref.listen<AccessibilityProfile?>(pendingAccessibilityRequestProvider, (
+      _,
+      profile,
+    ) {
+      if (profile == null) return;
+      setState(() {
+        _activeProfiles = {profile};
+        _selectedFields = {profile: {}};
+      });
+      ref.read(pendingAccessibilityRequestProvider.notifier).state = null;
+      _handleSearch();
+    });
+
     return Stack(
       children: [
         Positioned.fill(child: _buildScrollableContent()),

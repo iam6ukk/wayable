@@ -99,7 +99,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                 ),
-                SizedBox(height: 22.h),
+                SizedBox(height: 20.h),
                 Center(
                   child: AnimatedOpacity(
                     duration: const Duration(milliseconds: 500),
@@ -121,7 +121,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
           // 하단: 로그인 버튼 + 비회원 텍스트
           Positioned(
-            top: 524.h,
+            top: 500.h,
             left: 31.w,
             right: 31.w,
             child: IgnorePointer(
@@ -238,8 +238,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                     ),
-
-                    // 비회원 버튼 (Figma상 카카오 버튼 top 기준 524px 지점부터 이어짐)
+                    SizedBox(height: 25.h),
                     TextButton(
                       onPressed: () {
                         Navigator.pushReplacement(

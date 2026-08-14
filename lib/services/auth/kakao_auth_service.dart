@@ -74,9 +74,23 @@ class KakaoAuthService {
         return (user: newUser, isNewUser: true);
       } else {
         // 기존 유저 → Firestore에서 불러오기
-        final existingUser = await _userService.getUser(uid);
+        var existingUser = await _userService.getUser(uid);
         AppLogger.debug('[UserService] 문서 존재 여부: ${existingUser != null}');
         AppLogger.info('[Auth] 기존 카카오 유저 로그인');
+
+        // 가입 당시 닉네임 동의항목이 없었거나 응답이 비어 저장을 못 한 경우,
+        // 이번 로그인에서 받아온 닉네임으로 보정한다.
+        final freshNickname = kakaoUser.kakaoAccount?.profile?.nickname;
+        if (existingUser != null &&
+            (existingUser.nickname == null ||
+                existingUser.nickname!.isEmpty) &&
+            freshNickname != null &&
+            freshNickname.isNotEmpty) {
+          existingUser = existingUser.copyWith(nickname: freshNickname);
+          await _userService.updateUser(existingUser);
+          AppLogger.info('[Auth] 기존 카카오 유저 닉네임 보정 완료');
+        }
+
         return (user: existingUser, isNewUser: false);
       }
     } catch (e) {
