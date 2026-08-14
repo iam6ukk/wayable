@@ -1,4 +1,4 @@
-package com.example.wayable
+package com.wayable.app
 
 import io.flutter.embedding.android.FlutterActivity
 

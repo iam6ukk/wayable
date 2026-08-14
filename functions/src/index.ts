@@ -40,6 +40,5 @@ export const kakaoCustomToken = onCall(
 );
 
 export { dailyDeltaSync } from "./batch/dailyDeltaSync";
-export { dailyEventSync } from "./batch/dailyEventSync";
 export { searchTourSpots } from "./search/searchTourSpots";
 export { onBookmarkSpotCreated, onBookmarkSpotDeleted } from "./bookmark/bookmarkCountSync";
