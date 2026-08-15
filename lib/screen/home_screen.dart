@@ -504,27 +504,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               if (slide.isGuide) return _buildGuideSlide();
 
               final spot = slide.spot!;
-              return GestureDetector(
-                onTap: () => _onFeaturedSpotTap(spot.contentId),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.network(
-                      spot.imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => _buildImageErrorPlaceholder(),
-                    ),
-                    const DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [Color(0xCC000000), Color(0x00000000)],
-                          stops: [0, 0.5],
+              return Semantics(
+                label: '${spot.title}, ${spot.regionName} 홈페이지 열기',
+                link: true,
+                excludeSemantics: true,
+                child: GestureDetector(
+                  onTap: () => _onFeaturedSpotTap(spot.contentId),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.network(
+                        spot.imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) =>
+                            _buildImageErrorPlaceholder(),
+                      ),
+                      const DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [Color(0xCC000000), Color(0x00000000)],
+                            stops: [0, 0.5],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },
@@ -532,18 +538,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Positioned(
             top: 16.h,
             right: 16.w,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-              decoration: BoxDecoration(
-                color: AppColors.whiteBackground.withValues(alpha: 0.8),
-                borderRadius: BorderRadius.circular(16.r),
-              ),
-              child: Text(
-                '${_heroPage + 1}/${slides.length}',
-                style: TextStyle(
-                  fontSize: 8.2.sp,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary.withValues(alpha: 0.8),
+            child: ExcludeSemantics(
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                decoration: BoxDecoration(
+                  color: AppColors.whiteBackground.withValues(alpha: 0.8),
+                  borderRadius: BorderRadius.circular(16.r),
+                ),
+                child: Text(
+                  '${_heroPage + 1}/${slides.length}',
+                  style: TextStyle(
+                    fontSize: 8.2.sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary.withValues(alpha: 0.8),
+                  ),
                 ),
               ),
             ),
@@ -553,29 +561,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               left: 16.w,
               right: 16.w,
               bottom: 13.h,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    currentSlide.spot!.regionName,
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+              child: ExcludeSemantics(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      currentSlide.spot!.regionName,
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    currentSlide.spot!.title,
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      fontSize: 19.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                    SizedBox(height: 4.h),
+                    Text(
+                      currentSlide.spot!.title,
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        fontSize: 19.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
         ],
