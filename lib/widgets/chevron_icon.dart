@@ -12,8 +12,8 @@ class ChevronIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return Image.asset(
       pointsUp
-          ? 'assets/images/up_arrow.png'
-          : 'assets/images/down_arrow.png',
+          ? 'assets/images/common/up_arrow.png'
+          : 'assets/images/common/down_arrow.png',
       width: 11.r,
       color: color,
       colorBlendMode: BlendMode.srcIn,

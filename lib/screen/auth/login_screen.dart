@@ -92,7 +92,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: Hero(
                     tag: 'app_logo',
                     child: Image.asset(
-                      'assets/images/wayable.png',
+                      'assets/images/common/wayable.png',
                       width: 106.w,
                       height: 108.h,
                       fit: BoxFit.contain,
@@ -164,7 +164,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             Positioned(
                               left: 3.w,
                               child: Image.asset(
-                                'assets/images/kakao.png',
+                                'assets/images/login/kakao.png',
                                 width: 41.r,
                                 height: 41.r,
                               ),
@@ -220,7 +220,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             Positioned(
                               left: 6.5.w,
                               child: Image.asset(
-                                'assets/images/google.png',
+                                'assets/images/login/google.png',
                                 width: 29.3.r,
                                 height: 29.3.r,
                               ),

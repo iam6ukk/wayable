@@ -392,9 +392,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ScrollFab(icon: Icons.arrow_upward, onTap: _scrollToTop),
+              ScrollFab(icon: Icons.north, onTap: _scrollToTop),
               SizedBox(height: 11.h),
-              ScrollFab(icon: Icons.arrow_downward, onTap: _scrollToBottom),
+              ScrollFab(icon: Icons.south, onTap: _scrollToBottom),
             ],
           ),
         ),
@@ -768,7 +768,7 @@ class _EmptyResultState extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Image.asset(
-            'assets/images/empty_search.png',
+            'assets/images/explore/empty_search.png',
             width: 60.r,
             height: 60.r,
           ),
@@ -936,7 +936,7 @@ class _PaginationBar extends StatelessWidget {
       children: [
         _NavTextButton(
           label: '이전',
-          leadingIcon: Icons.chevron_left,
+          leadingIcon: Icons.arrow_back_ios,
           enabled: currentPage > 1,
           onTap: () => onPageSelected(currentPage - 1),
         ),
@@ -954,7 +954,7 @@ class _PaginationBar extends StatelessWidget {
         SizedBox(width: 8.w),
         _NavTextButton(
           label: '다음',
-          trailingIcon: Icons.chevron_right,
+          trailingIcon: Icons.arrow_forward_ios,
           enabled: currentPage < totalPages,
           onTap: () => onPageSelected(currentPage + 1),
         ),
@@ -1024,7 +1024,11 @@ class _NavTextButton extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: Row(
         children: [
-          if (leadingIcon != null) Icon(leadingIcon, size: 16.r, color: color),
+          if (leadingIcon != null)
+            Transform.translate(
+              offset: Offset(2.r, 0),
+              child: Icon(leadingIcon, size: 14.r, color: color),
+            ),
           Text(
             label,
             style: TextStyle(
@@ -1034,7 +1038,7 @@ class _NavTextButton extends StatelessWidget {
             ),
           ),
           if (trailingIcon != null)
-            Icon(trailingIcon, size: 16.r, color: color),
+            Icon(trailingIcon, size: 14.r, color: color),
         ],
       ),
     );

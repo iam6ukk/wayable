@@ -15,6 +15,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   _registerFontLicenses();
+  _registerImageLicenses();
 
   await dotenv.load(fileName: ".env");
   final kakaoNativeAppKey = dotenv.env['KAKAO_NATIVE_APP_KEY'];
@@ -49,6 +50,36 @@ void _registerFontLicenses() {
       'assets/licenses/cal_sans_OFL.txt',
     );
     yield LicenseEntryWithLineBreaks(['CalSans'], calSans);
+  });
+}
+
+// Freepik(Magnific)의 "출처표기 조건부 무료 상업이용" 라이선스 아이콘 —
+// 홈 화면 상황별 카드(situation_*)에 쓰는 3D 아이콘 5종의 출처 고지
+void _registerImageLicenses() {
+  const attribution = 'designed by Freepik - Magnific.com (https://www.magnific.com)';
+  const items = {
+    '고령자 맞춤 아이콘 (situation_seniorCompanion)':
+        'https://www.magnific.com/free-psd/3d-render-disability-icon_165590100.htm',
+    '시각장애 맞춤 아이콘 (situation_visionAssist)':
+        'https://www.magnific.com/kr/free-psd/visual-impairment-stick-icon-rendering_90428382.htm',
+    '영유아가족 맞춤 아이콘 (situation_infantFamily)':
+        'https://www.magnific.com/free-psd/3d-illustration-with-rules-orderly-conduct_171608169.htm',
+    '지체장애 맞춤 아이콘 (situation_physicalAssist)':
+        'https://www.magnific.com/free-psd/3d-illustration-reduced-mobility-with-wheelchair_40336583.htm',
+    '청각장애 맞춤 아이콘 (situation_hearingAssist)':
+        'https://www.magnific.com/free-psd/3d-render-disability-icon_165590283.htm',
+  };
+
+  LicenseRegistry.addLicense(() async* {
+    for (final entry in items.entries) {
+      yield LicenseEntryWithLineBreaks(['Freepik 3D 아이콘 - ${entry.key}'], '''
+License type: Free for commercial use WITH ATTRIBUTION license
+Licensor: Freepik - Magnific.com
+Item URL: ${entry.value}
+
+Attribution: $attribution
+''');
+    }
   });
 }
 

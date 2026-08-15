@@ -75,6 +75,9 @@ flutter:
     - assets/images/
     - assets/data/
     - assets/images/home/
+    - assets/images/common/
+    - assets/images/explore/
+    - assets/images/login/
     - assets/animations/
     - assets/licenses/
     - .env
@@ -99,15 +102,13 @@ flutter:
 
 flutter_native_splash:
   color: "#EAF4FF"
-  image: assets/images/transparent.png
   android_12:
     color: "#EAF4FF"
-    image: assets/images/transparent.png
 
 flutter_launcher_icons:
   android: true
   ios: false
-  image_path: "assets/images/wayable.png"
+  image_path: "assets/images/common/wayable.png"
 
   # To add assets to your application, add an assets section, like this:
   # assets:

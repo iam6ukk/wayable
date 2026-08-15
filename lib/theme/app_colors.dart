@@ -50,8 +50,6 @@ class AppColors {
   static const searchBarBackground = Color(0x80D9D9D9); // 탐색 화면 검색창 배경
   static const inactiveSurface = Color(0xFFF2F2F2); // 탐색 화면 비활성 원형 배경
   static const locationText = Color(0xFFBFBFBF); // 홈 화면 위치 텍스트
-  static const pageBadgeBackground = Color(0xCCFFFFFF); // 홈 화면 배너 페이지 뱃지 배경
-  static const pageBadgeText = Color(0xCC2D2D2D); // 홈 화면 배너 페이지 뱃지 텍스트
   static const skeletonColor = Color(0xFFEDEDED); // 홈 화면 로딩 스켈레톤
   static const seasonSpring = Color(0xFF7CB342); // 홈 화면 계절 안내(임시, TO-DO)
   static const seasonSummer = Color(0xFF039BE5);

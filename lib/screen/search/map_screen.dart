@@ -38,7 +38,7 @@ const _kMaxMarkers = 20;
 
 /// 활성/비활성 핀 크기. 이미지 자체는 실제 검색결과 화면(831:763 등)에서 쓰인
 /// 원본 컴포넌트인 피그마 노드 643:222(Group 147, 활성)/643:221(Group 146, 비활성)를
-/// 그대로 내려받은 asset(assets/images/map_pin_active.png·map_pin_inactive.png).
+/// 그대로 내려받은 asset(assets/images/explore/map_pin_active.png·map_pin_inactive.png).
 /// (643:224/226은 이름만 비슷한 별도 초안 도형이라 실제로 쓰이는 노드가 아니었음.)
 const _kActivePinSize = 32.0;
 const _kInactivePinSize = 16.0;
@@ -434,12 +434,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     _bigStyles.clear();
 
     final smallIcon = KImage.fromAsset(
-      'assets/images/map_pin_inactive.png',
+      'assets/images/explore/map_pin_inactive.png',
       _kInactivePinSize.toInt(),
       _kInactivePinSize.toInt(),
     );
     final bigIcon = KImage.fromAsset(
-      'assets/images/map_pin_active.png',
+      'assets/images/explore/map_pin_active.png',
       _kActivePinSize.toInt(),
       _kActivePinSize.toInt(),
     );
