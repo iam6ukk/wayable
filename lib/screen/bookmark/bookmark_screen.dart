@@ -175,9 +175,9 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ScrollFab(icon: Icons.arrow_upward, onTap: _scrollToTop),
+              ScrollFab(icon: Icons.north, onTap: _scrollToTop),
               SizedBox(height: 11.h),
-              ScrollFab(icon: Icons.arrow_downward, onTap: _scrollToBottom),
+              ScrollFab(icon: Icons.south, onTap: _scrollToBottom),
             ],
           ),
         ),

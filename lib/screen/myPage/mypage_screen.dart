@@ -246,7 +246,7 @@ class MyPageScreen extends ConsumerWidget {
                     ),
                   ),
                   Icon(
-                    Icons.chevron_right,
+                    Icons.arrow_forward_ios,
                     size: 10.r,
                     color: AppColors.textTertiary,
                   ),

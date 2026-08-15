@@ -54,11 +54,11 @@ const _kSeasonLabels = {
 // 월별 안내 슬라이드 이미지. 아직 준비되지 않은 달(1~7월)은 이 맵에 없고,
 // 그런 달엔 _buildGuideSlide()가 기존 계절색+문구 폴백을 그대로 보여준다.
 const _kMonthGuideImages = {
-  8: 'assets/images/home/aug.jpg',
-  9: 'assets/images/home/sep.jpg',
-  10: 'assets/images/home/oct.jpg',
-  11: 'assets/images/home/nov.jpg',
-  12: 'assets/images/home/dec.jpg',
+  8: 'assets/images/home/banner_aug.jpg',
+  9: 'assets/images/home/banner_sep.jpg',
+  10: 'assets/images/home/banner_oct.jpg',
+  11: 'assets/images/home/banner_nov.jpg',
+  12: 'assets/images/home/banner_dec.jpg',
 };
 
 const _kAccessibilityCardLabels = {
@@ -70,11 +70,16 @@ const _kAccessibilityCardLabels = {
 };
 
 const _kAccessibilityCardImages = {
-  AccessibilityProfile.physicalAssist: 'assets/images/home/physical.png',
-  AccessibilityProfile.hearingAssist: 'assets/images/home/hearing.png',
-  AccessibilityProfile.visionAssist: 'assets/images/home/visual.png',
-  AccessibilityProfile.infantFamily: 'assets/images/home/children.jpg',
-  AccessibilityProfile.seniorCompanion: 'assets/images/home/elderly.png',
+  AccessibilityProfile.physicalAssist:
+      'assets/images/home/situation_physicalAssist.png',
+  AccessibilityProfile.hearingAssist:
+      'assets/images/home/situation_hearingAssist.png',
+  AccessibilityProfile.visionAssist:
+      'assets/images/home/situation_visionAssist.png',
+  AccessibilityProfile.infantFamily:
+      'assets/images/home/situation_infantFamily.jpg',
+  AccessibilityProfile.seniorCompanion:
+      'assets/images/home/situation_seniorCompanion.png',
 };
 
 const _kAccessibilityCardImageScale = {
@@ -82,6 +87,14 @@ const _kAccessibilityCardImageScale = {
   AccessibilityProfile.hearingAssist: 1.3,
   AccessibilityProfile.visionAssist: 1.3,
   AccessibilityProfile.seniorCompanion: 1.15,
+};
+
+const _kRankBadgeImages = {
+  1: 'assets/images/home/ranking_1st.png',
+  2: 'assets/images/home/ranking_2nd.png',
+  3: 'assets/images/home/ranking_3rd.png',
+  4: 'assets/images/home/ranking_4th.png',
+  5: 'assets/images/home/ranking_5th.png',
 };
 
 class _FeaturedSpot {
@@ -552,7 +565,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
               decoration: BoxDecoration(
-                color: AppColors.pageBadgeBackground,
+                color: AppColors.whiteBackground.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(16.r),
               ),
               child: Text(
@@ -560,7 +573,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 style: TextStyle(
                   fontSize: 8.2.sp,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.pageBadgeText,
+                  color: AppColors.textPrimary.withValues(alpha: 0.8),
                 ),
               ),
             ),
@@ -639,12 +652,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         SizedBox(width: 4.w),
                         GestureDetector(
                           onTap: _refreshDiscoverySpot,
-                          child: Image.asset(
-                            'assets/images/refresh.png',
-                            width: 22.r,
-                            height: 22.r,
+                          child: Icon(
+                            Icons.refresh,
+                            size: 22.r,
                             color: AppColors.textPrimary,
-                            colorBlendMode: BlendMode.srcIn,
                           ),
                         ),
                       ],
@@ -654,10 +665,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 SizedBox(height: 8.h),
                 Row(
                   children: [
-                    Image.asset(
-                      'assets/images/pin.png',
-                      width: 24.r,
-                      height: 24.r,
+                    Icon(
+                      Icons.pin_drop_outlined,
+                      size: 24.r,
+                      color: AppColors.locationText,
                     ),
                     SizedBox(width: 4.w),
                     Expanded(
@@ -763,7 +774,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Text(
                 '관심있는 유형에 맞는 맞춤 여행지를 추천해드려요.',
                 style: TextStyle(
-                  fontSize: 13.sp,
+                  fontSize: 12.sp,
                   fontWeight: FontWeight.w400,
                   color: AppColors.textSecondary,
                 ),
@@ -825,15 +836,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     vertical: 3.h,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.pageBadgeBackground,
+                    color: AppColors.whiteBackground,
                     borderRadius: BorderRadius.circular(16.r),
                   ),
                   child: Text(
                     _kAccessibilityCardLabels[profile]!,
                     style: TextStyle(
                       fontSize: 12.sp,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.pageBadgeText,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ),
@@ -987,7 +998,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   bottom: _kMostSavedShadowClearance.h,
                   child: Center(
                     child: _buildCarouselNavButton(
-                      'assets/images/left.png',
+                      Icons.arrow_back_ios_new,
                       onTap: _goToPreviousMostSaved,
                     ),
                   ),
@@ -998,7 +1009,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   bottom: _kMostSavedShadowClearance.h,
                   child: Center(
                     child: _buildCarouselNavButton(
-                      'assets/images/right.png',
+                      Icons.arrow_forward_ios,
                       onTap: _goToNextMostSaved,
                     ),
                   ),
@@ -1210,7 +1221,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       bottom: panelPaddingBottom,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.bottomSheetBackground,
                       borderRadius: BorderRadius.circular(15.r),
                       boxShadow: [
                         BoxShadow(
@@ -1261,17 +1272,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildRankBadge(int rank, double focus) {
     final width = (lerpDouble(22.4, 28, focus)!).w;
     final height = (lerpDouble(28, 35, focus)!).h;
-    return Image.asset(
-      'assets/images/${rank}st.png',
-      width: width,
-      height: height,
-    );
+    return Image.asset(_kRankBadgeImages[rank]!, width: width, height: height);
   }
 
-  Widget _buildCarouselNavButton(String asset, {required VoidCallback onTap}) {
+  Widget _buildCarouselNavButton(IconData icon, {required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
-      child: Image.asset(asset, width: 32.r, height: 32.r),
+      child: Container(
+        width: 20.r,
+        height: 20.r,
+        decoration: const BoxDecoration(
+          color: AppColors.bottomSheetBackground,
+          shape: BoxShape.circle,
+        ),
+        alignment: Alignment.center,
+        child: Icon(icon, size: 14.r, color: AppColors.bottomNavInactive),
+      ),
     );
   }
 }

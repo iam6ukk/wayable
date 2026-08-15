@@ -95,7 +95,7 @@ class _LandingPageState extends State<LandingPage> {
                   createRectTween: (begin, end) =>
                       _EasedRectTween(begin: begin, end: end),
                   child: Image.asset(
-                    'assets/images/wayable.png',
+                    'assets/images/common/wayable.png',
                     width: 123.w,
                     height: 125.h,
                   ),
