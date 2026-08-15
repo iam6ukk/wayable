@@ -256,21 +256,26 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
   // 여행지 저장 목록으로 나간다 — 이 화면 안에 '순서 편집만 종료'하는 별도
   // 상태로 되돌아갈 곳이 없다.
   Widget _buildBackButton() {
-    return InkWell(
-      borderRadius: BorderRadius.circular(20.r),
-      onTap: widget.onBack,
-      child: Padding(
-        padding: EdgeInsets.only(top: 4.r, right: 4.r, bottom: 4.r),
-        // arrow_back_ios_new 글리프 자체가 24x24 박스 안에서 왼쪽에 여백을
-        // 두고 그려져 있어서, 그대로 두면 화살표가 아래 '저장된 폴더'
-        // 텍스트보다 화면 좌측 여백(16.w) 안쪽으로 더 들어가 보인다 — 그
-        // 여백만큼 왼쪽으로 당겨서 좌측 기준선을 맞춘다.
-        child: Transform.translate(
-          offset: Offset(-4.r, 0),
-          child: Icon(
-            Icons.arrow_back_ios_new,
-            size: 20.r,
-            color: AppColors.bottomNavActive,
+    return Semantics(
+      label: '뒤로가기',
+      button: true,
+      excludeSemantics: true,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20.r),
+        onTap: widget.onBack,
+        child: Padding(
+          padding: EdgeInsets.only(top: 4.r, right: 4.r, bottom: 4.r),
+          // arrow_back_ios_new 글리프 자체가 24x24 박스 안에서 왼쪽에 여백을
+          // 두고 그려져 있어서, 그대로 두면 화살표가 아래 '저장된 폴더'
+          // 텍스트보다 화면 좌측 여백(16.w) 안쪽으로 더 들어가 보인다 — 그
+          // 여백만큼 왼쪽으로 당겨서 좌측 기준선을 맞춘다.
+          child: Transform.translate(
+            offset: Offset(-4.r, 0),
+            child: Icon(
+              Icons.arrow_back_ios_new,
+              size: 20.r,
+              color: AppColors.bottomNavActive,
+            ),
           ),
         ),
       ),
@@ -283,6 +288,7 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
   // 메뉴가 열려 있는 동안엔 세모 화살표가 위를 향하도록 뒤집는다.
   Widget _buildSortButton() {
     return SimplePopupMenu<_FolderSortOption>(
+      tooltip: '정렬 기준 선택',
       options: [
         for (final option in _FolderSortOption.values)
           SimplePopupMenuOption(option, option.label),
@@ -323,10 +329,12 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
         padding: EdgeInsets.symmetric(horizontal: 32.w),
         child: Row(
           children: [
-            Icon(
-              Icons.folder_outlined,
-              size: 20.r,
-              color: AppColors.textPrimary,
+            ExcludeSemantics(
+              child: Icon(
+                Icons.folder_outlined,
+                size: 20.r,
+                color: AppColors.textPrimary,
+              ),
             ),
             SizedBox(width: 17.w),
             Expanded(
@@ -342,6 +350,7 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
             ),
             if (!isDefault)
               SimplePopupMenu<String>(
+                tooltip: '${folder.name} 폴더 관리',
                 // 정렬 기준 메뉴와 크기를 맞춘다(피그마상 두 메뉴 모두
                 // 111×110, 3항목 동일 디자인).
                 width: _kActionMenuWidth.w,
@@ -383,7 +392,13 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.folder_outlined, size: 20.r, color: AppColors.textPrimary),
+          ExcludeSemantics(
+            child: Icon(
+              Icons.folder_outlined,
+              size: 20.r,
+              color: AppColors.textPrimary,
+            ),
+          ),
           SizedBox(width: 17.w),
           Expanded(
             child: Text(
@@ -413,10 +428,12 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.folder_outlined,
-            size: 20.r,
-            color: AppColors.bottomNavActive,
+          ExcludeSemantics(
+            child: Icon(
+              Icons.folder_outlined,
+              size: 20.r,
+              color: AppColors.bottomNavActive,
+            ),
           ),
           SizedBox(width: 17.w),
           Expanded(
@@ -429,10 +446,13 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
           ),
           ReorderableDragStartListener(
             index: index,
-            child: Icon(
-              Icons.dehaze,
-              size: 24.r,
-              color: AppColors.bottomNavActive,
+            child: Semantics(
+              label: '${folder.name} 순서 이동 핸들',
+              child: Icon(
+                Icons.dehaze,
+                size: 24.r,
+                color: AppColors.bottomNavActive,
+              ),
             ),
           ),
         ],

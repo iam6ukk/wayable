@@ -392,9 +392,17 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ScrollFab(icon: Icons.north, onTap: _scrollToTop),
+              ScrollFab(
+                icon: Icons.north,
+                semanticLabel: '맨 위로 이동',
+                onTap: _scrollToTop,
+              ),
               SizedBox(height: 11.h),
-              ScrollFab(icon: Icons.south, onTap: _scrollToBottom),
+              ScrollFab(
+                icon: Icons.south,
+                semanticLabel: '맨 아래로 이동',
+                onTap: _scrollToBottom,
+              ),
             ],
           ),
         ),
@@ -498,26 +506,29 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         children: [
           ..._topContent(),
           SizedBox(height: 24.h),
-          Text.rich(
-            TextSpan(
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-                height: 1.0,
-              ),
-              children: [
-                const TextSpan(text: '검색 결과 '),
-                TextSpan(
-                  text: '$_totalCount건',
-                  style: TextStyle(color: AppColors.textSecondary),
+          Semantics(
+            liveRegion: true,
+            child: Text.rich(
+              TextSpan(
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                  height: 1.0,
                 ),
-              ],
-            ),
-            strutStyle: StrutStyle(
-              fontSize: 14.sp,
-              height: 1.0,
-              forceStrutHeight: true,
+                children: [
+                  const TextSpan(text: '검색 결과 '),
+                  TextSpan(
+                    text: '$_totalCount건',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+              strutStyle: StrutStyle(
+                fontSize: 14.sp,
+                height: 1.0,
+                forceStrutHeight: true,
+              ),
             ),
           ),
           SizedBox(height: 16.h),
@@ -566,15 +577,20 @@ class _ActiveFilterChipsRow extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          GestureDetector(
-            onTap: chip.onRemove,
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: EdgeInsets.all(4.r),
-              child: Icon(
-                Icons.close,
-                size: 11.r,
-                color: AppColors.toggleUnselected,
+          Semantics(
+            label: '${chip.label} 필터 해제',
+            button: true,
+            excludeSemantics: true,
+            child: GestureDetector(
+              onTap: chip.onRemove,
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: EdgeInsets.all(4.r),
+                child: Icon(
+                  Icons.close,
+                  size: 11.r,
+                  color: AppColors.toggleUnselected,
+                ),
               ),
             ),
           ),
@@ -690,39 +706,45 @@ class _AccessibilityProfileRow extends StatelessWidget {
     bool isActive,
     double labelFontSize,
   ) {
-    return GestureDetector(
-      onTap: () => onToggle(profile),
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 48.w,
-        child: Column(
-          children: [
-            Container(
-              width: 48.w,
-              height: 48.w,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isActive
-                    ? AppColors.primary
-                    : AppColors.toggleUnselectedBackground,
+    return Semantics(
+      label: '${profile.label} 조건',
+      button: true,
+      selected: isActive,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: () => onToggle(profile),
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: 48.w,
+          child: Column(
+            children: [
+              Container(
+                width: 48.w,
+                height: 48.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isActive
+                      ? AppColors.primary
+                      : AppColors.toggleUnselectedBackground,
+                ),
+                child: Icon(
+                  profile.icon,
+                  size: 30.w,
+                  color: isActive ? Colors.white : AppColors.toggleUnselected,
+                ),
               ),
-              child: Icon(
-                profile.icon,
-                size: 30.w,
-                color: isActive ? Colors.white : AppColors.toggleUnselected,
+              SizedBox(height: 7.h),
+              Text(
+                profile.label.replaceFirst(' ', '\n'),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: labelFontSize,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary,
+                ),
               ),
-            ),
-            SizedBox(height: 7.h),
-            Text(
-              profile.label.replaceFirst(' ', '\n'),
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: labelFontSize,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -736,22 +758,27 @@ class _FilterSelectRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '필터선택',
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textPrimary,
+    return Semantics(
+      label: '필터선택, 편의정보·지역·카테고리 선택',
+      button: true,
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '필터선택',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textPrimary,
+              ),
             ),
-          ),
-          SizedBox(width: 6.w),
-          Icon(Icons.tune, size: 18.r, color: AppColors.navIconInactive),
-        ],
+            SizedBox(width: 6.w),
+            Icon(Icons.tune, size: 18.r, color: AppColors.navIconInactive),
+          ],
+        ),
       ),
     );
   }
@@ -817,14 +844,18 @@ class _ResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => SpotDetailScreen(spot: spot))),
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return Semantics(
+      label: '${spot.title}, ${spot.addr1}',
+      button: true,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => SpotDetailScreen(spot: spot))),
+        behavior: HitTestBehavior.opaque,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           AspectRatio(
             aspectRatio: 172 / 113,
             child: ClipRRect(
@@ -887,7 +918,8 @@ class _ResultCard extends StatelessWidget {
                   .toList(),
             ),
           ],
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -976,24 +1008,32 @@ class _PageNumberButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 2.h),
-        decoration: BoxDecoration(
-          border: isSelected
-              ? const Border(
-                  bottom: BorderSide(color: AppColors.textPrimary, width: 1),
-                )
-              : null,
-        ),
-        child: Text(
-          '$page',
-          style: TextStyle(
-            fontSize: 12.sp,
-            fontWeight: isSelected ? FontWeight.w400 : FontWeight.w300,
-            color: isSelected ? AppColors.textPrimary : AppColors.textTertiary,
+    return Semantics(
+      label: '$page페이지',
+      button: true,
+      selected: isSelected,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: 2.h),
+          decoration: BoxDecoration(
+            border: isSelected
+                ? const Border(
+                    bottom: BorderSide(color: AppColors.textPrimary, width: 1),
+                  )
+                : null,
+          ),
+          child: Text(
+            '$page',
+            style: TextStyle(
+              fontSize: 12.sp,
+              fontWeight: isSelected ? FontWeight.w400 : FontWeight.w300,
+              color: isSelected
+                  ? AppColors.textPrimary
+                  : AppColors.textTertiary,
+            ),
           ),
         ),
       ),
@@ -1019,27 +1059,33 @@ class _NavTextButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = enabled ? AppColors.textPrimary : AppColors.textTertiary;
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      behavior: HitTestBehavior.opaque,
-      child: Row(
-        children: [
-          if (leadingIcon != null)
-            Transform.translate(
-              offset: Offset(2.r, 0),
-              child: Icon(leadingIcon, size: 14.r, color: color),
+    return Semantics(
+      label: '$label 페이지',
+      button: true,
+      enabled: enabled,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: enabled ? onTap : null,
+        behavior: HitTestBehavior.opaque,
+        child: Row(
+          children: [
+            if (leadingIcon != null)
+              Transform.translate(
+                offset: Offset(2.r, 0),
+                child: Icon(leadingIcon, size: 14.r, color: color),
+              ),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w300,
+                color: color,
+              ),
             ),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w300,
-              color: color,
-            ),
-          ),
-          if (trailingIcon != null)
-            Icon(trailingIcon, size: 14.r, color: color),
-        ],
+            if (trailingIcon != null)
+              Icon(trailingIcon, size: 14.r, color: color),
+          ],
+        ),
       ),
     );
   }

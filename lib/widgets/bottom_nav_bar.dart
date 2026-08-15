@@ -18,6 +18,16 @@ extension _BottomNavTabX on BottomNavTab {
     BottomNavTab.bookmark => Icons.bookmark_border,
     BottomNavTab.myPage => Icons.person_outlined,
   };
+
+  // 스크린 리더가 읽어줄 탭 이름. 화면 표시용 라벨이 따로 없는 아이콘 전용
+  // 탭바라, semanticLabel 목적으로만 쓴다.
+  String get semanticLabel => switch (this) {
+    BottomNavTab.explore => '맞춤 여행지 탐색',
+    BottomNavTab.map => '지도 기반 탐색',
+    BottomNavTab.home => '홈',
+    BottomNavTab.bookmark => '저장목록',
+    BottomNavTab.myPage => '마이페이지',
+  };
 }
 
 /// 하단 탭 메뉴 공통 컴포넌트. 화면들이 currentTab과 onTabSelected만
@@ -57,19 +67,25 @@ class BottomNavBar extends StatelessWidget {
   Widget _buildTabIcon(BottomNavTab tab) {
     final isSelected = tab == currentTab;
 
-    return GestureDetector(
-      onTap: () => onTabSelected(tab),
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 48.w,
-        height: kBottomNavigationBarHeight,
-        child: Center(
-          child: Icon(
-            tab.icon,
-            size: 28.r,
-            color: isSelected
-                ? AppColors.bottomNavActive
-                : AppColors.bottomNavInactive,
+    return Semantics(
+      label: tab.semanticLabel,
+      button: true,
+      selected: isSelected,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: () => onTabSelected(tab),
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: 48.w,
+          height: kBottomNavigationBarHeight,
+          child: Center(
+            child: Icon(
+              tab.icon,
+              size: 28.r,
+              color: isSelected
+                  ? AppColors.bottomNavActive
+                  : AppColors.bottomNavInactive,
+            ),
           ),
         ),
       ),

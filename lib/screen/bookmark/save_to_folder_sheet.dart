@@ -170,28 +170,33 @@ class _SaveToFolderSheetState extends State<_SaveToFolderSheet> {
       child: Row(
         children: [
           Expanded(
-            child: InkWell(
-              onTap: () => Navigator.of(context).pop(_kCreateNewFolderValue),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.create_new_folder_outlined,
-                      size: 20.r,
-                      color: AppColors.bottomNavActive,
-                    ),
-                    SizedBox(height: 2.h),
-                    Text(
-                      '새로 만들기',
-                      style: TextStyle(
-                        fontSize: 10.sp,
-                        color: AppColors.textPrimary,
+            child: Semantics(
+              label: '새 폴더 만들기',
+              button: true,
+              excludeSemantics: true,
+              child: InkWell(
+                onTap: () => Navigator.of(context).pop(_kCreateNewFolderValue),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.create_new_folder_outlined,
+                        size: 20.r,
+                        color: AppColors.bottomNavActive,
                       ),
-                    ),
-                  ],
+                      SizedBox(height: 2.h),
+                      Text(
+                        '새로 만들기',
+                        style: TextStyle(
+                          fontSize: 10.sp,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -207,12 +212,17 @@ class _SaveToFolderSheetState extends State<_SaveToFolderSheet> {
           Expanded(
             child: Align(
               alignment: Alignment.centerRight,
-              child: InkWell(
-                onTap: () => Navigator.of(context).pop(),
-                child: Icon(
-                  Icons.close,
-                  size: 24.r,
-                  color: AppColors.navIconInactive,
+              child: Semantics(
+                label: '닫기',
+                button: true,
+                excludeSemantics: true,
+                child: InkWell(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: Icon(
+                    Icons.close,
+                    size: 24.r,
+                    color: AppColors.navIconInactive,
+                  ),
                 ),
               ),
             ),
@@ -226,24 +236,30 @@ class _SaveToFolderSheetState extends State<_SaveToFolderSheet> {
     final selected = folder.id == _selectedId;
     return SizedBox(
       height: _kFolderRowHeight.h,
-      child: InkWell(
-        onTap: () => setState(() => _selectedId = folder.id),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                folder.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary,
+      child: Semantics(
+        label: folder.name,
+        button: true,
+        selected: selected,
+        excludeSemantics: true,
+        child: InkWell(
+          onTap: () => setState(() => _selectedId = folder.id),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  folder.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
-            ),
-            _buildSelectionCircle(selected),
-          ],
+              _buildSelectionCircle(selected),
+            ],
+          ),
         ),
       ),
     );

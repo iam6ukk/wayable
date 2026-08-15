@@ -650,12 +650,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                         ),
                         SizedBox(width: 4.w),
-                        GestureDetector(
-                          onTap: _refreshDiscoverySpot,
-                          child: Icon(
-                            Icons.refresh,
-                            size: 22.r,
-                            color: AppColors.textPrimary,
+                        Semantics(
+                          label: '다른 여행지 추천받기',
+                          button: true,
+                          excludeSemantics: true,
+                          child: GestureDetector(
+                            onTap: _refreshDiscoverySpot,
+                            child: Icon(
+                              Icons.refresh,
+                              size: 22.r,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
                         ),
                       ],
@@ -809,47 +814,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       fit: BoxFit.cover,
       alignment: isPhotoAsset ? Alignment.bottomRight : Alignment.center,
     );
+    final label = _kAccessibilityCardLabels[profile]!;
     return Material(
       color: AppColors.background,
       borderRadius: BorderRadius.circular(10.r),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => _onAccessibilityCardTap(profile),
-        child: SizedBox(
-          width: 145.w,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: isPhotoAsset
-                    ? image
-                    : Transform.scale(
-                        scale: _kAccessibilityCardImageScale[profile]!,
-                        child: image,
+      child: Semantics(
+        label: '$label 여행지로 탐색하기',
+        button: true,
+        excludeSemantics: true,
+        child: InkWell(
+          onTap: () => _onAccessibilityCardTap(profile),
+          child: SizedBox(
+            width: 145.w,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: isPhotoAsset
+                      ? image
+                      : Transform.scale(
+                          scale: _kAccessibilityCardImageScale[profile]!,
+                          child: image,
+                        ),
+                ),
+                Positioned(
+                  right: 10.w,
+                  bottom: 10.h,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 10.w,
+                      vertical: 3.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.whiteBackground,
+                      borderRadius: BorderRadius.circular(16.r),
+                    ),
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.textPrimary,
                       ),
-              ),
-              Positioned(
-                right: 10.w,
-                bottom: 10.h,
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 10.w,
-                    vertical: 3.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.whiteBackground,
-                    borderRadius: BorderRadius.circular(16.r),
-                  ),
-                  child: Text(
-                    _kAccessibilityCardLabels[profile]!,
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w400,
-                      color: AppColors.textPrimary,
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -868,14 +879,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       );
     });
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (var i = 0; i < dots.length; i++) ...[
-          if (i != 0) SizedBox(width: 2.w),
-          dots[i],
+    // 위 카드 목록과 같은 정보(현재 몇 번째 유형인지)를 중복 전달할 뿐이라
+    // 스크린 리더에는 노출하지 않는다.
+    return ExcludeSemantics(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < dots.length; i++) ...[
+            if (i != 0) SizedBox(width: 2.w),
+            dots[i],
+          ],
         ],
-      ],
+      ),
     );
   }
 
@@ -999,6 +1014,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: Center(
                     child: _buildCarouselNavButton(
                       Icons.arrow_back_ios_new,
+                      label: '이전 여행지 보기',
                       onTap: _goToPreviousMostSaved,
                     ),
                   ),
@@ -1010,6 +1026,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: Center(
                     child: _buildCarouselNavButton(
                       Icons.arrow_forward_ios,
+                      label: '다음 여행지 보기',
                       onTap: _goToNextMostSaved,
                     ),
                   ),
@@ -1183,7 +1200,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       padding: EdgeInsets.only(top: topOffset),
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 5.7.w),
-        child: GestureDetector(
+        child: Semantics(
+          label: '저장 인기 $rank위, ${spot.title}, $location',
+          button: true,
+          excludeSemantics: true,
+          child: GestureDetector(
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => SpotDetailScreen(spot: spot)),
           ),
@@ -1263,6 +1284,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ],
             ),
           ),
+          ),
         ),
       ),
     );
@@ -1275,18 +1297,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Image.asset(_kRankBadgeImages[rank]!, width: width, height: height);
   }
 
-  Widget _buildCarouselNavButton(IconData icon, {required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 20.r,
-        height: 20.r,
-        decoration: const BoxDecoration(
-          color: AppColors.bottomSheetBackground,
-          shape: BoxShape.circle,
+  Widget _buildCarouselNavButton(
+    IconData icon, {
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return Semantics(
+      label: label,
+      button: true,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 20.r,
+          height: 20.r,
+          decoration: const BoxDecoration(
+            color: AppColors.bottomSheetBackground,
+            shape: BoxShape.circle,
+          ),
+          alignment: Alignment.center,
+          child: Icon(icon, size: 14.r, color: AppColors.bottomNavInactive),
         ),
-        alignment: Alignment.center,
-        child: Icon(icon, size: 14.r, color: AppColors.bottomNavInactive),
       ),
     );
   }

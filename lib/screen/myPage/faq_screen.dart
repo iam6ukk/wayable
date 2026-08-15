@@ -112,29 +112,39 @@ class _FaqScreenState extends ConsumerState<FaqScreen> {
     required double width,
   }) {
     final isSelected = _selectedCategory == category;
-    return GestureDetector(
-      onTap: () => setState(() {
-        _selectedCategory = category;
-        _expandedQuestions.clear();
-      }),
-      child: Container(
-        width: width,
-        height: 30.h,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(36.r),
-          border: Border.all(
-            color: isSelected ? AppColors.textPrimary : AppColors.boldDivider,
-            width: isSelected ? 1 : 0.5,
+    return Semantics(
+      label: label,
+      button: true,
+      selected: isSelected,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: () => setState(() {
+          _selectedCategory = category;
+          _expandedQuestions.clear();
+        }),
+        child: Container(
+          width: width,
+          height: 30.h,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(36.r),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.textPrimary
+                  : AppColors.boldDivider,
+              width: isSelected ? 1 : 0.5,
+            ),
           ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12.sp,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-            color: isSelected ? AppColors.textPrimary : AppColors.textTertiary,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.sp,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              color: isSelected
+                  ? AppColors.textPrimary
+                  : AppColors.textTertiary,
+            ),
           ),
         ),
       ),
