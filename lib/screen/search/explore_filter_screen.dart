@@ -231,6 +231,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
           const Spacer(),
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
+            tooltip: '닫기',
             icon: Icon(
               Icons.close,
               size: 24.r,
@@ -448,41 +449,49 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: EdgeInsets.symmetric(horizontal: 17.w, vertical: 5.5.h),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20.r),
-          border: Border.all(
-            color: isSelected ? AppColors.textPrimary : AppColors.boldDivider,
-            width: isSelected ? 1 : 0.5,
-            strokeAlign: BorderSide.strokeAlignInside,
+    return Semantics(
+      label: label,
+      button: true,
+      selected: isSelected,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: EdgeInsets.symmetric(horizontal: 17.w, vertical: 5.5.h),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20.r),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.textPrimary
+                  : AppColors.boldDivider,
+              width: isSelected ? 1 : 0.5,
+              strokeAlign: BorderSide.strokeAlignInside,
+            ),
           ),
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Opacity(
-              opacity: 0,
-              child: Text(
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Opacity(
+                opacity: 0,
+                child: Text(
+                  label,
+                  style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500),
+                ),
+              ),
+              Text(
                 label,
-                style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500),
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  color: isSelected
+                      ? AppColors.textPrimary
+                      : AppColors.textTertiary,
+                ),
               ),
-            ),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12.sp,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: isSelected
-                    ? AppColors.textPrimary
-                    : AppColors.textTertiary,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

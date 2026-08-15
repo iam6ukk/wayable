@@ -21,7 +21,13 @@ class LoginLoadingScreen extends StatelessWidget {
             top: 300.h + 120.r - (67.5.r / 2),
             left: 0,
             right: 0,
-            child: const Center(child: LoadingAnimation()),
+            child: Center(
+              child: Semantics(
+                label: '로그인 중입니다',
+                liveRegion: true,
+                child: const LoadingAnimation(),
+              ),
+            ),
           ),
         ],
       ),

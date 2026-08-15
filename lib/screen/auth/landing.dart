@@ -94,10 +94,12 @@ class _LandingPageState extends State<LandingPage> {
                   tag: 'app_logo',
                   createRectTween: (begin, end) =>
                       _EasedRectTween(begin: begin, end: end),
-                  child: Image.asset(
-                    'assets/images/common/wayable.png',
-                    width: 123.w,
-                    height: 125.h,
+                  child: ExcludeSemantics(
+                    child: Image.asset(
+                      'assets/images/common/wayable.png',
+                      width: 123.w,
+                      height: 125.h,
+                    ),
                   ),
                 ),
               ),

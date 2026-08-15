@@ -91,11 +91,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Center(
                   child: Hero(
                     tag: 'app_logo',
-                    child: Image.asset(
-                      'assets/images/common/wayable.png',
-                      width: 106.w,
-                      height: 108.h,
-                      fit: BoxFit.contain,
+                    child: ExcludeSemantics(
+                      child: Image.asset(
+                        'assets/images/common/wayable.png',
+                        width: 106.w,
+                        height: 108.h,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                 ),
@@ -133,108 +135,120 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // 카카오 로그인 버튼
-                    GestureDetector(
-                      onTap: authState.isLoading
-                          ? null
-                          : () async {
-                              Navigator.push(
-                                context,
-                                PageRouteBuilder(
-                                  opaque: false,
-                                  pageBuilder: (_, _, _) =>
-                                      const LoginLoadingScreen(),
-                                ),
-                              );
-                              await ref
-                                  .read(authStateProvider.notifier)
-                                  .signInWithKakao();
-                            },
-                      child: Container(
-                        width: double.infinity,
-                        height: 44.9.h,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFDDC3F),
-                          borderRadius: BorderRadius.all(
-                            Radius.circular(5.5.r),
+                    Semantics(
+                      label: '카카오 로그인',
+                      button: true,
+                      enabled: !authState.isLoading,
+                      excludeSemantics: true,
+                      child: GestureDetector(
+                        onTap: authState.isLoading
+                            ? null
+                            : () async {
+                                Navigator.push(
+                                  context,
+                                  PageRouteBuilder(
+                                    opaque: false,
+                                    pageBuilder: (_, _, _) =>
+                                        const LoginLoadingScreen(),
+                                  ),
+                                );
+                                await ref
+                                    .read(authStateProvider.notifier)
+                                    .signInWithKakao();
+                              },
+                        child: Container(
+                          width: double.infinity,
+                          height: 44.9.h,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFDDC3F),
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(5.5.r),
+                            ),
                           ),
-                        ),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Positioned(
-                              left: 3.w,
-                              child: Image.asset(
-                                'assets/images/login/kakao.png',
-                                width: 41.r,
-                                height: 41.r,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Positioned(
+                                left: 3.w,
+                                child: Image.asset(
+                                  'assets/images/login/kakao.png',
+                                  width: 41.r,
+                                  height: 41.r,
+                                ),
                               ),
-                            ),
-                            Text(
-                              '카카오 로그인',
-                              style: TextStyle(
-                                fontFamily: 'Pretendard',
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.black,
+                              Text(
+                                '카카오 로그인',
+                                style: TextStyle(
+                                  fontFamily: 'Pretendard',
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
 
                     // 구글 로그인 버튼
-                    GestureDetector(
-                      onTap: authState.isLoading
-                          ? null
-                          : () async {
-                              Navigator.push(
-                                context,
-                                PageRouteBuilder(
-                                  opaque: false,
-                                  pageBuilder: (_, _, _) =>
-                                      const LoginLoadingScreen(),
+                    Semantics(
+                      label: 'Google 계정으로 로그인',
+                      button: true,
+                      enabled: !authState.isLoading,
+                      excludeSemantics: true,
+                      child: GestureDetector(
+                        onTap: authState.isLoading
+                            ? null
+                            : () async {
+                                Navigator.push(
+                                  context,
+                                  PageRouteBuilder(
+                                    opaque: false,
+                                    pageBuilder: (_, _, _) =>
+                                        const LoginLoadingScreen(),
+                                  ),
+                                );
+                                await ref
+                                    .read(authStateProvider.notifier)
+                                    .signInWithGoogle();
+                              },
+                        child: Container(
+                          margin: EdgeInsets.only(top: 15.h),
+                          width: double.infinity,
+                          height: 44.9.h,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFFFFF),
+                            border: Border.all(
+                              color: AppColors.hairlineDivider,
+                              width: 0.2,
+                            ),
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(6.4.r),
+                            ),
+                          ),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Positioned(
+                                left: 6.5.w,
+                                child: Image.asset(
+                                  'assets/images/login/google.png',
+                                  width: 29.3.r,
+                                  height: 29.3.r,
                                 ),
-                              );
-                              await ref
-                                  .read(authStateProvider.notifier)
-                                  .signInWithGoogle();
-                            },
-                      child: Container(
-                        margin: EdgeInsets.only(top: 15.h),
-                        width: double.infinity,
-                        height: 44.9.h,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFFFFF),
-                          border: Border.all(
-                            color: AppColors.hairlineDivider,
-                            width: 0.2,
-                          ),
-                          borderRadius: BorderRadius.all(
-                            Radius.circular(6.4.r),
-                          ),
-                        ),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Positioned(
-                              left: 6.5.w,
-                              child: Image.asset(
-                                'assets/images/login/google.png',
-                                width: 29.3.r,
-                                height: 29.3.r,
                               ),
-                            ),
-                            Text(
-                              'Google 계정으로 로그인',
-                              style: TextStyle(
-                                fontFamily: 'Pretendard',
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.black,
+                              Text(
+                                'Google 계정으로 로그인',
+                                style: TextStyle(
+                                  fontFamily: 'Pretendard',
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),

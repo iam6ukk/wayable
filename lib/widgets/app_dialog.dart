@@ -54,11 +54,16 @@ Widget _footerButton({
   required VoidCallback onTap,
 }) {
   return Expanded(
-    child: InkWell(
-      onTap: onTap,
-      child: SizedBox(
-        height: _kFooterHeight.h,
-        child: Center(child: Text(label, style: _actionTextStyle(color))),
+    child: Semantics(
+      label: label,
+      button: true,
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        child: SizedBox(
+          height: _kFooterHeight.h,
+          child: Center(child: Text(label, style: _actionTextStyle(color))),
+        ),
       ),
     ),
   );
@@ -243,15 +248,20 @@ Future<void> showInfoDialog(
         children: [
           _dialogBody(title: title, content: content),
           Divider(height: 1, thickness: 1, color: AppColors.faintDivider),
-          InkWell(
-            onTap: () => Navigator.of(dialogContext).pop(),
-            child: SizedBox(
-              width: double.infinity,
-              height: _kFooterHeight.h,
-              child: Center(
-                child: Text(
-                  confirmLabel,
-                  style: _actionTextStyle(AppColors.primary),
+          Semantics(
+            label: confirmLabel,
+            button: true,
+            excludeSemantics: true,
+            child: InkWell(
+              onTap: () => Navigator.of(dialogContext).pop(),
+              child: SizedBox(
+                width: double.infinity,
+                height: _kFooterHeight.h,
+                child: Center(
+                  child: Text(
+                    confirmLabel,
+                    style: _actionTextStyle(AppColors.primary),
+                  ),
                 ),
               ),
             ),

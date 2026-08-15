@@ -14,16 +14,19 @@ void showAndroidToast(BuildContext context, String message) {
       child: Center(
         child: Material(
           color: Colors.transparent,
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.8),
-              borderRadius: BorderRadius.circular(24.r),
-            ),
-            child: Text(
-              message,
-              style: TextStyle(color: Colors.white, fontSize: 14.sp),
-              textAlign: TextAlign.center,
+          child: Semantics(
+            liveRegion: true,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.8),
+                borderRadius: BorderRadius.circular(24.r),
+              ),
+              child: Text(
+                message,
+                style: TextStyle(color: Colors.white, fontSize: 14.sp),
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
         ),

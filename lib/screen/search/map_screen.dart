@@ -645,17 +645,26 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           return Stack(
             children: [
               Positioned.fill(
-                child: KakaoMap(
-                  option: const KakaoMapOption(
-                    position: _kDefaultCenter,
-                    zoomLevel: _kDefaultZoomLevel,
+                // 카카오맵은 네이티브 플랫폼 뷰라 마커 하나하나에 라벨을 붙일
+                // 방법이 없다(실기기 uiautomator 덤프로 확인: 이 영역 전체가
+                // content-desc 없는 단일 노드). 대신 이 영역 전체를 하나의
+                // 안내 노드로 감싸, 스크린 리더 사용자가 지도 대신 아래
+                // 목록으로 안내받도록 한다.
+                child: Semantics(
+                  label: '지도, 마커 정보는 아래 목록에서 확인할 수 있습니다',
+                  excludeSemantics: true,
+                  child: KakaoMap(
+                    option: const KakaoMapOption(
+                      position: _kDefaultCenter,
+                      zoomLevel: _kDefaultZoomLevel,
+                    ),
+                    onMapReady: _handleMapReady,
+                    // 기본(Virtual Display) 모드는 바텀시트 높이 변화 등으로 뷰가
+                    // 리사이즈될 때 SurfaceProducer가 이미 해제된 상태에서 접근해
+                    // NPE로 앱이 죽는 경우가 있었다(kakao_map_sdk 자체 문서에도
+                    // 기본 모드가 상태관리 측면에서 문제가 있다고 명시되어 있음).
+                    forceHybridComposition: true,
                   ),
-                  onMapReady: _handleMapReady,
-                  // 기본(Virtual Display) 모드는 바텀시트 높이 변화 등으로 뷰가
-                  // 리사이즈될 때 SurfaceProducer가 이미 해제된 상태에서 접근해
-                  // NPE로 앱이 죽는 경우가 있었다(kakao_map_sdk 자체 문서에도
-                  // 기본 모드가 상태관리 측면에서 문제가 있다고 명시되어 있음).
-                  forceHybridComposition: true,
                 ),
               ),
               // 검색창(+검색 전에는 카테고리 탭) 영역은 지도 위에 투명하게 뜨면
@@ -906,26 +915,32 @@ class _CategoryChip extends StatelessWidget {
       fontWeight: FontWeight.w400,
       color: AppColors.textTertiary,
     );
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        height: 28.h,
-        padding: EdgeInsets.symmetric(horizontal: 16.w),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(53.13.r),
-          border: Border.all(
-            color: selected ? AppColors.textPrimary : AppColors.boldDivider,
-            width: selected ? 1 : 0.5,
-            strokeAlign: BorderSide.strokeAlignInside,
+    return Semantics(
+      label: label,
+      button: true,
+      selected: selected,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          height: 28.h,
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(53.13.r),
+            border: Border.all(
+              color: selected ? AppColors.textPrimary : AppColors.boldDivider,
+              width: selected ? 1 : 0.5,
+              strokeAlign: BorderSide.strokeAlignInside,
+            ),
           ),
-        ),
-        child: _StableWeightLabel(
-          label: label,
-          style: selected ? activeStyle : inactiveStyle,
-          boldStyle: activeStyle,
+          child: _StableWeightLabel(
+            label: label,
+            style: selected ? activeStyle : inactiveStyle,
+            boldStyle: activeStyle,
+          ),
         ),
       ),
     );
@@ -939,16 +954,25 @@ class _MyLocationButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      shape: const CircleBorder(),
-      elevation: 3,
-      child: InkWell(
-        onTap: onTap,
-        customBorder: const CircleBorder(),
-        child: Padding(
-          padding: EdgeInsets.all(9.r),
-          child: Icon(Icons.my_location, size: 22.r, color: AppColors.primary),
+    return Semantics(
+      label: '내 위치로 이동',
+      button: true,
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.white,
+        shape: const CircleBorder(),
+        elevation: 3,
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: Padding(
+            padding: EdgeInsets.all(9.r),
+            child: Icon(
+              Icons.my_location,
+              size: 22.r,
+              color: AppColors.primary,
+            ),
+          ),
         ),
       ),
     );
@@ -964,34 +988,43 @@ class _ResearchAreaButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(53.13.r),
-      elevation: 2,
-      child: InkWell(
-        onTap: onTap,
+    return Semantics(
+      label: '이 장소 재검색',
+      button: true,
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(53.13.r),
-        child: Container(
-          height: 36.h,
-          padding: EdgeInsets.symmetric(horizontal: 14.w),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(53.13.r),
-            border: Border.all(color: AppColors.boldDivider, width: 1),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.refresh, size: 19.r, color: AppColors.bottomNavActive),
-              SizedBox(width: 4.w),
-              Text(
-                '이 장소 재검색',
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.textSecondary,
+        elevation: 2,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(53.13.r),
+          child: Container(
+            height: 36.h,
+            padding: EdgeInsets.symmetric(horizontal: 14.w),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(53.13.r),
+              border: Border.all(color: AppColors.boldDivider, width: 1),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.refresh,
+                  size: 19.r,
+                  color: AppColors.bottomNavActive,
                 ),
-              ),
-            ],
+                SizedBox(width: 4.w),
+                Text(
+                  '이 장소 재검색',
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w400,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1137,7 +1170,10 @@ class _ResultSheet extends StatelessWidget {
             Positioned(
               top: 57.h,
               right: 20.w,
-              child: _InfoTooltipBubble(isGuest: isGuest),
+              child: Semantics(
+                liveRegion: true,
+                child: _InfoTooltipBubble(isGuest: isGuest),
+              ),
             ),
         ],
       ),
@@ -1333,13 +1369,18 @@ class _FilterSection extends StatelessWidget {
                 onTap: () => onToggleFilter(_FilterKind.level),
               ),
               const Spacer(),
-              GestureDetector(
-                onTap: onInfoTap,
-                behavior: HitTestBehavior.opaque,
-                child: Icon(
-                  Icons.info_outline,
-                  size: 29.r,
-                  color: AppColors.primary,
+              Semantics(
+                label: '적합레벨 안내',
+                button: true,
+                excludeSemantics: true,
+                child: GestureDetector(
+                  onTap: onInfoTap,
+                  behavior: HitTestBehavior.opaque,
+                  child: Icon(
+                    Icons.info_outline,
+                    size: 29.r,
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
             ],
@@ -1473,41 +1514,49 @@ class _FilterPill extends StatelessWidget {
       fontWeight: FontWeight.w400,
       color: AppColors.textTertiary,
     );
-    return GestureDetector(
-      onTap: onTap,
-      // 통합필터선택 칩과 동일하게 AnimatedContainer로 색/테두리 전환을
-      // 부드럽게 하고, 라벨은 _StableWeightLabel로 감싸 굵어져도 pill
-      // 너비가 안 흔들리게 한다.
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        height: 33.h,
-        padding: EdgeInsets.symmetric(horizontal: 14.w),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(27.481.r),
-          border: Border.all(
-            color: isExpanded ? AppColors.textPrimary : AppColors.boldDivider,
-            width: isExpanded ? 1 : 0.5,
-            strokeAlign: BorderSide.strokeAlignInside,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _StableWeightLabel(
-              label: label,
-              style: isExpanded ? activeStyle : inactiveStyle,
-              boldStyle: activeStyle,
-            ),
-            SizedBox(width: 4.w),
-            ChevronIcon(
-              pointsUp: isExpanded,
+    return Semantics(
+      label: '$label 필터',
+      button: true,
+      expanded: isExpanded,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        // 통합필터선택 칩과 동일하게 AnimatedContainer로 색/테두리 전환을
+        // 부드럽게 하고, 라벨은 _StableWeightLabel로 감싸 굵어져도 pill
+        // 너비가 안 흔들리게 한다.
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          height: 33.h,
+          padding: EdgeInsets.symmetric(horizontal: 14.w),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(27.481.r),
+            border: Border.all(
               color: isExpanded
                   ? AppColors.textPrimary
-                  : AppColors.textTertiary,
+                  : AppColors.boldDivider,
+              width: isExpanded ? 1 : 0.5,
+              strokeAlign: BorderSide.strokeAlignInside,
             ),
-          ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _StableWeightLabel(
+                label: label,
+                style: isExpanded ? activeStyle : inactiveStyle,
+                boldStyle: activeStyle,
+              ),
+              SizedBox(width: 4.w),
+              ChevronIcon(
+                pointsUp: isExpanded,
+                color: isExpanded
+                    ? AppColors.textPrimary
+                    : AppColors.textTertiary,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1528,28 +1577,36 @@ class _OptionPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        height: 27.481.h,
-        padding: EdgeInsets.symmetric(horizontal: 14.w),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(27.481.r),
-          border: Border.all(
-            color: selected ? AppColors.textPrimary : AppColors.boldDivider,
-            width: selected ? 1 : 0.5,
-            strokeAlign: BorderSide.strokeAlignInside,
+    return Semantics(
+      label: label,
+      button: true,
+      selected: selected,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          height: 27.481.h,
+          padding: EdgeInsets.symmetric(horizontal: 14.w),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(27.481.r),
+            border: Border.all(
+              color: selected ? AppColors.textPrimary : AppColors.boldDivider,
+              width: selected ? 1 : 0.5,
+              strokeAlign: BorderSide.strokeAlignInside,
+            ),
           ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w500,
-            color: selected ? AppColors.textPrimary : AppColors.textTertiary,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w500,
+              color: selected
+                  ? AppColors.textPrimary
+                  : AppColors.textTertiary,
+            ),
           ),
         ),
       ),
@@ -1679,63 +1736,74 @@ class _SpotListCard extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          spot.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
+                  child: MergeSemantics(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            spot.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
                         ),
-                      ),
-                      SizedBox(width: 6.w),
-                      levelBadge,
-                    ],
+                        SizedBox(width: 6.w),
+                        levelBadge,
+                      ],
+                    ),
                   ),
                 ),
-                GestureDetector(
-                  onTap: () => _handleBookmarkTap(context, ref, isBookmarked),
-                  behavior: HitTestBehavior.opaque,
-                  child: Icon(
-                    isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                    size: 32.r,
-                    color: isBookmarked
-                        ? AppColors.accent
-                        : AppColors.navIconInactive,
+                Semantics(
+                  label: isBookmarked ? '북마크 해제' : '북마크 저장',
+                  button: true,
+                  selected: isBookmarked,
+                  excludeSemantics: true,
+                  child: GestureDetector(
+                    onTap: () =>
+                        _handleBookmarkTap(context, ref, isBookmarked),
+                    behavior: HitTestBehavior.opaque,
+                    child: Icon(
+                      isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                      size: 32.r,
+                      color: isBookmarked
+                          ? AppColors.accent
+                          : AppColors.navIconInactive,
+                    ),
                   ),
                 ),
               ],
             ),
             SizedBox(height: _kCardGapTitleToAddress.h),
-            Row(
-              children: [
-                Text(
-                  '${(distanceMeters / 1000).toStringAsFixed(1)}km',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                SizedBox(width: 6.w),
-                Expanded(
-                  child: Text(
-                    spot.addr1,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+            MergeSemantics(
+              child: Row(
+                children: [
+                  Text(
+                    '${(distanceMeters / 1000).toStringAsFixed(1)}km',
                     style: TextStyle(
                       fontSize: 12.sp,
-                      color: AppColors.textTertiary,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
                     ),
                   ),
-                ),
-              ],
+                  SizedBox(width: 6.w),
+                  Expanded(
+                    child: Text(
+                      spot.addr1,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        color: AppColors.textTertiary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             // 편의칩 유무와 무관하게 항상 이 줄 높이만큼 자리를 잡아둬서,
             // 카드마다 콘텐츠 총 높이가 달라지지 않게 한다 — 그래야 카드
@@ -1746,13 +1814,15 @@ class _SpotListCard extends ConsumerWidget {
               height: 20.h,
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    for (var i = 0; i < facilityLabels.length; i++) ...[
-                      if (i > 0) SizedBox(width: 5.w),
-                      _FacilityChip(label: facilityLabels[i]),
+                child: MergeSemantics(
+                  child: Row(
+                    children: [
+                      for (var i = 0; i < facilityLabels.length; i++) ...[
+                        if (i > 0) SizedBox(width: 5.w),
+                        _FacilityChip(label: facilityLabels[i]),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),

@@ -264,15 +264,21 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                 ),
               ),
             ),
-            GestureDetector(
-              onTap: () => _handleBookmarkTap(isBookmarked, resolvedSpot),
-              behavior: HitTestBehavior.opaque,
-              child: Icon(
-                isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                size: 32.r,
-                color: isBookmarked
-                    ? AppColors.accent
-                    : AppColors.navIconInactive,
+            Semantics(
+              label: isBookmarked ? '북마크 해제' : '북마크 저장',
+              button: true,
+              selected: isBookmarked,
+              excludeSemantics: true,
+              child: GestureDetector(
+                onTap: () => _handleBookmarkTap(isBookmarked, resolvedSpot),
+                behavior: HitTestBehavior.opaque,
+                child: Icon(
+                  isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                  size: 32.r,
+                  color: isBookmarked
+                      ? AppColors.accent
+                      : AppColors.navIconInactive,
+                ),
               ),
             ),
           ],
@@ -290,8 +296,31 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
     );
   }
 
+  // TalkBack이 켜져 있으면 좌우 스와이프 제스처를 TalkBack 자신의 다음/이전
+  // 요소 탐색으로 가로채서 PageView가 직접 스와이프로 넘어가지 않는다.
+  // 대신 이 화면 전체를 "조절 가능한(adjustable)" 시맨틱 노드로 만들어
+  // onIncrease/onDecrease로 사진을 넘길 수 있게 한다.
+  void _goToNextImage(int imageCount) {
+    if (_currentImageIndex >= imageCount - 1) return;
+    _imagePageController.nextPage(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+    );
+  }
+
+  void _goToPreviousImage() {
+    if (_currentImageIndex <= 0) return;
+    _imagePageController.previousPage(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+    );
+  }
+
   Widget _buildImageCarousel() {
     final images = _images;
+    final title = _common?.title.isNotEmpty == true
+        ? _common!.title
+        : widget.spot.title;
 
     return AspectRatio(
       // 맞춤 여행지 탐색 결과 카드(explore_screen.dart _ResultCard)와 동일한
@@ -302,51 +331,62 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
         borderRadius: BorderRadius.circular(12.r),
         child: images.isEmpty
             ? _buildImagePlaceholder()
-            : Stack(
-                children: [
-                  Positioned.fill(
-                    child: PageView.builder(
-                      controller: _imagePageController,
-                      itemCount: images.length,
-                      onPageChanged: (index) =>
-                          setState(() => _currentImageIndex = index),
-                      itemBuilder: (context, index) => Image.network(
-                        images[index],
-                        fit: BoxFit.cover,
-                        // 관광공사 제공 사진 우하단에 로고가 찍혀있는 경우가
-                        // 많아서, 크롭이 생기더라도 그 모서리는 항상
-                        // 보존되도록 우하단 기준으로 자른다.
-                        alignment: Alignment.bottomRight,
-                        errorBuilder: (context, error, stackTrace) =>
-                            _buildImagePlaceholder(),
+            : Semantics(
+                label: '$title 사진',
+                value: '${_currentImageIndex + 1}/${images.length}',
+                onIncrease: images.length > 1
+                    ? () => _goToNextImage(images.length)
+                    : null,
+                onDecrease: images.length > 1
+                    ? () => _goToPreviousImage()
+                    : null,
+                excludeSemantics: true,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: PageView.builder(
+                        controller: _imagePageController,
+                        itemCount: images.length,
+                        onPageChanged: (index) =>
+                            setState(() => _currentImageIndex = index),
+                        itemBuilder: (context, index) => Image.network(
+                          images[index],
+                          fit: BoxFit.cover,
+                          // 관광공사 제공 사진 우하단에 로고가 찍혀있는 경우가
+                          // 많아서, 크롭이 생기더라도 그 모서리는 항상
+                          // 보존되도록 우하단 기준으로 자른다.
+                          alignment: Alignment.bottomRight,
+                          errorBuilder: (context, error, stackTrace) =>
+                              _buildImagePlaceholder(),
+                        ),
                       ),
                     ),
-                  ),
-                  if (images.length > 1)
-                    Positioned(
-                      bottom: 10.h,
-                      left: 0,
-                      right: 0,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(images.length, (index) {
-                          final isActive = index == _currentImageIndex;
-                          return AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            margin: EdgeInsets.symmetric(horizontal: 3.w),
-                            width: isActive ? 16.w : 6.w,
-                            height: 6.h,
-                            decoration: BoxDecoration(
-                              color: isActive
-                                  ? Colors.white
-                                  : Colors.white.withValues(alpha: 0.5),
-                              borderRadius: BorderRadius.circular(3.r),
-                            ),
-                          );
-                        }),
+                    if (images.length > 1)
+                      Positioned(
+                        bottom: 10.h,
+                        left: 0,
+                        right: 0,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(images.length, (index) {
+                            final isActive = index == _currentImageIndex;
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              margin: EdgeInsets.symmetric(horizontal: 3.w),
+                              width: isActive ? 16.w : 6.w,
+                              height: 6.h,
+                              decoration: BoxDecoration(
+                                color: isActive
+                                    ? Colors.white
+                                    : Colors.white.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(3.r),
+                              ),
+                            );
+                          }),
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
       ),
     );
@@ -497,14 +537,19 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.5.h),
               child: isUrl
-                  ? GestureDetector(
-                      onTap: () => _openUrl(value.trim()),
-                      behavior: HitTestBehavior.opaque,
-                      child: Text(
-                        value,
-                        style: TextStyle(
-                          fontSize: 13.sp,
-                          color: AppColors.textTertiary,
+                  ? Semantics(
+                      label: '${spec.label} 홈페이지 열기',
+                      link: true,
+                      excludeSemantics: true,
+                      child: GestureDetector(
+                        onTap: () => _openUrl(value.trim()),
+                        behavior: HitTestBehavior.opaque,
+                        child: Text(
+                          value,
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            color: AppColors.textTertiary,
+                          ),
                         ),
                       ),
                     )
@@ -595,18 +640,20 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
             padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
             child: Row(
               children: [
-                Container(
-                  width: 30.r,
-                  height: 30.r,
-                  alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primary,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    category.profile.icon,
-                    size: 18.r,
-                    color: Colors.white,
+                ExcludeSemantics(
+                  child: Container(
+                    width: 30.r,
+                    height: 30.r,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      category.profile.icon,
+                      size: 18.r,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
                 SizedBox(width: 10.w),
@@ -620,16 +667,22 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                     ),
                   ),
                 ),
-                GestureDetector(
-                  onTap: () => _toggleCategory(index),
-                  behavior: HitTestBehavior.opaque,
-                  child: SizedBox(
-                    width: 28.r,
-                    height: 28.r,
-                    child: Center(
-                      child: ChevronIcon(
-                        pointsUp: isExpanded,
-                        color: AppColors.boldDivider,
+                Semantics(
+                  label: '${category.profile.label} 편의정보',
+                  button: true,
+                  expanded: isExpanded,
+                  excludeSemantics: true,
+                  child: GestureDetector(
+                    onTap: () => _toggleCategory(index),
+                    behavior: HitTestBehavior.opaque,
+                    child: SizedBox(
+                      width: 28.r,
+                      height: 28.r,
+                      child: Center(
+                        child: ChevronIcon(
+                          pointsUp: isExpanded,
+                          color: AppColors.boldDivider,
+                        ),
                       ),
                     ),
                   ),

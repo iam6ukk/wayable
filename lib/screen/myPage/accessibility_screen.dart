@@ -218,39 +218,47 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
   Widget _buildOption(AccessibilityProfile profile) {
     final isSelected = _selectedProfiles.contains(profile);
 
-    return GestureDetector(
-      onTap: () => _toggleSelection(profile),
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 110.w,
-        child: Column(
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              width: 82.4.r,
-              height: 82.4.r,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isSelected
-                    ? AppColors.primary
-                    : AppColors.toggleUnselectedBackground,
+    return Semantics(
+      label: profile.label,
+      button: true,
+      selected: isSelected,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: () => _toggleSelection(profile),
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: 110.w,
+          child: Column(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                width: 82.4.r,
+                height: 82.4.r,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.toggleUnselectedBackground,
+                ),
+                child: Icon(
+                  profile.icon,
+                  size: 48.r,
+                  color: isSelected
+                      ? Colors.white
+                      : AppColors.toggleUnselected,
+                ),
               ),
-              child: Icon(
-                profile.icon,
-                size: 48.r,
-                color: isSelected ? Colors.white : AppColors.toggleUnselected,
+              SizedBox(height: 12.h),
+              Text(
+                profile.label,
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary,
+                ),
               ),
-            ),
-            SizedBox(height: 12.h),
-            Text(
-              profile.label,
-              style: TextStyle(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

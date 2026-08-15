@@ -325,7 +325,9 @@ class _AccessibilityDetailScreenState
       children: [
         Row(
           children: [
-            Icon(profile.icon, size: 24.r, color: AppColors.primary),
+            ExcludeSemantics(
+              child: Icon(profile.icon, size: 24.r, color: AppColors.primary),
+            ),
             SizedBox(width: 6.w),
             Text(
               profile.label,
@@ -373,21 +375,27 @@ class _AccessibilityDetailScreenState
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : AppColors.surfaceCircle,
-          borderRadius: BorderRadius.circular(22.r),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12.sp,
-            fontWeight: isSelected ? FontWeight.w500 : FontWeight.w300,
-            color: isSelected ? Colors.white : AppColors.textSecondary,
+    return Semantics(
+      label: label,
+      button: true,
+      selected: isSelected,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primary : AppColors.surfaceCircle,
+            borderRadius: BorderRadius.circular(22.r),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.sp,
+              fontWeight: isSelected ? FontWeight.w500 : FontWeight.w300,
+              color: isSelected ? Colors.white : AppColors.textSecondary,
+            ),
           ),
         ),
       ),

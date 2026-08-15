@@ -231,26 +231,31 @@ class MyPageScreen extends ConsumerWidget {
           SizedBox(height: 16.h),
           Align(
             alignment: Alignment.centerRight,
-            child: GestureDetector(
-              onTap: () => _openAccessibilitySetting(context),
-              behavior: HitTestBehavior.opaque,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '프로필 수정하기',
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w300,
+            child: Semantics(
+              label: '프로필 수정하기',
+              button: true,
+              excludeSemantics: true,
+              child: GestureDetector(
+                onTap: () => _openAccessibilitySetting(context),
+                behavior: HitTestBehavior.opaque,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '프로필 수정하기',
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w300,
+                        color: AppColors.textTertiary,
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 10.r,
                       color: AppColors.textTertiary,
                     ),
-                  ),
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    size: 10.r,
-                    color: AppColors.textTertiary,
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -264,7 +269,13 @@ class MyPageScreen extends ConsumerWidget {
       padding: EdgeInsets.only(bottom: 10.h),
       child: Row(
         children: [
-          Icon(profile.icon, size: 18.r, color: AppColors.toggleUnselected),
+          ExcludeSemantics(
+            child: Icon(
+              profile.icon,
+              size: 18.r,
+              color: AppColors.toggleUnselected,
+            ),
+          ),
           SizedBox(width: 8.w),
           Text(
             profile.label,
@@ -306,15 +317,20 @@ class MyPageScreen extends ConsumerWidget {
   Widget _buildMenuItem(_MenuEntry item) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 13.5.h),
-      child: GestureDetector(
-        onTap: item.onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Text(
-          item.label,
-          style: TextStyle(
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w300,
-            color: AppColors.textSecondary,
+      child: Semantics(
+        label: item.label,
+        button: true,
+        excludeSemantics: true,
+        child: GestureDetector(
+          onTap: item.onTap,
+          behavior: HitTestBehavior.opaque,
+          child: Text(
+            item.label,
+            style: TextStyle(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w300,
+              color: AppColors.textSecondary,
+            ),
           ),
         ),
       ),
@@ -322,17 +338,22 @@ class MyPageScreen extends ConsumerWidget {
   }
 
   Widget _buildTextAction(String label, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12.sp,
-          fontWeight: FontWeight.w300,
-          color: AppColors.textTertiary,
-          decoration: TextDecoration.underline,
-          decorationColor: AppColors.textTertiary,
+    return Semantics(
+      label: label,
+      button: true,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12.sp,
+            fontWeight: FontWeight.w300,
+            color: AppColors.textTertiary,
+            decoration: TextDecoration.underline,
+            decorationColor: AppColors.textTertiary,
+          ),
         ),
       ),
     );

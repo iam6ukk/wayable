@@ -17,9 +17,11 @@ class TopLogoBanner extends StatelessWidget {
       child: SizedBox(
         height: kToolbarHeight,
         child: Center(
-          child: Image.asset(
-            'assets/images/common/wayable.png',
-            height: 28.h,
+          child: ExcludeSemantics(
+            child: Image.asset(
+              'assets/images/common/wayable.png',
+              height: 28.h,
+            ),
           ),
         ),
       ),

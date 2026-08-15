@@ -27,6 +27,7 @@ class SimplePopupMenu<T> extends StatelessWidget {
     this.offset = Offset.zero,
     this.width,
     this.itemHeight,
+    this.tooltip,
   });
 
   final List<SimplePopupMenuOption<T>> options;
@@ -43,9 +44,14 @@ class SimplePopupMenu<T> extends StatelessWidget {
 
   final double? itemHeight;
 
+  /// 스크린 리더가 트리거를 읽어줄 라벨. 지정하지 않으면 Flutter 기본값(영문
+  /// "Show menu")으로 읽히므로, 의미 있는 메뉴 트리거에는 항상 지정한다.
+  final String? tooltip;
+
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<T>(
+      tooltip: tooltip,
       constraints: width == null
           ? const BoxConstraints()
           : BoxConstraints.tightFor(width: width!),

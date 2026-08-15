@@ -175,9 +175,17 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ScrollFab(icon: Icons.north, onTap: _scrollToTop),
+              ScrollFab(
+                icon: Icons.north,
+                semanticLabel: '맨 위로 이동',
+                onTap: _scrollToTop,
+              ),
               SizedBox(height: 11.h),
-              ScrollFab(icon: Icons.south, onTap: _scrollToBottom),
+              ScrollFab(
+                icon: Icons.south,
+                semanticLabel: '맨 아래로 이동',
+                onTap: _scrollToBottom,
+              ),
             ],
           ),
         ),
@@ -243,36 +251,44 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
   }
 
   Widget _buildEditButton() {
-    return InkWell(
-      onTap: () => setState(() => _showFolderEdit = true),
-      borderRadius: BorderRadius.circular(20.r),
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20.r),
-          border: Border.all(color: const Color(0xFFE4E4E4), width: 0.5),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
-              blurRadius: 4,
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '편집',
-              style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary),
-            ),
-            SizedBox(width: 4.w),
-            Icon(
-              Icons.edit_outlined,
-              size: 16.r,
-              color: AppColors.bottomNavInactive,
-            ),
-          ],
+    return Semantics(
+      label: '저장 폴더 편집',
+      button: true,
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: () => setState(() => _showFolderEdit = true),
+        borderRadius: BorderRadius.circular(20.r),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20.r),
+            border: Border.all(color: const Color(0xFFE4E4E4), width: 0.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 4,
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '편집',
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              SizedBox(width: 4.w),
+              Icon(
+                Icons.edit_outlined,
+                size: 16.r,
+                color: AppColors.bottomNavInactive,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -434,6 +450,14 @@ class _SavedSpotCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final distanceLabel = _distanceLabel;
+    final supportLabels = spot.supportedProfiles.map((p) => p.label).join(', ');
+    final infoLabel = [
+      spot.title,
+      ?distanceLabel,
+      spot.addr1,
+      if (supportLabels.isNotEmpty) '$supportLabels 지원',
+    ].join(', ');
+
     return InkWell(
       onTap: () => Navigator.of(
         context,
@@ -447,73 +471,84 @@ class _SavedSpotCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        spot.title,
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      SizedBox(height: 8.h),
-                      Row(
-                        children: [
-                          if (distanceLabel != null) ...[
-                            Text(
-                              distanceLabel,
-                              style: TextStyle(
-                                fontSize: 11.sp,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            SizedBox(width: 8.w),
-                          ],
-                          Expanded(
-                            child: Text(
-                              spot.addr1,
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                color: AppColors.textSecondary,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                  child: Semantics(
+                    label: infoLabel,
+                    button: true,
+                    excludeSemantics: true,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          spot.title,
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
                           ),
-                        ],
-                      ),
-                      if (spot.supportedProfiles.isNotEmpty) ...[
+                        ),
                         SizedBox(height: 8.h),
                         Row(
-                          children: spot.supportedProfiles
-                              .map(
-                                (profile) => Padding(
-                                  padding: EdgeInsets.only(right: 6.w),
-                                  child: Icon(
-                                    profile.icon,
-                                    size: 16.r,
-                                    color: AppColors.toggleUnselected,
-                                  ),
+                          children: [
+                            if (distanceLabel != null) ...[
+                              Text(
+                                distanceLabel,
+                                style: TextStyle(
+                                  fontSize: 11.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary,
                                 ),
-                              )
-                              .toList(),
+                              ),
+                              SizedBox(width: 8.w),
+                            ],
+                            Expanded(
+                              child: Text(
+                                spot.addr1,
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: AppColors.textSecondary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
+                        if (spot.supportedProfiles.isNotEmpty) ...[
+                          SizedBox(height: 8.h),
+                          Row(
+                            children: spot.supportedProfiles
+                                .map(
+                                  (profile) => Padding(
+                                    padding: EdgeInsets.only(right: 6.w),
+                                    child: Icon(
+                                      profile.icon,
+                                      size: 16.r,
+                                      color: AppColors.toggleUnselected,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
-                GestureDetector(
-                  onTap: onToggleBookmark,
-                  behavior: HitTestBehavior.opaque,
-                  child: Icon(
-                    isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                    color: isBookmarked
-                        ? AppColors.accent
-                        : AppColors.navIconInactive,
-                    size: 32.r,
+                Semantics(
+                  label: isBookmarked ? '북마크 해제' : '북마크 저장',
+                  button: true,
+                  selected: isBookmarked,
+                  excludeSemantics: true,
+                  child: GestureDetector(
+                    onTap: onToggleBookmark,
+                    behavior: HitTestBehavior.opaque,
+                    child: Icon(
+                      isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                      color: isBookmarked
+                          ? AppColors.accent
+                          : AppColors.navIconInactive,
+                      size: 32.r,
+                    ),
                   ),
                 ),
               ],
