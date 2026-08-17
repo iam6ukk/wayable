@@ -93,19 +93,49 @@ const _kCardVerticalPadding = 14.0;
 /// 화면 비율과 무관하게 항상 카드 높이 예산 안에 정확히 들어맞는다.
 const _kResultCardImageHeight = 111.0;
 
-/// [textScaler]는 접근성 설정(시스템 글자 크기, 최대 1.15배 — main.dart의
-/// `MediaQuery.withClampedTextScaling` 참고)만큼 카드 예산도 함께 늘려주기
-/// 위한 값이다. 카드 안 텍스트(제목/주소/편의칩)는 시스템 글자 크기를 그대로
-/// 따라 커지는데, 카드 높이는 원래 뷰포트(.h) 스케일에만 반응해 고정돼
-/// 있었다 — 그래서 글자 크기를 키운 사용자 환경에서는 편의칩 줄처럼 높이가
-/// 고정된 영역의 글자가 박스보다 커져 잘려 보였다. 기본 배율(1.0)에서는
-/// 아무 변화가 없고, 글자 크기를 키운 경우에만 카드 예산이 같은 비율로
-/// 늘어나 내부 요소들과 어긋나지 않는다.
-double _cardExtentFor(TourSpot spot, TextScaler textScaler) {
+/// 편의칩 글자 크기·패딩·테두리. [_FacilityChip]과 [_measureFacilityChipRowHeight]가
+/// 정확히 같은 값을 쓰도록 상수로 뽑아뒀다 — 하나만 바꾸고 다른 하나를
+/// 안 바꾸면 다시 잘려 보이는 문제가 재발한다.
+const _kFacilityChipFontSize = 10.0;
+const _kFacilityChipVerticalPadding = 3.0;
+const _kFacilityChipBorderWidth = 0.5;
+
+/// 편의칩 줄(SizedBox) 높이를 "20.h" 같은 손으로 어림한 상수나 뷰포트/텍스트
+/// 배율을 곱해 유추한 값 대신, 실제로 Flutter가 그 글자를 그릴 때 쓰는 것과
+/// 동일한 [TextPainter]로 직접 측정해서 구한다. 뷰포트 스케일(.h)과 시스템
+/// 글자 크기(textScaler)가 서로 다른 축으로 움직이는 데다, 에뮬레이터/실기기
+/// 간 폰트 렌더링(hinting) 차이까지 겹쳐서 손으로 계산한 값은 태블릿
+/// 에뮬레이터에서 계속 몇 px씩 어긋나 글자가 잘려 보였다 — 직접 측정하면
+/// 그 모든 변수를 한 번에 정확히 반영해서 어떤 기기·설정에서도 항상 딱
+/// 맞는다.
+double _measureFacilityChipRowHeight(BuildContext context) {
+  final painter = TextPainter(
+    text: TextSpan(
+      text: '가',
+      style: TextStyle(fontSize: _kFacilityChipFontSize.sp),
+    ),
+    textDirection: TextDirection.ltr,
+    textScaler: MediaQuery.textScalerOf(context),
+  )..layout();
+  return painter.height +
+      _kFacilityChipVerticalPadding.h * 2 +
+      _kFacilityChipBorderWidth * 2;
+}
+
+/// 편의칩 줄 높이가 원래 손으로 잡았던 기준값(20.h)보다 더 필요한 만큼만
+/// 카드 전체 예산([_kCardExtent])에 더해준다 — 기준값 이하로는 절대 줄지
+/// 않아 기존에 실측으로 맞춰둔 카드 여백은 그대로 유지된다.
+const _kFacilityChipRowBaseline = 20.0;
+
+double _cardExtentFor(TourSpot spot, double chipRowHeight) {
+  final chipRowExtra = (chipRowHeight - _kFacilityChipRowBaseline.h).clamp(
+    0.0,
+    double.infinity,
+  );
   final base = spot.firstImage != null
       ? _kCardExtent.h
       : _kCardExtent.h - _kCardGapChipsToImage.h - _kResultCardImageHeight.h;
-  return textScaler.scale(base);
+  return base + chipRowExtra;
 }
 const _kSheetHeightFraction = 0.45;
 // 시트를 아래로 내렸을 때 남는 최소 높이(필터 pill 줄 정도만 보이는 선) —
@@ -537,10 +567,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// 카드의 절반을 넘었는지를 찾는다(카드 하나를 완전히 다 넘겨야 바뀌는 게
   /// 아니라 절반쯤 스크롤한 시점에 다음 카드로 넘어가는 동작은 그대로 유지).
   int _activeIndexForOffset(double offset) {
-    final textScaler = MediaQuery.textScalerOf(context);
+    final chipRowHeight = _measureFacilityChipRowHeight(context);
     var cumulative = 0.0;
     for (var i = 0; i < _results.length; i++) {
-      final extent = _cardExtentFor(_results[i], textScaler);
+      final extent = _cardExtentFor(_results[i], chipRowHeight);
       final midpoint = cumulative + extent / 2;
       if (offset < midpoint) return i;
       cumulative += extent;
@@ -569,7 +599,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Future<void> _handleMarkerTap(int index) async {
     if (index < 0 || index >= _results.length) return;
 
-    final textScaler = MediaQuery.textScalerOf(context);
+    final chipRowHeight = _measureFacilityChipRowHeight(context);
     final previous = _activeIndex;
     final reopening = !_hasSearched;
     setState(() {
@@ -590,7 +620,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       _isProgrammaticScroll = true;
       var targetOffset = 0.0;
       for (var i = 0; i < index; i++) {
-        targetOffset += _cardExtentFor(_results[i], textScaler);
+        targetOffset += _cardExtentFor(_results[i], chipRowHeight);
       }
       await controller.animateTo(
         targetOffset,
@@ -1282,6 +1312,7 @@ class _ResultSheet extends StatelessWidget {
       );
     }
 
+    final chipRowHeight = _measureFacilityChipRowHeight(context);
     return ListView.builder(
       controller: scrollController,
       // ListView는 padding을 안 주면 MediaQuery의 상단 인셋(상태바 높이)을
@@ -1295,7 +1326,7 @@ class _ResultSheet extends StatelessWidget {
       // 이미지 없는 여행지는 카드가 더 짧아 항목마다 높이가 다를 수 있어서
       // 고정 itemExtent 대신 항목별로 높이를 계산해주는 빌더를 쓴다.
       itemExtentBuilder: (index, _) =>
-          _cardExtentFor(results[index], MediaQuery.textScalerOf(context)),
+          _cardExtentFor(results[index], chipRowHeight),
       itemCount: results.length,
       itemBuilder: (context, index) {
         final spot = results[index];
@@ -1875,12 +1906,11 @@ class _SpotListCard extends ConsumerWidget {
             // 동일하게 보인다.
             SizedBox(height: _kCardGapAddressToChips.h),
             SizedBox(
-              // 편의칩 안 글자(10.sp)는 시스템 글자 크기(최대 1.15배)를 그대로
-              // 따라 커지는데, 이 줄의 높이는 20.h처럼 뷰포트 스케일에만
-              // 반응하는 고정값이면 글자가 커졌을 때 박스보다 커져 잘려
-              // 보인다. 카드 전체 예산([_cardExtentFor])도 같은 배율만큼
-              // 늘어나므로, 이 줄도 같은 배율을 곱해야 서로 어긋나지 않는다.
-              height: MediaQuery.textScalerOf(context).scale(20.h),
+              // 손으로 어림한 고정값 대신 실제 렌더링 높이를 직접 측정한다
+              // ([_measureFacilityChipRowHeight] 참고) — 기기·설정에 따라
+              // 계속 어긋나던 값이라 여기서 절대 다시 매직 넘버로 되돌리지
+              // 말 것.
+              height: _measureFacilityChipRowHeight(context),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: MergeSemantics(
@@ -1937,11 +1967,17 @@ class _FacilityChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
+      padding: EdgeInsets.symmetric(
+        horizontal: 6.w,
+        vertical: _kFacilityChipVerticalPadding.h,
+      ),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: AppColors.faintDivider, width: 0.5),
+        border: Border.all(
+          color: AppColors.faintDivider,
+          width: _kFacilityChipBorderWidth,
+        ),
         borderRadius: BorderRadius.circular(2.748.r),
       ),
       // 폰트(Pretendard) 자체의 위아래 여백이 비대칭이라 alignment: center만
@@ -1953,7 +1989,10 @@ class _FacilityChip extends StatelessWidget {
         child: Text(
           label,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 10.sp, color: AppColors.textTertiary),
+          style: TextStyle(
+            fontSize: _kFacilityChipFontSize.sp,
+            color: AppColors.textTertiary,
+          ),
         ),
       ),
     );

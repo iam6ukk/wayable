@@ -53,7 +53,14 @@ class BottomNavBar extends StatelessWidget {
       color: AppColors.background,
       padding: EdgeInsets.only(bottom: bottomInset),
       child: SizedBox(
-        height: kBottomNavigationBarHeight,
+        // kBottomNavigationBarHeight(Material 기본 56dp)는 뷰포트 스케일과
+        // 무관한 고정값이다. 아이콘(28.r)처럼 스케일을 따라 커지는 콘텐츠와
+        // 같이 두면, 세로 스케일이 큰 기기(태블릿)에서는 아이콘이 이 고정
+        // 높이에 거의 꽉 차 위아래 여백이 없어 보이고, 스케일이 1에 가까운
+        // 기기(폰)에서는 여백이 넉넉해 보여 기기마다 탭 바 안쪽 여백이
+        // 달라 보였다. 탭 바 높이도 같은 축(.h)으로 스케일해야 아이콘과의
+        // 여백 비율이 기기와 무관하게 항상 동일하게 유지된다.
+        height: kBottomNavigationBarHeight.h,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: BottomNavTab.values
@@ -77,7 +84,7 @@ class BottomNavBar extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         child: SizedBox(
           width: 48.w,
-          height: kBottomNavigationBarHeight,
+          height: kBottomNavigationBarHeight.h,
           child: Center(
             child: Icon(
               tab.icon,
