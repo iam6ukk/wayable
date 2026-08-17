@@ -238,6 +238,14 @@
 - **수정**: 나갈 때/들어올 때 조건을 `oldWidget.isActive != widget.isActive`로 바꿔 양방향 모두 기본값을 다시 계산하도록 변경
 - **재검증**: 프로필을 지체장애·청각장애·영유아로 바꾸고 저장한 직후 탐색 탭으로 이동 → 아이콘과 필터 칩이 즉시 새 프로필 기준으로 갱신되는 것 확인
 
+**[수정 완료] BUG-04. 위치 권한을 거부하면 지도 탭이 로딩 화면에 갇혀 완전히 먹통이 됨 (SEARCH-M02 관련)**
+
+- **재현**: 위치 권한을 거부한 상태(`adb shell pm revoke ... ACCESS_FINE_LOCATION/ACCESS_COARSE_LOCATION`)로 지도 탭 진입
+- **결과**: 카메라는 의도대로 서울시청 기본 위치로 폴백됐지만, 화면 전체를 덮는 로딩 오버레이(반투명 배경 + 로고 스피너)가 20초 이상 지나도 걷히지 않음. 이 오버레이가 전체 화면을 덮고 있어 지도 이동·검색·카테고리 탭 등 모든 조작이 막힘 — FAQ의 "위치 권한이 없어도 지도를 직접 이동해 지역별 여행지를 탐색할 수 있습니다"라는 설명과 실제 동작이 어긋남(GPS만 안 되는 게 아니라 지도 탭 자체가 먹통)
+- **원인**: [`lib/screen/search/map_screen.dart`](../lib/screen/search/map_screen.dart) `_handleMapReady`(L263)의 `Geolocator.getLastKnownPosition()` 직접 호출이 위치 권한 거부 시 `PermissionDeniedException`을 던짐(logcat에서 `GeolocatorAndroid.getLastKnownPosition` → `_handleMapReady:263` 스택트레이스로 확인). try/catch가 없어 예외가 그대로 전파되면서 그 아래 `_applyResolvedPosition()`(로딩 상태를 꺼주는 함수)이 한 번도 호출되지 못해 `_isLocating`이 계속 `true`로 남음. 같은 파일에서 쓰는 `LocationService.getCurrentPosition()`은 이미 권한 거부를 안전하게 처리해 `null`을 반환하도록 돼 있었는데, 이 한 줄만 그 안전장치를 우회해 지오로케이터 API를 직접 호출하고 있었음
+- **수정**: 해당 호출을 try/catch로 감싸 예외 발생 시 `null`로 처리(캐시된 마지막 위치 없음과 동일하게 취급)하도록 변경
+- **재검증**: 위치 권한 거부 상태로 지도 탭 진입 → 로딩 오버레이가 정상적으로 걷히고 서울시청 기본 위치로 표시됨. 지도를 손으로 이동해 "이 장소 재검색" 실행, 카테고리 필터 탭으로 검색 실행 → 결과 목록(거리·적합성 레벨·이미지 포함)까지 정상 로드되는 것 확인. 크래시 없음
+
 ### 9-2. 화면 이상 / UX 개선 여지 (P2)
 
 **ISSUE-01. 지도 검색의 "레벨 산정 중" 배지가 게스트/미설정 사용자에게 계속 로딩 중처럼 보임**

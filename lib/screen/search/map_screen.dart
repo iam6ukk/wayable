@@ -260,7 +260,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // 타임아웃), 그동안 로딩 화면을 붙잡고 있으면 진입이 너무 느리게 느껴진다.
     // 기기에 캐시된 마지막 위치가 있으면 그걸로 먼저 즉시 지도를 그려서
     // 로딩 체감을 줄이고, 진짜 GPS 결과는 뒤이어 조용히 반영한다.
-    final lastKnown = await Geolocator.getLastKnownPosition();
+    //
+    // getLastKnownPosition은 (checkPermission과 달리) 위치 권한이 없으면
+    // PermissionDeniedException을 던진다 — try/catch 없이 두면 그 아래
+    // _applyResolvedPosition이 한 번도 호출되지 못해 _isLocating이 계속
+    // true로 남고, 전체화면 LoadingOverlay가 지도를 영영 가려버린다(권한
+    // 거부 시에도 지도를 직접 움직여 탐색할 수 있어야 하는데 그게 막힘).
+    Position? lastKnown;
+    try {
+      lastKnown = await Geolocator.getLastKnownPosition();
+    } catch (_) {
+      lastKnown = null;
+    }
     final quickLatLng = lastKnown == null
         ? null
         : LatLng(lastKnown.latitude, lastKnown.longitude);
