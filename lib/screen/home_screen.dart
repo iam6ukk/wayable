@@ -104,6 +104,15 @@ const _kMostSavedPanelOverhang = 3.0;
 // 잘리지 않도록 주는 여유.
 const _kMostSavedBottomSafety = 6.0 + _kMostSavedPanelOverhang;
 
+// 장소명 박스 글자 크기·손으로 잡았던 기준 높이(38). [_measureMostSavedPanelHeight]가
+// 실측한 값이 이 기준보다 작으면 기준값을 그대로 쓰고(기존 실측 여백 유지),
+// 더 필요하면 그만큼만 늘려준다 — 편의칩과 같은 이유([_measureFacilityChipRowHeight]
+// 참고)로, 뷰포트 스케일만 따라가는 고정값이면 시스템 글자 크기를 키우거나
+// 기기별 폰트 렌더링이 다를 때 이 작은 박스 안 글자가 잘려 보일 수 있다.
+const _kMostSavedPanelFontSize = 12.0;
+const _kMostSavedPanelVerticalPadding = 12.0;
+const _kMostSavedPanelBaselineHeight = 38.0;
+
 class _FeaturedSpot {
   const _FeaturedSpot({
     required this.contentId,
@@ -936,6 +945,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  // 실제로 Flutter가 장소명 박스 글자를 그릴 때 쓰는 것과 동일한
+  // TextPainter로 필요한 높이를 직접 측정한다 — 뷰포트 스케일이나 텍스트
+  // 배율을 손으로 곱해 유추하는 대신이라, 기기·설정과 무관하게 항상
+  // 정확히 맞는다([_measureFacilityChipRowHeight]와 같은 방식).
+  double _measureMostSavedPanelHeight() {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: '가',
+        style: TextStyle(
+          fontSize: _kMostSavedPanelFontSize.sp,
+          fontWeight: FontWeight.bold,
+          height: 1.0,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout();
+    return painter.height + _kMostSavedPanelVerticalPadding.h * 2;
+  }
+
   Widget _buildMostSavedSection() {
     final spots = _mostSavedSpots;
     return Column(
@@ -1087,7 +1116,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final imageWidth = 103.w;
     final imageHeight = 141.h;
     final panelWidth = 103.w;
-    final panelHeight = 38.h;
+    final panelHeight = max(
+      _measureMostSavedPanelHeight(),
+      _kMostSavedPanelBaselineHeight.h,
+    );
 
     return Semantics(
       label: '저장 인기 $rank위, ${spot.title}',
