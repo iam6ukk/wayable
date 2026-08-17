@@ -96,7 +96,10 @@ const _kResultCardImageHeight = 111.0;
 /// 편의칩 글자 크기·패딩·테두리. [_FacilityChip]과 [_measureFacilityChipRowHeight]가
 /// 정확히 같은 값을 쓰도록 상수로 뽑아뒀다 — 하나만 바꾸고 다른 하나를
 /// 안 바꾸면 다시 잘려 보이는 문제가 재발한다.
-const _kFacilityChipFontSize = 10.0;
+// 10.0이었던 걸 11.0으로 소폭 키움 — 받침 있는 글자(출입통로/접근로 등)의
+// 획이 실기기에서 물리 픽셀 1~2개 두께라 안티앨리어싱에 따라 흐릿하게
+// 보이거나 획이 끊겨 보이는 경우가 있어, 가독성을 위해 올렸다.
+const _kFacilityChipFontSize = 11.0;
 const _kFacilityChipVerticalPadding = 3.0;
 const _kFacilityChipBorderWidth = 0.5;
 
@@ -113,6 +116,13 @@ double _measureFacilityChipRowHeight(BuildContext context) {
     text: TextSpan(
       text: '가',
       style: TextStyle(fontSize: _kFacilityChipFontSize.sp),
+    ),
+    // _FacilityChip이 실제로 쓰는 strutStyle과 반드시 동일해야 측정값과
+    // 실제 렌더링 높이가 어긋나지 않는다.
+    strutStyle: StrutStyle(
+      fontSize: _kFacilityChipFontSize.sp,
+      height: 1.0,
+      forceStrutHeight: true,
     ),
     textDirection: TextDirection.ltr,
     textScaler: MediaQuery.textScalerOf(context),
@@ -1980,19 +1990,25 @@ class _FacilityChip extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(2.748.r),
       ),
-      // 폰트(Pretendard) 자체의 위아래 여백이 비대칭이라 alignment: center만
-      // 으로는 글자가 살짝 아래로 치우쳐 보인다. Transform은 페인트 단계에서만
-      // 위치를 옮기고 레이아웃 크기(박스 크기)는 그대로 두므로, 칩 크기를
-      // 안 건드리면서 글자만 위로 보정할 수 있다.
-      child: Transform.translate(
-        offset: Offset(0, -1.h),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: _kFacilityChipFontSize.sp,
-            color: AppColors.textTertiary,
-          ),
+      // 이전에는 Transform.translate(0, -1.h)로 글자를 위로 살짝 밀어
+      // 세로 중앙에 맞췄는데, -1.h가 기기마다 정수 픽셀이 아닌 값(예:
+      // 1.058)이 되면서 텍스트가 정수 픽셀 경계에서 벗어나 렌더링돼
+      // 획이 또렷하지 않고 흐릿하게 보였다(특히 받침 있는 글자에서
+      // 두드러짐). 페인트 단계에서 위치만 옮기는 대신, 레이아웃 자체의
+      // 줄 높이를 폰트 크기와 똑같이 고정해서(strutStyle) 폰트 내부의
+      // 비대칭 여백을 없앤다 — 텍스트가 항상 정수 픽셀 경계에서 그려져
+      // 선명하다.
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        strutStyle: StrutStyle(
+          fontSize: _kFacilityChipFontSize.sp,
+          height: 1.0,
+          forceStrutHeight: true,
+        ),
+        style: TextStyle(
+          fontSize: _kFacilityChipFontSize.sp,
+          color: AppColors.textTertiary,
         ),
       ),
     );

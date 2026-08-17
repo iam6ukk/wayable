@@ -160,6 +160,16 @@ class _FaqScreenState extends ConsumerState<FaqScreen> {
       key: ValueKey('${_selectedCategory}_${item.question}'),
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
+        // ExpansionTile 헤더(ListTile) 한 줄의 최소 높이는 기본적으로
+        // Material의 고정 최소 탭 영역(kMinInteractiveDimension=48, 뷰포트
+        // 스케일과 무관)을 따른다. 제목 글자(13.sp)는 뷰포트 스케일을 따라
+        // 커지는데 이 최소 높이는 고정이라, 태블릿처럼 세로 스케일이 큰
+        // 기기에서는 글자가 그 고정 여백을 다 잠식해 위아래 간격이 좁아
+        // 보였다. tilePadding으로 여백을 무작정 더하면 이미 적당했던
+        // 폰에서도 같이 늘어나버리므로, 대신 이 최소 높이 자체를 .h로
+        // 스케일해서 폰에서의 비율은 그대로 유지한 채(48→48.h, 거의 차이
+        // 없음) 태블릿에서만 실질적으로 커지게 한다.
+        minTileHeight: kMinInteractiveDimension.h,
         tilePadding: EdgeInsets.zero,
         childrenPadding: EdgeInsets.zero,
         shape: const Border(),
