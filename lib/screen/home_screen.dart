@@ -178,13 +178,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // null이면 로딩 중 → _buildMostSavedSection()이 스켈레톤을 보여준다.
   List<TourSpot>? _mostSavedSpots;
+  StreamSubscription<List<TourSpot>>? _mostSavedSub;
 
   @override
   void initState() {
     super.initState();
     _loadDiscoverySpot();
     _loadFeaturedSpots();
-    _loadMostSavedSpots();
+    _watchMostSavedSpots();
     _accessibilityScrollController.addListener(_onAccessibilityScroll);
   }
 
@@ -193,18 +194,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _heroAutoPlayTimer?.cancel();
     _heroController.dispose();
     _accessibilityScrollController.dispose();
+    _mostSavedSub?.cancel();
     super.dispose();
   }
 
-  Future<void> _loadMostSavedSpots() async {
-    final spots = await _tourSpotService.fetchMostBookmarked();
-    final withImages = spots
-        .where((spot) => (spot.firstImage ?? '').isNotEmpty)
-        .take(3)
-        .toList();
-    if (!mounted) return;
-    setState(() {
-      _mostSavedSpots = withImages;
+  // 북마크 카운트가 바뀌는 순간 실시간 반영되도록 함.
+  void _watchMostSavedSpots() {
+    _mostSavedSub = _tourSpotService.watchMostBookmarked().listen((spots) {
+      AppLogger.debug(
+        '[MostSaved] 북마크 : '
+        '${spots.where((s) => s.bookmarkCount != 0).map((s) => '${s.title}=${s.bookmarkCount}').join(', ')}',
+      );
+      final withImages = spots
+          .where((spot) => (spot.firstImage ?? '').isNotEmpty)
+          .take(3)
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _mostSavedSpots = withImages;
+      });
     });
   }
 

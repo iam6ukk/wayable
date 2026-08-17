@@ -36,30 +36,26 @@ class TourSpotService {
     int pageSize = 6,
   }) async {
     try {
-      final result = await _functions.httpsCallable('searchTourSpots').call<
-          Object?>({
-        if (keyword != null && keyword.isNotEmpty) 'keyword': keyword,
-        if (regionCode != null) 'regionCode': regionCode,
-        if (categoryIds != null && categoryIds.isNotEmpty)
-          'categoryIds': categoryIds,
-        if (acceptableFields != null && acceptableFields.isNotEmpty)
-          'acceptableFields': acceptableFields,
-        if (sigunguMemberCodes != null && sigunguMemberCodes.isNotEmpty)
-          'sigunguMemberCodes': sigunguMemberCodes,
-        'page': page,
-        'pageSize': pageSize,
-      });
+      final result = await _functions
+          .httpsCallable('searchTourSpots')
+          .call<Object?>({
+            if (keyword != null && keyword.isNotEmpty) 'keyword': keyword,
+            if (regionCode != null) 'regionCode': regionCode,
+            if (categoryIds != null && categoryIds.isNotEmpty)
+              'categoryIds': categoryIds,
+            if (acceptableFields != null && acceptableFields.isNotEmpty)
+              'acceptableFields': acceptableFields,
+            if (sigunguMemberCodes != null && sigunguMemberCodes.isNotEmpty)
+              'sigunguMemberCodes': sigunguMemberCodes,
+            'page': page,
+            'pageSize': pageSize,
+          });
 
       final data = _asStringKeyedMap(result.data);
-      final items = (data['items'] as List<dynamic>? ?? const [])
-          .map((item) {
-            final itemMap = _asStringKeyedMap(item);
-            return TourSpot.fromFirestore(
-              itemMap['id']?.toString() ?? '',
-              itemMap,
-            );
-          })
-          .toList();
+      final items = (data['items'] as List<dynamic>? ?? const []).map((item) {
+        final itemMap = _asStringKeyedMap(item);
+        return TourSpot.fromFirestore(itemMap['id']?.toString() ?? '', itemMap);
+      }).toList();
       final totalCount = (data['totalCount'] as num?)?.toInt() ?? items.length;
 
       return TourSpotSearchResult(spots: items, totalCount: totalCount);
@@ -84,21 +80,17 @@ class TourSpotService {
     }
   }
 
-  /// 홈 화면 "가장 많이 저장된 여행지" 캐러셀용. 컬렉션 전체를 bookmarkCount
-  /// 내림차순으로 가져온 뒤(정렬은 Firestore가 서버에서 처리) 호출부에서 상위
-  /// 몇 개만 뽑아 쓴다.
-  Future<List<TourSpot>> fetchMostBookmarked() async {
-    try {
-      final snapshot = await _collection
-          .orderBy('bookmarkCount', descending: true)
-          .get();
-      return snapshot.docs
-          .map((doc) => TourSpot.fromFirestore(doc.id, doc.data()))
-          .toList();
-    } catch (e) {
-      AppLogger.error('[TourSpotService] 최다 저장 여행지 조회 실패', error: e);
-      return [];
-    }
+  /// bookmarkCount를 확인하고 있다가 실시간으로 변경될 수 있도록 스냅샷 리스너를 쓴다.
+  /// 현재 상위 3개의 북마크만 가지고 표출하고 있다.
+  Stream<List<TourSpot>> watchMostBookmarked() {
+    return _collection
+        .orderBy('bookmarkCount', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => TourSpot.fromFirestore(doc.id, doc.data()))
+              .toList(),
+        );
   }
 
   /// [regionCode](TourSpot.lDongRegnCd, 시/도 코드)에 속하는 여행지를 콘텐츠
