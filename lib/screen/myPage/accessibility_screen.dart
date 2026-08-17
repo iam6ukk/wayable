@@ -35,6 +35,21 @@ class AccessibilityScreen extends ConsumerStatefulWidget {
 class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
   final Set<AccessibilityProfile> _selectedProfiles = {};
 
+  @override
+  void initState() {
+    super.initState();
+    // 마이페이지 "프로필 수정하기"로 들어온 경우 기존에 골랐던 대분류를 미리
+    // 켜둔다. 신규 가입 온보딩 경로는 저장된 프로필이 없어 자연히 빈 상태로
+    // 시작된다.
+    final saved =
+        ref.read(authStateProvider).user?.accessibilityProfiles ?? const [];
+    _selectedProfiles.addAll(
+      saved
+          .map((name) => AccessibilityProfile.values.asNameMap()[name])
+          .whereType<AccessibilityProfile>(),
+    );
+  }
+
   void _toggleSelection(AccessibilityProfile profile) {
     setState(() {
       if (_selectedProfiles.contains(profile)) {

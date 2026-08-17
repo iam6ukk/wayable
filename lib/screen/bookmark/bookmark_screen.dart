@@ -31,6 +31,11 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
   // 난다 — 여러 개를 허용하는 TickerProviderStateMixin을 써야 한다.
   late TabController _tabController;
   bool _showFolderEdit = false;
+
+  // 순서 편집 모드 여부. FolderEditScreen 안의 로컬 상태가 아니라 여기서
+  // 들고 있어야, 뒤로가기를 눌렀을 때 "순서 편집 → 폴더 편집 → 저장 목록"
+  // 순으로 한 단계씩만 빠져나가게 만들 수 있다(PopScope 핸들러 참고).
+  bool _isFolderReorderMode = false;
   int _lastFolderCount = 0;
 
   // 상하단 이동 버튼은 현재 보이는 탭의 목록을 스크롤해야 하는데, 탭마다
@@ -126,17 +131,37 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
     }
 
     if (_showFolderEdit) {
-      return FolderEditScreen(
-        folders: folders,
-        onBack: () => setState(() => _showFolderEdit = false),
-        onRenameFolder: (folder, newName) =>
-            ref.read(bookmarkProvider.notifier).renameFolder(folder, newName),
-        onDeleteFolder: (folder) =>
-            ref.read(bookmarkProvider.notifier).deleteFolder(folder),
-        onAddFolder: (name) =>
-            ref.read(bookmarkProvider.notifier).addFolder(name),
-        onReorderFolders: (newOrder) =>
-            ref.read(bookmarkProvider.notifier).reorderFolders(newOrder),
+      // 이 화면은 별도 라우트 없이 SavedListScreen 콘텐츠만 갈아끼운 것이라,
+      // 그대로 두면 시스템 뒤로가기가 화면(=앱)까지 pop해버린다(map_screen.dart
+      // 검색 바텀시트와 동일한 문제). 순서 편집 중이면 뒤로가기 한 번은 순서
+      // 편집만 빠져나가고(적용된 순서는 그대로 유지), 그다음 뒤로가기에서
+      // 저장 목록으로 나가게 한다.
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          if (_isFolderReorderMode) {
+            setState(() => _isFolderReorderMode = false);
+          } else {
+            setState(() => _showFolderEdit = false);
+          }
+        },
+        child: FolderEditScreen(
+          folders: folders,
+          isReorderMode: _isFolderReorderMode,
+          onReorderModeChanged: (value) =>
+              setState(() => _isFolderReorderMode = value),
+          onBack: () => setState(() => _showFolderEdit = false),
+          onRenameFolder: (folder, newName) => ref
+              .read(bookmarkProvider.notifier)
+              .renameFolder(folder, newName),
+          onDeleteFolder: (folder) =>
+              ref.read(bookmarkProvider.notifier).deleteFolder(folder),
+          onAddFolder: (name) =>
+              ref.read(bookmarkProvider.notifier).addFolder(name),
+          onReorderFolders: (newOrder) =>
+              ref.read(bookmarkProvider.notifier).reorderFolders(newOrder),
+        ),
       );
     }
 

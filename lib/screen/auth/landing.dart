@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:wayable/navigation/main_shell.dart';
+import 'package:wayable/providers/auth_provider.dart';
 import 'package:wayable/screen/auth/login_screen.dart';
 import 'package:wayable/theme/app_colors.dart';
 
@@ -14,14 +17,14 @@ class _EasedRectTween extends Tween<Rect?> {
   }
 }
 
-class LandingPage extends StatefulWidget {
+class LandingPage extends ConsumerStatefulWidget {
   const LandingPage({super.key});
 
   @override
-  State<LandingPage> createState() => _LandingPageState();
+  ConsumerState<LandingPage> createState() => _LandingPageState();
 }
 
-class _LandingPageState extends State<LandingPage> {
+class _LandingPageState extends ConsumerState<LandingPage> {
   bool _logoVisible = false;
   bool _titleVisible = false;
   bool _subtitleVisible = false;
@@ -30,9 +33,14 @@ class _LandingPageState extends State<LandingPage> {
   // 전환 애니메이션 지속시간 (아래 _startExit의 대기시간과 반드시 일치시킬 것)
   static const _exitDuration = Duration(milliseconds: 550);
 
+  // 스플래시 애니메이션과 동시에 시작해서, 화면 전환 시점엔 이미 끝나 있게 한다
+  // (겹치지 않으면 로그인 화면이 잠깐 보였다가 메인으로 바뀌는 깜빡임이 생김).
+  late final Future<void> _restoreSessionFuture;
+
   @override
   void initState() {
     super.initState();
+    _restoreSessionFuture = ref.read(authStateProvider.notifier).restoreSession();
     _startEntrance();
   }
 
@@ -59,14 +67,18 @@ class _LandingPageState extends State<LandingPage> {
   Future<void> _startExit() async {
     // 캐치프레이즈(대제목/소제목)만 제자리에서 페이드아웃 시작
     setState(() => _exiting = true);
-    await Future.delayed(_exitDuration);
+    // 세션 복원이 애니메이션보다 오래 걸리는 드문 경우에도, 로그인 화면이
+    // 잠깐 보였다가 메인으로 바뀌는 깜빡임 없이 결과가 확정된 뒤에만 넘어간다.
+    await Future.wait([Future.delayed(_exitDuration), _restoreSessionFuture]);
     if (!mounted) return;
+
+    final isLoggedIn = ref.read(authStateProvider).user != null;
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         transitionDuration: _exitDuration,
         pageBuilder: (context, animation, secondaryAnimation) =>
-            const LoginScreen(),
+            isLoggedIn ? const MainShell() : const LoginScreen(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
             opacity: CurvedAnimation(parent: animation, curve: Curves.easeIn),

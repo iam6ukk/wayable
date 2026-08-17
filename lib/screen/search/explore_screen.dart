@@ -47,7 +47,13 @@ AccessibilityField? _fieldFromName(String name) {
 /// 검색 전에는 안내 문구만 보여주고, 검색하기를 누르면 Firestore tourSpots
 /// 컬렉션을 조회해 결과를 6개씩 페이징으로 보여준다.
 class ExploreScreen extends ConsumerStatefulWidget {
-  const ExploreScreen({super.key});
+  const ExploreScreen({super.key, required this.isActive});
+
+  /// 지금 하단 탭에서 실제로 보이고 있는 탭인지. MainShell이 탭을 떠나도
+  /// 이 화면을 지우지 않고 숨겨만 두므로(다른 탭 전환 시 상태 보존 목적),
+  /// 대신 이 값이 false로 바뀌는 시점을 감지해 검색 상태를 기본값으로
+  /// 되돌린다(지도 탭과 동일한 패턴).
+  final bool isActive;
 
   @override
   ConsumerState<ExploreScreen> createState() => _ExploreScreenState();
@@ -83,21 +89,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     // 접근성 프로필/상세필드가 설정된 유저면 해당 대분류·필드를 기본
     // 활성화 상태로 보여주되, 이후에는 자유롭게 켜고 끌 수 있는 검색
     // 필터로 동작한다.
-    final user = ref.read(authStateProvider).user;
-    final savedProfileNames = user?.accessibilityProfiles ?? const [];
-    _activeProfiles = AccessibilityProfile.values
-        .where((profile) => savedProfileNames.contains(profile.name))
-        .toSet();
-
-    final savedFieldsByProfile = user?.accessibilityFieldsByProfile ?? const {};
-    _selectedFields = {
-      for (final profile in _activeProfiles)
-        if (savedFieldsByProfile[profile.name] case final savedFields?)
-          profile: savedFields
-              .map(_fieldFromName)
-              .whereType<AccessibilityField>()
-              .toSet(),
-    };
+    _activeProfiles = _defaultActiveProfiles();
+    _selectedFields = _defaultSelectedFields(_activeProfiles);
 
     // 홈 화면의 무장애 카드를 눌러 들어온 경우, 저장된 프로필 대신 그
     // 카드의 대분류만 활성화하고 상세 카테고리는 전체로 바로 검색한다.
@@ -107,11 +100,74 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     }
   }
 
-  /// [profile] 대분류만 켜고 상세 카테고리는 "전체"(빈 Set)로 맞춘 뒤,
-  /// 첫 프레임이 끝나면 요청 값을 비우고 바로 검색을 실행한다.
+  @override
+  void didUpdateWidget(covariant ExploreScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 다른 탭으로 넘어가는 순간(=이 화면이 비활성화되는 순간)뿐 아니라 다시
+    // 활성화되는 순간에도 검색 상태를 사용자의 저장된 접근성 프로필 기본값으로
+    // 되돌린다. 화면 위젯 자체는 Offstage로 계속 살아있어서(MainShell), 비활성화
+    // 시점에만 갱신하면 그 이후(예: 마이페이지에서 접근성 프로필을 수정하고 바로
+    // 이 탭으로 돌아온 경우) 수정 전 값으로 캡처해둔 기본값이 그대로 남아있게
+    // 된다 — 활성화 시점에도 다시 계산해서 항상 최신 저장값을 반영한다.
+    if (oldWidget.isActive != widget.isActive) {
+      _resetToDefaults();
+    }
+  }
+
+  /// 유저 계정에 저장된 접근성 대분류 목록.
+  Set<AccessibilityProfile> _defaultActiveProfiles() {
+    final user = ref.read(authStateProvider).user;
+    final savedProfileNames = user?.accessibilityProfiles ?? const [];
+    return AccessibilityProfile.values
+        .where((profile) => savedProfileNames.contains(profile.name))
+        .toSet();
+  }
+
+  /// [profiles] 각각에 대해 유저 계정에 저장된 상세 필드 목록.
+  Map<AccessibilityProfile, Set<AccessibilityField>> _defaultSelectedFields(
+    Set<AccessibilityProfile> profiles,
+  ) {
+    final user = ref.read(authStateProvider).user;
+    final savedFieldsByProfile = user?.accessibilityFieldsByProfile ?? const {};
+    return {
+      for (final profile in profiles)
+        if (savedFieldsByProfile[profile.name] case final savedFields?)
+          profile: savedFields
+              .map(_fieldFromName)
+              .whereType<AccessibilityField>()
+              .toSet(),
+    };
+  }
+
+  /// 검색어/지역/카테고리/검색결과를 전부 지우고, 접근성 필터만 유저의
+  /// 저장된 프로필 기본값으로 되돌린다(=처음 이 화면에 들어왔을 때와 동일).
+  void _resetToDefaults() {
+    final defaultProfiles = _defaultActiveProfiles();
+    setState(() {
+      _activeProfiles = defaultProfiles;
+      _selectedFields = _defaultSelectedFields(defaultProfiles);
+      _selectedSido = null;
+      _selectedSigungu = null;
+      _selectedCategories = {};
+      _currentBatch = const [];
+      _loadedBatchNumber = 0;
+      _totalCount = 0;
+      _currentPage = 1;
+      _hasSearched = false;
+      _isLoading = false;
+    });
+    _searchController.clear();
+  }
+
+  /// 지역/카테고리/검색어 등 기존 필터를 전부 지운 뒤 [profile] 대분류만
+  /// 켜고 상세 카테고리는 "전체"(빈 Set)로 맞춰 바로 검색을 실행한다.
   void _applyPendingAccessibilityRequest(AccessibilityProfile profile) {
+    _selectedSido = null;
+    _selectedSigungu = null;
+    _selectedCategories = {};
     _activeProfiles = {profile};
     _selectedFields = {profile: {}};
+    _searchController.clear();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(pendingAccessibilityRequestProvider.notifier).state = null;
@@ -376,9 +432,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     ) {
       if (profile == null) return;
       setState(() {
+        _selectedSido = null;
+        _selectedSigungu = null;
+        _selectedCategories = {};
         _activeProfiles = {profile};
         _selectedFields = {profile: {}};
       });
+      _searchController.clear();
       ref.read(pendingAccessibilityRequestProvider.notifier).state = null;
       _handleSearch();
     });

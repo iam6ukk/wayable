@@ -1,8 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import '../model/user/user.dart';
 import '../services/auth/kakao_auth_service.dart';
 import '../services/auth/google_auth_service.dart';
+import '../services/user_service.dart';
 
 // KakaoAuthService 인스턴스 생성
 final kakaoAuthServiceProvider = Provider<KakaoAuthService>((ref) {
@@ -60,6 +62,19 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
 
   AuthStateNotifier(this._kakaoAuthService, this._googleAuthService)
     : super(AuthState());
+
+  // 앱 시작 시 Firebase에 남아있는 로그인 세션을 복원한다. 세션이 없거나
+  // Firestore 유저 문서를 못 찾으면 게스트 상태(초기값)를 그대로 둔다 — 랜딩
+  // 화면이 이 결과를 보고 로그인 화면 대신 바로 메인으로 보낼지 결정한다.
+  Future<void> restoreSession() async {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser == null) return;
+
+    final user = await UserService().getUser(firebaseUser.uid);
+    if (user != null) {
+      state = state.copyWith(user: user);
+    }
+  }
 
   // 카카오 로그인
   Future<void> signInWithKakao() async {

@@ -69,6 +69,16 @@ const _kCardExtent = 250.0;
 const _kCardGapTitleToAddress = 0.0;
 const _kCardGapAddressToChips = 6.0;
 const _kCardGapChipsToImage = 8.0;
+
+/// 이미지가 없는 여행지는 이미지 영역(간격 포함)만큼 카드 높이를 줄인다.
+/// _SpotListCard가 실제로 그리는 이미지 크기와 같은 식으로 계산해야
+/// itemExtentBuilder가 내려주는 높이와 실제 콘텐츠 높이가 어긋나지 않는다.
+double _cardExtentFor(TourSpot spot) {
+  if (spot.firstImage != null) return _kCardExtent.h;
+  final resultCardImageWidth = (1.sw - 16.w * 2 - 16.w) / 2;
+  final resultCardImageHeight = resultCardImageWidth * 113 / 172;
+  return _kCardExtent.h - _kCardGapChipsToImage.h - resultCardImageHeight;
+}
 const _kSheetHeightFraction = 0.45;
 // 시트를 아래로 내렸을 때 남는 최소 높이(필터 pill 줄 정도만 보이는 선) —
 // 다시 위로 끌어올릴 수 있는 손잡이 역할을 한다.
@@ -482,20 +492,27 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     );
   }
 
-  /// 바텀시트를 스크롤해서 활성 카드가 바뀔 때마다 호출된다. 카드 높이가
-  /// 고정([_kCardExtent])이라 스크롤 offset을 나눈 몫이 곧 지금 활성 카드
-  /// index다. floor 대신 round를 써서, 카드 하나를 완전히 다 넘겨야(줄에
-  /// 딱 맞아야) 바뀌는 게 아니라 절반쯤 스크롤한 시점에 다음 카드로 넘어가게
-  /// 한다.
+  /// 바텀시트를 스크롤해서 활성 카드가 바뀔 때마다 호출된다. 이미지 없는
+  /// 카드는 높이가 짧아 카드마다 높이가 다를 수 있어서, 예전처럼 스크롤
+  /// offset을 고정 높이로 나누는 대신 카드별 높이를 누적해가며 지금 몇 번째
+  /// 카드의 절반을 넘었는지를 찾는다(카드 하나를 완전히 다 넘겨야 바뀌는 게
+  /// 아니라 절반쯤 스크롤한 시점에 다음 카드로 넘어가는 동작은 그대로 유지).
+  int _activeIndexForOffset(double offset) {
+    var cumulative = 0.0;
+    for (var i = 0; i < _results.length; i++) {
+      final midpoint = cumulative + _cardExtentFor(_results[i]) / 2;
+      if (offset < midpoint) return i;
+      cumulative += _cardExtentFor(_results[i]);
+    }
+    return _results.length - 1;
+  }
+
   void _handleListScroll() {
     final controller = _sheetScrollController;
     if (_isProgrammaticScroll || _results.isEmpty || controller == null) {
       return;
     }
-    final index = (controller.offset / _kCardExtent.h).round().clamp(
-      0,
-      _results.length - 1,
-    );
+    final index = _activeIndexForOffset(controller.offset);
     if (index == _activeIndex) return;
 
     final previous = _activeIndex;
@@ -529,8 +546,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final controller = _sheetScrollController;
     if (controller != null && controller.hasClients) {
       _isProgrammaticScroll = true;
+      var targetOffset = 0.0;
+      for (var i = 0; i < index; i++) {
+        targetOffset += _cardExtentFor(_results[i]);
+      }
       await controller.animateTo(
-        index * _kCardExtent.h,
+        targetOffset,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
@@ -1226,7 +1247,9 @@ class _ResultSheet extends StatelessWidget {
       // 공간이 활성 카드 배경색보다 위에 떠서 구분선과 첫 카드 사이에
       // 색이 다른 여백처럼 보였다.
       padding: EdgeInsets.zero,
-      itemExtent: _kCardExtent.h,
+      // 이미지 없는 여행지는 카드가 더 짧아 항목마다 높이가 다를 수 있어서
+      // 고정 itemExtent 대신 항목별로 높이를 계산해주는 빌더를 쓴다.
+      itemExtentBuilder: (index, _) => _cardExtentFor(results[index]),
       itemCount: results.length,
       itemBuilder: (context, index) {
         final spot = results[index];
@@ -1392,7 +1415,7 @@ class _FilterSection extends StatelessWidget {
         // 이 구분선은 펼침 여부와 무관하게 항상 그리고, 2차 옵션 줄만
         // 조건부로 그 아래에 덧붙인다.
         SizedBox(height: 16.h),
-        Container(height: 0.5.h, color: AppColors.hairlineDivider),
+        Container(height: 0.5.h, color: AppColors.faintDivider),
         if (expandedFilter != null) SizedBox(height: 13.h),
         if (expandedFilter == _FilterKind.category)
           SizedBox(
@@ -1826,29 +1849,31 @@ class _SpotListCard extends ConsumerWidget {
                 ),
               ),
             ),
-            SizedBox(height: _kCardGapChipsToImage.h),
             // 여행지 이미지 영역. 지도 검색 결과는 firstImage 한 장만 갖고
             // 있어서(갤러리는 상세화면에서만 조회) 맞춤 여행지 탐색 결과
             // 카드와 동일한 크기(resultCardImageWidth/Height)로 한 장만
-            // 보여준다.
-            SizedBox(
-              width: resultCardImageWidth,
-              height: resultCardImageHeight,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12.r),
-                child: images.isEmpty
-                    ? const ImagePlaceholder()
-                    : Image.network(
-                        images.first,
-                        fit: BoxFit.cover,
-                        // 관광공사 제공 사진 우하단에 로고가 찍혀있는 경우가
-                        // 많아서, 크롭이 생기더라도 그 모서리는 항상
-                        // 보존되도록 우하단 기준으로 자른다.
-                        alignment: Alignment.bottomRight,
-                        errorBuilder: (_, _, _) => const ImagePlaceholder(),
-                      ),
+            // 보여준다. 이미지가 아예 없는 여행지는 저장목록 화면과 같이
+            // 영역 자체를 안 그린다(플레이스홀더 박스를 띄우지 않음) — 카드
+            // 높이도 itemExtentBuilder에서 그만큼 줄여준다([_cardExtentFor]).
+            if (images.isNotEmpty) ...[
+              SizedBox(height: _kCardGapChipsToImage.h),
+              SizedBox(
+                width: resultCardImageWidth,
+                height: resultCardImageHeight,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12.r),
+                  child: Image.network(
+                    images.first,
+                    fit: BoxFit.cover,
+                    // 관광공사 제공 사진 우하단에 로고가 찍혀있는 경우가
+                    // 많아서, 크롭이 생기더라도 그 모서리는 항상
+                    // 보존되도록 우하단 기준으로 자른다.
+                    alignment: Alignment.bottomRight,
+                    errorBuilder: (_, _, _) => const ImagePlaceholder(),
+                  ),
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),

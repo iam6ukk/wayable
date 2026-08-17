@@ -48,6 +48,29 @@ class _AccessibilityDetailScreenState
   final Map<AccessibilityProfile, Set<AccessibilityField>> _selectedFields = {};
   final Set<AccessibilityProfile> _selectAllProfiles = {};
 
+  @override
+  void initState() {
+    super.initState();
+    // 이전 단계에서 유지된 대분류는 기존에 저장했던 편의정보를 그대로 복원하고,
+    // 이번에 새로 추가한 대분류는 저장된 값이 없으니 자연히 빈 상태로 시작된다
+    // (온보딩 경로는 저장된 값 자체가 없어 전부 빈 상태).
+    final saved =
+        ref.read(authStateProvider).user?.accessibilityFieldsByProfile ??
+        const {};
+    for (final profile in widget.selectedProfiles) {
+      final fieldNames = saved[profile.name];
+      if (fieldNames == null) continue;
+      if (fieldNames.isEmpty) {
+        _selectAllProfiles.add(profile);
+      } else {
+        _selectedFields[profile] = fieldNames
+            .map((name) => AccessibilityField.values.asNameMap()[name])
+            .whereType<AccessibilityField>()
+            .toSet();
+      }
+    }
+  }
+
   void _toggleSelection(
     AccessibilityProfile profile,
     AccessibilityField field,

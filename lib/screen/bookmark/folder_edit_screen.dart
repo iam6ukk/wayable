@@ -29,6 +29,8 @@ class FolderEditScreen extends StatefulWidget {
   const FolderEditScreen({
     super.key,
     required this.folders,
+    required this.isReorderMode,
+    required this.onReorderModeChanged,
     required this.onBack,
     required this.onRenameFolder,
     required this.onDeleteFolder,
@@ -37,6 +39,12 @@ class FolderEditScreen extends StatefulWidget {
   });
 
   final List<BookmarkFolder> folders;
+
+  /// 순서 편집 모드 여부. 뒤로가기를 눌렀을 때 이 화면 자체가 아니라
+  /// 저장 목록 화면(SavedListScreen)까지 한 번에 나갈지 판단해야 해서, 이
+  /// 위젯의 로컬 상태가 아니라 부모가 들고 있는 값을 그대로 받아쓴다.
+  final bool isReorderMode;
+  final ValueChanged<bool> onReorderModeChanged;
   final VoidCallback onBack;
   final void Function(BookmarkFolder folder, String newName) onRenameFolder;
   final void Function(BookmarkFolder folder) onDeleteFolder;
@@ -48,8 +56,6 @@ class FolderEditScreen extends StatefulWidget {
 }
 
 class _FolderEditScreenState extends State<FolderEditScreen> {
-  bool _isReorderMode = false;
-
   /// 이번에 이 화면을 여는 동안 고른 정렬 기준(고르기 전엔 null). 실제
   /// 순서는 항상 폴더의 order 필드가 기준이라, 이 값은 정렬 버튼에 지금
   /// 선택된 기준을 보여주기 위한 화면 전용 상태일 뿐이다.
@@ -116,7 +122,7 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
         );
         if (newName != null) widget.onRenameFolder(folder, newName);
       case 'reorder':
-        setState(() => _isReorderMode = true);
+        widget.onReorderModeChanged(true);
       case 'delete':
         final confirmed = await showTwoButtonDialog(
           context,
@@ -156,7 +162,7 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
       children: [
         _buildHeader(),
         Expanded(
-          child: _isReorderMode
+          child: widget.isReorderMode
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -196,7 +202,7 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
                       _buildFolderRow(context, widget.folders[index]),
                 ),
         ),
-        if (!_isReorderMode)
+        if (!widget.isReorderMode)
           Padding(
             padding: EdgeInsets.fromLTRB(0, 16.h, 0, 24.h),
             child: Center(child: _buildNewFolderButton(context)),
@@ -252,9 +258,9 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
     );
   }
 
-  // 순서 편집 모드에서도 뒤로가기는 폴더 편집 화면에 머물지 않고 바로
-  // 여행지 저장 목록으로 나간다 — 이 화면 안에 '순서 편집만 종료'하는 별도
-  // 상태로 되돌아갈 곳이 없다.
+  // 순서 편집 모드에서는 뒤로가기가 바로 저장 목록으로 나가지 않고, 순서
+  // 편집만 먼저 종료해서(적용된 순서는 유지) 기본 폴더 편집 화면으로
+  // 돌아간다. 그 상태에서 한 번 더 누르면 그때 저장 목록으로 나간다.
   Widget _buildBackButton() {
     return Semantics(
       label: '뒤로가기',
@@ -262,7 +268,13 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
       excludeSemantics: true,
       child: InkWell(
         borderRadius: BorderRadius.circular(20.r),
-        onTap: widget.onBack,
+        onTap: () {
+          if (widget.isReorderMode) {
+            widget.onReorderModeChanged(false);
+          } else {
+            widget.onBack();
+          }
+        },
         child: Padding(
           padding: EdgeInsets.only(top: 4.r, right: 4.r, bottom: 4.r),
           // arrow_back_ios_new 글리프 자체가 24x24 박스 안에서 왼쪽에 여백을

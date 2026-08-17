@@ -717,7 +717,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 Text(
                                   spot.name,
                                   style: TextStyle(
-                                    fontSize: 19.sp,
+                                    fontSize: 16.sp,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.white,
                                   ),
@@ -1008,7 +1008,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final imageWidth = 103.w;
     final imageHeight = 141.h;
     final panelWidth = 103.w;
-    final panelHeight = 48.h;
+    final panelHeight = 38.h;
 
     return Padding(
       padding: EdgeInsets.only(top: topOffset),
@@ -1044,7 +1044,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: Container(
                 width: panelWidth,
                 height: panelHeight,
-                padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 15.h),
+                padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 12.h),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.only(
@@ -1079,7 +1079,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final imageWidth = 103.w;
     final imageHeight = 141.h;
     final panelWidth = 103.w;
-    final panelHeight = 48.h;
+    final panelHeight = 38.h;
 
     return Semantics(
       label: '저장 인기 $rank위, ${spot.title}',
@@ -1114,7 +1114,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   height: panelHeight,
                   padding: EdgeInsets.symmetric(
                     horizontal: 18.w,
-                    vertical: 15.h,
+                    vertical: 12.h,
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.bottomSheetBackground,

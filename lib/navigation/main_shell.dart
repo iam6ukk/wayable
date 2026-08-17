@@ -66,7 +66,10 @@ class _MainShellState extends ConsumerState<MainShell> {
 
   Widget _buildScreen(BottomNavTab tab) {
     return switch (tab) {
-      BottomNavTab.explore => const ExploreScreen(),
+      // 탐색 화면은 탭을 떠나도 위젯을 지우지 않고 숨겨만 두므로, 지금
+      // 활성 탭인지를 넘겨줘서 비활성화되는 순간을 그 화면 스스로 감지해
+      // 검색 상태를 기본값으로 되돌리게 한다(지도 탭과 동일한 패턴).
+      BottomNavTab.explore => ExploreScreen(isActive: tab == _currentTab),
       // 지도 화면은 탭을 떠나도 위젯을 지우지 않고 숨겨만 두므로(플랫폼 뷰
       // 깜빡임 방지), 지금 활성 탭인지를 넘겨줘서 비활성화되는 순간을 그
       // 화면 스스로 감지해 검색 상태만 초기화하게 한다(카메라 위치는 유지).
