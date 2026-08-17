@@ -70,14 +70,26 @@ const _kCardGapTitleToAddress = 0.0;
 const _kCardGapAddressToChips = 6.0;
 const _kCardGapChipsToImage = 8.0;
 
-/// 이미지가 없는 여행지는 이미지 영역(간격 포함)만큼 카드 높이를 줄인다.
-/// _SpotListCard가 실제로 그리는 이미지 크기와 같은 식으로 계산해야
-/// itemExtentBuilder가 내려주는 높이와 실제 콘텐츠 높이가 어긋나지 않는다.
+/// 카드 위/아래 패딩(각 14, 대칭). 피그마(831:590)를 보면 활성 카드 배경
+/// 하이라이트가 위/아래 구분선 사이(카드 셀 전체, 패딩 포함)를 정확히
+/// 채우므로, 이 패딩이 비대칭이면 하이라이트 박스 자체도 위아래로 고르지
+/// 않게 보인다.
+const _kCardVerticalPadding = 14.0;
+
+/// 여행지 이미지 영역 높이(디자인 기준, 172:113 비율의 세로값). 너비를
+/// 화면 가로폭(1.sw) 기준으로 계산하던 예전 방식은, 카드 전체 높이
+/// ([_kCardExtent])가 세로 스케일(.h)만 따라가는 것과 어긋났다 — 기기의
+/// 가로세로 비율이 디자인 기준(360x800)과 정확히 같지 않으면 항상 둘 중
+/// 하나가 남거나 넘쳤다(폰마다도 미세하게 남았고, 태블릿처럼 가로로 넓은
+/// 화면에서는 크게 넘쳤다). 그래서 이미지 높이 자체를 세로 스케일(.h)
+/// 하나로만 고정하고 너비는 거기서 비율로 유도한다 — [_kCardExtent]에서
+/// 제목/주소/편의칩 등 나머지 콘텐츠 높이를 뺀 나머지를 실측한 값이라,
+/// 화면 비율과 무관하게 항상 카드 높이 예산 안에 정확히 들어맞는다.
+const _kResultCardImageHeight = 111.0;
+
 double _cardExtentFor(TourSpot spot) {
   if (spot.firstImage != null) return _kCardExtent.h;
-  final resultCardImageWidth = (1.sw - 16.w * 2 - 16.w) / 2;
-  final resultCardImageHeight = resultCardImageWidth * 113 / 172;
-  return _kCardExtent.h - _kCardGapChipsToImage.h - resultCardImageHeight;
+  return _kCardExtent.h - _kCardGapChipsToImage.h - _kResultCardImageHeight.h;
 }
 const _kSheetHeightFraction = 0.45;
 // 시트를 아래로 내렸을 때 남는 최소 높이(필터 pill 줄 정도만 보이는 선) —
@@ -1256,7 +1268,10 @@ class _ResultSheet extends StatelessWidget {
       // ListView는 padding을 안 주면 MediaQuery의 상단 인셋(상태바 높이)을
       // 리스트 맨 위에 자동으로 끼워넣는다(Flutter 기본 동작) — 그 빈
       // 공간이 활성 카드 배경색보다 위에 떠서 구분선과 첫 카드 사이에
-      // 색이 다른 여백처럼 보였다.
+      // 색이 다른 여백처럼 보였다. 피그마(831:590)를 보면 활성 카드
+      // 배경색이 구분선과 구분선 사이(카드 셀 전체)를 정확히 채우고 그
+      // 바깥에는 별도 여백이 없어야 하므로, 리스트는 필터 영역 바로 밑에서
+      // 시작해야 한다 — 그래서 여기 별도 padding을 더하지 않는다.
       padding: EdgeInsets.zero,
       // 이미지 없는 여행지는 카드가 더 짧아 항목마다 높이가 다를 수 있어서
       // 고정 itemExtent 대신 항목별로 높이를 계산해주는 빌더를 쓴다.
@@ -1730,11 +1745,6 @@ class _SpotListCard extends ConsumerWidget {
       if (spot.firstImage != null) spot.firstImage!,
       ...spot.galleryImages,
     ].take(3).toList();
-    // 맞춤 여행지 탐색 결과 카드(explore_screen.dart _ResultGrid: 2열 그리드,
-    // 좌우 여백 16.w, 칼럼 사이 간격 16.w)의 이미지 영역과 정확히 같은
-    // 크기가 되도록 동일한 계산식을 그대로 가져와 쓴다.
-    final resultCardImageWidth = (1.sw - 16.w * 2 - 16.w) / 2;
-    final resultCardImageHeight = resultCardImageWidth * 113 / 172;
     final facilityLabels = AccessibilityField.values
         .where(spot.populatedFields.contains)
         .take(_kMaxFacilityChips)
@@ -1756,7 +1766,7 @@ class _SpotListCard extends ConsumerWidget {
       ).push(MaterialPageRoute(builder: (_) => SpotDetailScreen(spot: spot))),
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 14.h),
+        padding: EdgeInsets.fromLTRB(14.w, _kCardVerticalPadding.h, 14.w, 12.h),
         decoration: BoxDecoration(
           color: active ? AppColors.background : null,
           border: Border(
@@ -1861,16 +1871,18 @@ class _SpotListCard extends ConsumerWidget {
               ),
             ),
             // 여행지 이미지 영역. 지도 검색 결과는 firstImage 한 장만 갖고
-            // 있어서(갤러리는 상세화면에서만 조회) 맞춤 여행지 탐색 결과
-            // 카드와 동일한 크기(resultCardImageWidth/Height)로 한 장만
-            // 보여준다. 이미지가 아예 없는 여행지는 저장목록 화면과 같이
-            // 영역 자체를 안 그린다(플레이스홀더 박스를 띄우지 않음) — 카드
-            // 높이도 itemExtentBuilder에서 그만큼 줄여준다([_cardExtentFor]).
+            // 있어서(갤러리는 상세화면에서만 조회) 172:113 비율로 한 장만
+            // 보여준다. 높이를 [_kResultCardImageHeight]로 고정하고 너비를
+            // 거기서 유도해서, 화면 비율과 무관하게 항상 카드 고정 높이
+            // ([_kCardExtent]) 예산 안에 정확히 들어맞는다. 이미지가 아예
+            // 없는 여행지는 저장목록 화면과 같이 영역 자체를 안 그린다
+            // (플레이스홀더 박스를 띄우지 않음) — 카드 높이도
+            // itemExtentBuilder에서 그만큼 줄여준다([_cardExtentFor]).
             if (images.isNotEmpty) ...[
               SizedBox(height: _kCardGapChipsToImage.h),
               SizedBox(
-                width: resultCardImageWidth,
-                height: resultCardImageHeight,
+                width: _kResultCardImageHeight.h * 172 / 113,
+                height: _kResultCardImageHeight.h,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12.r),
                   child: Image.network(
