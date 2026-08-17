@@ -56,8 +56,9 @@ const _kTopBandHeightResults = 80.0;
 /// 제목/주소/편의칩/이미지 사이 간격을 전부 [_kCardSectionGap]로 통일한 뒤
 /// 실제 콘텐츠 높이에 맞춰 다시 잰 값 — 여유 없이 딱 맞추면 폰트 렌더링
 /// 편차로 미세한 오버플로우가 나서 몇 px 여유를 더 둔다. 이미지 영역을
-/// 맞춤 여행지 탐색 결과 카드 크기로 키우면서 다시 실측(226 → 250).
-const _kCardExtent = 250.0;
+/// 맞춤 여행지 탐색 결과 카드 크기로 키우면서 다시 실측(226 → 250 → 252,
+/// 편의칩↔이미지 간격을 [_kCardGapChipsToImage] 참고해 2 늘리면서 같이 조정).
+const _kCardExtent = 252.0;
 
 /// 카드 안 제목↔주소, 주소↔편의칩, 편의칩↔이미지 사이 "눈에 보이는" 간격을
 /// 전부 주소↔편의칩 간격과 같게 맞추기 위한 값들. 세 SizedBox에 같은 숫자를
@@ -65,10 +66,15 @@ const _kCardExtent = 250.0;
 /// 라인 박스 아래쪽에 얼마씩 남아 SizedBox 여백에 더해지기 때문이다(제목은
 /// 15sp 볼드+뱃지라 leading이 커서 더 벌어져 보이고, 이미지는 테두리가
 /// 딱 붙는 Container라 leading이 없어 오히려 더 좁아 보였다). 그래서 세
-/// 값을 실측해서 다르게 잡아야 시각적으로 동일하게 보인다.
+/// 값을 실측해서 다르게 잡아야 시각적으로 동일하게 보인다. 실기기(Note9)
+/// 픽셀 실측 결과 주소↔편의칩은 텍스트 줄간격이 더해져 물리 픽셀로 약
+/// 28px(디자인 단위 약 10)로 보였는데, 편의칩↔이미지는 (칩 박스가 딱
+/// 붙는 Container라 줄간격이 없어서) 값 그대로인 약 22px(디자인 단위 약
+/// 8)로 보여 상대적으로 더 좁아 보였다 — 그 차이(~2)만큼
+/// [_kCardGapChipsToImage]를 올려 시각적으로 맞춘다.
 const _kCardGapTitleToAddress = 0.0;
 const _kCardGapAddressToChips = 6.0;
-const _kCardGapChipsToImage = 8.0;
+const _kCardGapChipsToImage = 10.0;
 
 /// 카드 위/아래 패딩(각 14, 대칭). 피그마(831:590)를 보면 활성 카드 배경
 /// 하이라이트가 위/아래 구분선 사이(카드 셀 전체, 패딩 포함)를 정확히
@@ -87,9 +93,19 @@ const _kCardVerticalPadding = 14.0;
 /// 화면 비율과 무관하게 항상 카드 높이 예산 안에 정확히 들어맞는다.
 const _kResultCardImageHeight = 111.0;
 
-double _cardExtentFor(TourSpot spot) {
-  if (spot.firstImage != null) return _kCardExtent.h;
-  return _kCardExtent.h - _kCardGapChipsToImage.h - _kResultCardImageHeight.h;
+/// [textScaler]는 접근성 설정(시스템 글자 크기, 최대 1.15배 — main.dart의
+/// `MediaQuery.withClampedTextScaling` 참고)만큼 카드 예산도 함께 늘려주기
+/// 위한 값이다. 카드 안 텍스트(제목/주소/편의칩)는 시스템 글자 크기를 그대로
+/// 따라 커지는데, 카드 높이는 원래 뷰포트(.h) 스케일에만 반응해 고정돼
+/// 있었다 — 그래서 글자 크기를 키운 사용자 환경에서는 편의칩 줄처럼 높이가
+/// 고정된 영역의 글자가 박스보다 커져 잘려 보였다. 기본 배율(1.0)에서는
+/// 아무 변화가 없고, 글자 크기를 키운 경우에만 카드 예산이 같은 비율로
+/// 늘어나 내부 요소들과 어긋나지 않는다.
+double _cardExtentFor(TourSpot spot, TextScaler textScaler) {
+  final base = spot.firstImage != null
+      ? _kCardExtent.h
+      : _kCardExtent.h - _kCardGapChipsToImage.h - _kResultCardImageHeight.h;
+  return textScaler.scale(base);
 }
 const _kSheetHeightFraction = 0.45;
 // 시트를 아래로 내렸을 때 남는 최소 높이(필터 pill 줄 정도만 보이는 선) —
@@ -521,11 +537,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// 카드의 절반을 넘었는지를 찾는다(카드 하나를 완전히 다 넘겨야 바뀌는 게
   /// 아니라 절반쯤 스크롤한 시점에 다음 카드로 넘어가는 동작은 그대로 유지).
   int _activeIndexForOffset(double offset) {
+    final textScaler = MediaQuery.textScalerOf(context);
     var cumulative = 0.0;
     for (var i = 0; i < _results.length; i++) {
-      final midpoint = cumulative + _cardExtentFor(_results[i]) / 2;
+      final extent = _cardExtentFor(_results[i], textScaler);
+      final midpoint = cumulative + extent / 2;
       if (offset < midpoint) return i;
-      cumulative += _cardExtentFor(_results[i]);
+      cumulative += extent;
     }
     return _results.length - 1;
   }
@@ -551,6 +569,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Future<void> _handleMarkerTap(int index) async {
     if (index < 0 || index >= _results.length) return;
 
+    final textScaler = MediaQuery.textScalerOf(context);
     final previous = _activeIndex;
     final reopening = !_hasSearched;
     setState(() {
@@ -571,7 +590,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       _isProgrammaticScroll = true;
       var targetOffset = 0.0;
       for (var i = 0; i < index; i++) {
-        targetOffset += _cardExtentFor(_results[i]);
+        targetOffset += _cardExtentFor(_results[i], textScaler);
       }
       await controller.animateTo(
         targetOffset,
@@ -1205,7 +1224,7 @@ class _ResultSheet extends StatelessWidget {
               Expanded(
                 child: ColoredBox(
                   color: AppColors.bottomSheetBackground,
-                  child: _buildBody(),
+                  child: _buildBody(context),
                 ),
               ),
             ],
@@ -1224,7 +1243,7 @@ class _ResultSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(BuildContext context) {
     // 로딩 중 표시는 전체 화면 LoadingAnimation 오버레이 하나로 통일한다 —
     // 여기서 또 CircularProgressIndicator를 띄우면 로딩 표시가 두 개
     // 겹쳐 보인다.
@@ -1275,7 +1294,8 @@ class _ResultSheet extends StatelessWidget {
       padding: EdgeInsets.zero,
       // 이미지 없는 여행지는 카드가 더 짧아 항목마다 높이가 다를 수 있어서
       // 고정 itemExtent 대신 항목별로 높이를 계산해주는 빌더를 쓴다.
-      itemExtentBuilder: (index, _) => _cardExtentFor(results[index]),
+      itemExtentBuilder: (index, _) =>
+          _cardExtentFor(results[index], MediaQuery.textScalerOf(context)),
       itemCount: results.length,
       itemBuilder: (context, index) {
         final spot = results[index];
@@ -1855,7 +1875,12 @@ class _SpotListCard extends ConsumerWidget {
             // 동일하게 보인다.
             SizedBox(height: _kCardGapAddressToChips.h),
             SizedBox(
-              height: 20.h,
+              // 편의칩 안 글자(10.sp)는 시스템 글자 크기(최대 1.15배)를 그대로
+              // 따라 커지는데, 이 줄의 높이는 20.h처럼 뷰포트 스케일에만
+              // 반응하는 고정값이면 글자가 커졌을 때 박스보다 커져 잘려
+              // 보인다. 카드 전체 예산([_cardExtentFor])도 같은 배율만큼
+              // 늘어나므로, 이 줄도 같은 배율을 곱해야 서로 어긋나지 않는다.
+              height: MediaQuery.textScalerOf(context).scale(20.h),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: MergeSemantics(
