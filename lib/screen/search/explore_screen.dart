@@ -83,6 +83,15 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   SigunguCode? _selectedSigungu;
   Set<TourCategory> _selectedCategories = {};
 
+  // 홈 화면 무장애 카드 탭은 pendingAccessibilityRequestProvider를 쓰기와
+  // 동시에 tabSwitchRequestProvider로 이 탭을 활성화시킨다. 이 두 provider
+  // 갱신은 같은 동기 구간에서 일어나는데, 프로필 적용(ref.listen 콜백)이 먼저
+  // 실행되고 그 다음 프레임에 MainShell이 리빌드되며 didUpdateWidget이 뒤늦게
+  // 실행되므로, didUpdateWidget의 "탭 활성화 시 저장된 기본값으로 리셋" 로직이
+  // 방금 적용한 카드의 대분류 필터를 덮어써 버린다. 이 플래그로 "지금 활성화는
+  // 무장애 카드 요청 처리의 일부다"를 표시해 그 경우에만 리셋을 건너뛴다.
+  bool _skipNextActivationReset = false;
+
   @override
   void initState() {
     super.initState();
@@ -110,7 +119,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     // 이 탭으로 돌아온 경우) 수정 전 값으로 캡처해둔 기본값이 그대로 남아있게
     // 된다 — 활성화 시점에도 다시 계산해서 항상 최신 저장값을 반영한다.
     if (oldWidget.isActive != widget.isActive) {
-      _resetToDefaults();
+      if (_skipNextActivationReset) {
+        _skipNextActivationReset = false;
+      } else {
+        _resetToDefaults();
+      }
     }
   }
 
@@ -431,6 +444,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       profile,
     ) {
       if (profile == null) return;
+      _skipNextActivationReset = true;
       setState(() {
         _selectedSido = null;
         _selectedSigungu = null;
