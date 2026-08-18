@@ -137,16 +137,55 @@ double _measureFacilityChipRowHeight(BuildContext context) {
 /// 않아 기존에 실측으로 맞춰둔 카드 여백은 그대로 유지된다.
 const _kFacilityChipRowBaseline = 20.0;
 
+/// [_SpotListCard]가 편의칩을 실제로 그리는지와 정확히 같은 기준(카드
+/// 위젯의 facilityLabels 계산과 동일한 소스 데이터) — 카드 높이 예산과
+/// 실제 렌더링이 어긋나면 리스트 스크롤 위치 계산([_activeIndexForOffset])이
+/// 틀어진다.
+bool _hasFacilityChips(TourSpot spot) =>
+    AccessibilityField.values.any(spot.populatedFields.contains);
+
 double _cardExtentFor(TourSpot spot, double chipRowHeight) {
-  final chipRowExtra = (chipRowHeight - _kFacilityChipRowBaseline.h).clamp(
-    0.0,
-    double.infinity,
-  );
-  final base = spot.firstImage != null
-      ? _kCardExtent.h
-      : _kCardExtent.h - _kCardGapChipsToImage.h - _kResultCardImageHeight.h;
-  return base + chipRowExtra;
+  final hasChips = _hasFacilityChips(spot);
+  final hasImage = spot.firstImage != null;
+  // 편의칩이 있을 때만, 실측 칩 줄 높이가 원래 손으로 잡았던 기준값보다
+  // 더 필요한 만큼을 추가로 얹는다 — 칩이 아예 없으면 그 줄 자체를 안
+  // 그리므로 이 보정도 필요 없다.
+  final chipRowExtra = hasChips
+      ? (chipRowHeight - _kFacilityChipRowBaseline.h).clamp(
+          0.0,
+          double.infinity,
+        )
+      : 0.0;
+
+  // [_kCardExtent]는 원래 "칩 있음 + 이미지 있음" 기준으로 실측한 값이라,
+  // 거기서 주소↔칩 간격/칩 줄(기준값)/칩↔이미지 간격/이미지를 전부 뺀
+  // 나머지(제목·주소 줄 + 카드 상하 패딩)를 먼저 구한 뒤, [_SpotListCard]가
+  // 실제로 그리는 조각만 다시 하나씩 더한다 — 그래야 위젯의 조건부 렌더링
+  // (칩 없으면 그 줄 생략, 이미지 없으면 그 영역 생략)과 항상 정확히
+  // 맞아떨어진다.
+  final fixedPart =
+      _kCardExtent.h -
+      _kCardGapAddressToChips.h -
+      _kFacilityChipRowBaseline.h -
+      _kCardGapChipsToImage.h -
+      _kResultCardImageHeight.h;
+
+  var extent = fixedPart;
+  if (hasChips) {
+    extent +=
+        _kCardGapAddressToChips.h + _kFacilityChipRowBaseline.h + chipRowExtra;
+  } else if (hasImage) {
+    // 칩이 없으면 주소↔칩 간격을 그대로 "주소↔이미지" 간격으로 재사용한다
+    // ([_SpotListCard.build] 참고).
+    extent += _kCardGapAddressToChips.h;
+  }
+  if (hasImage) {
+    extent +=
+        (hasChips ? _kCardGapChipsToImage.h : 0.0) + _kResultCardImageHeight.h;
+  }
+  return extent;
 }
+
 const _kSheetHeightFraction = 0.45;
 // 시트를 아래로 내렸을 때 남는 최소 높이(필터 pill 줄 정도만 보이는 선) —
 // 다시 위로 끌어올릴 수 있는 손잡이 역할을 한다.
@@ -199,7 +238,8 @@ class MapScreen extends ConsumerStatefulWidget {
   ConsumerState<MapScreen> createState() => _MapScreenState();
 }
 
-class _MapScreenState extends ConsumerState<MapScreen> {
+class _MapScreenState extends ConsumerState<MapScreen>
+    with WidgetsBindingObserver {
   final _locationService = LocationService();
   final _kakaoLocalService = KakaoLocalService();
   final _tourSpotService = TourSpotService();
@@ -243,12 +283,34 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   // 버튼을 시트 바로 위에 붙이려면 드래그로 계속 바뀌는 이 값을 알아야 한다.
   double _sheetExtent = _kSheetHeightFraction;
 
+  // 카카오맵 플랫폼 뷰(하이브리드 컴포지션 SurfaceView)를 강제로 떼었다 다시
+  // 붙이기 위한 key. [didChangeAppLifecycleState] 참고.
+  Key _mapKey = UniqueKey();
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // 지도 플랫폼 뷰가 만들어지는 동안(onMapReady 호출 전) GPS 조회를 병렬로
     // 미리 시작해서, 지도가 뜨자마자 바로 카메라를 옮길 수 있게 한다.
     _initialPositionFuture = _locationService.getCurrentPosition();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 카카오맵은 하이브리드 컴포지션(SurfaceView)이라 Flutter의 Offstage와
+    // 무관하게 안드로이드 뷰 계층에 별도로 붙어있다. 앱이 백그라운드로
+    // 갔다가(외부 브라우저로 홈페이지 링크를 열었다 돌아오는 경우 등)
+    // 복귀하면, 이 지도 탭이 지금 화면에 보이는 탭이 아니어도(offstage여도)
+    // 그 SurfaceView가 다른 화면 위로 계속 떠 있는 채로 남는 경우가 있다
+    // (안드로이드가 화면 복귀 시 하드웨어 레이어 순서를 안드로이드 뷰
+    // 계층 기준으로만 다시 잡고, 그 시점 Flutter Offstage 상태를 반영하지
+    // 못해서 생기는 문제). 이 상태에서는 하단 탭을 눌러도 화면이 안
+    // 바뀐 것처럼 보인다. key를 바꿔 지도 위젯 자체를 새로 만들면 그
+    // SurfaceView가 완전히 떼었다 다시 붙으면서 순서가 정상으로 돌아온다.
+    if (state == AppLifecycleState.resumed && !widget.isActive) {
+      setState(() => _mapKey = UniqueKey());
+    }
   }
 
   @override
@@ -281,6 +343,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     // 이 화면을 벗어날 때 하단 탭 바 숨김 상태가 다른 탭에 남지 않게 되돌린다.
     ref.read(mapResultsActiveProvider.notifier).state = false;
     _searchController.dispose();
@@ -757,8 +820,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   label: '지도, 마커 정보는 아래 목록에서 확인할 수 있습니다',
                   excludeSemantics: true,
                   child: KakaoMap(
-                    option: const KakaoMapOption(
-                      position: _kDefaultCenter,
+                    key: _mapKey,
+                    option: KakaoMapOption(
+                      position: _currentPosition,
                       zoomLevel: _kDefaultZoomLevel,
                     ),
                     onMapReady: _handleMapReady,
@@ -1643,9 +1707,7 @@ class _FilterPill extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(27.481.r),
             border: Border.all(
-              color: isExpanded
-                  ? AppColors.textPrimary
-                  : AppColors.boldDivider,
+              color: isExpanded ? AppColors.textPrimary : AppColors.boldDivider,
               width: isExpanded ? 1 : 0.5,
               strokeAlign: BorderSide.strokeAlignInside,
             ),
@@ -1713,9 +1775,7 @@ class _OptionPill extends StatelessWidget {
             style: TextStyle(
               fontSize: 12.sp,
               fontWeight: FontWeight.w500,
-              color: selected
-                  ? AppColors.textPrimary
-                  : AppColors.textTertiary,
+              color: selected ? AppColors.textPrimary : AppColors.textTertiary,
             ),
           ),
         ),
@@ -1869,8 +1929,7 @@ class _SpotListCard extends ConsumerWidget {
                   selected: isBookmarked,
                   excludeSemantics: true,
                   child: GestureDetector(
-                    onTap: () =>
-                        _handleBookmarkTap(context, ref, isBookmarked),
+                    onTap: () => _handleBookmarkTap(context, ref, isBookmarked),
                     behavior: HitTestBehavior.opaque,
                     child: Icon(
                       isBookmarked ? Icons.bookmark : Icons.bookmark_border,
@@ -1910,31 +1969,34 @@ class _SpotListCard extends ConsumerWidget {
                 ],
               ),
             ),
-            // 편의칩 유무와 무관하게 항상 이 줄 높이만큼 자리를 잡아둬서,
-            // 카드마다 콘텐츠 총 높이가 달라지지 않게 한다 — 그래야 카드
-            // 높이가 고정([_kCardExtent])인 상태에서도 상하 패딩이 실제로
-            // 동일하게 보인다.
-            SizedBox(height: _kCardGapAddressToChips.h),
-            SizedBox(
-              // 손으로 어림한 고정값 대신 실제 렌더링 높이를 직접 측정한다
-              // ([_measureFacilityChipRowHeight] 참고) — 기기·설정에 따라
-              // 계속 어긋나던 값이라 여기서 절대 다시 매직 넘버로 되돌리지
-              // 말 것.
-              height: _measureFacilityChipRowHeight(context),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: MergeSemantics(
-                  child: Row(
-                    children: [
-                      for (var i = 0; i < facilityLabels.length; i++) ...[
-                        if (i > 0) SizedBox(width: 5.w),
-                        _FacilityChip(label: facilityLabels[i]),
+            // 편의정보 칩이 하나도 없는 여행지(이마트/홈플러스 같은 대형마트 등)는
+            // 빈 줄 자리를 그대로 잡아두면 주소와 이미지 사이가 뜬금없이
+            // 넓어 보인다 — 이미지가 없을 때 그 영역 자체를 그리지 않는
+            // 것과 동일하게, 칩이 없으면 이 줄 자체를 통째로 생략한다.
+            // 카드 높이도 itemExtentBuilder에서 그만큼 줄여준다([_cardExtentFor]).
+            if (facilityLabels.isNotEmpty) ...[
+              SizedBox(height: _kCardGapAddressToChips.h),
+              SizedBox(
+                // 손으로 어림한 고정값 대신 실제 렌더링 높이를 직접 측정한다
+                // ([_measureFacilityChipRowHeight] 참고) — 기기·설정에 따라
+                // 계속 어긋나던 값이라 여기서 절대 다시 매직 넘버로 되돌리지
+                // 말 것.
+                height: _measureFacilityChipRowHeight(context),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: MergeSemantics(
+                    child: Row(
+                      children: [
+                        for (var i = 0; i < facilityLabels.length; i++) ...[
+                          if (i > 0) SizedBox(width: 5.w),
+                          _FacilityChip(label: facilityLabels[i]),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
             // 여행지 이미지 영역. 지도 검색 결과는 firstImage 한 장만 갖고
             // 있어서(갤러리는 상세화면에서만 조회) 172:113 비율로 한 장만
             // 보여준다. 높이를 [_kResultCardImageHeight]로 고정하고 너비를
@@ -1944,7 +2006,14 @@ class _SpotListCard extends ConsumerWidget {
             // (플레이스홀더 박스를 띄우지 않음) — 카드 높이도
             // itemExtentBuilder에서 그만큼 줄여준다([_cardExtentFor]).
             if (images.isNotEmpty) ...[
-              SizedBox(height: _kCardGapChipsToImage.h),
+              // 바로 위가 칩 줄이면 칩↔이미지 간격을, 칩이 아예 없어서
+              // 주소 줄이 바로 위에 있으면 주소↔이미지 간격을 준다 — 어느
+              // 경우든 이미지 앞에는 딱 하나의 간격만 있어야 한다.
+              SizedBox(
+                height: facilityLabels.isNotEmpty
+                    ? _kCardGapChipsToImage.h
+                    : _kCardGapAddressToChips.h,
+              ),
               SizedBox(
                 width: _kResultCardImageHeight.h * 172 / 113,
                 height: _kResultCardImageHeight.h,
