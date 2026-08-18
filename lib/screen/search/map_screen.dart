@@ -282,9 +282,6 @@ class _MapScreenState extends ConsumerState<MapScreen>
   // DraggableScrollableSheet가 지금 차지하고 있는 화면 높이 비율. 내 위치
   // 버튼을 시트 바로 위에 붙이려면 드래그로 계속 바뀌는 이 값을 알아야 한다.
   double _sheetExtent = _kSheetHeightFraction;
-
-  // 카카오맵 플랫폼 뷰(하이브리드 컴포지션 SurfaceView)를 강제로 떼었다 다시
-  // 붙이기 위한 key. [didChangeAppLifecycleState] 참고.
   Key _mapKey = UniqueKey();
 
   @override
@@ -298,18 +295,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // 카카오맵은 하이브리드 컴포지션(SurfaceView)이라 Flutter의 Offstage와
-    // 무관하게 안드로이드 뷰 계층에 별도로 붙어있다. 앱이 백그라운드로
-    // 갔다가(외부 브라우저로 홈페이지 링크를 열었다 돌아오는 경우 등)
-    // 복귀하면, 이 지도 탭이 지금 화면에 보이는 탭이 아니어도(offstage여도)
-    // 그 SurfaceView가 다른 화면 위로 계속 떠 있는 채로 남는 경우가 있다
-    // (안드로이드가 화면 복귀 시 하드웨어 레이어 순서를 안드로이드 뷰
-    // 계층 기준으로만 다시 잡고, 그 시점 Flutter Offstage 상태를 반영하지
-    // 못해서 생기는 문제). 이 상태에서는 하단 탭을 눌러도 화면이 안
-    // 바뀐 것처럼 보인다. key를 바꿔 지도 위젯 자체를 새로 만들면 그
-    // SurfaceView가 완전히 떼었다 다시 붙으면서 순서가 정상으로 돌아온다.
     if (state == AppLifecycleState.resumed && !widget.isActive) {
-      setState(() => _mapKey = UniqueKey());
+      _recreateMapPlatformView();
     }
   }
 
@@ -322,7 +309,20 @@ class _MapScreenState extends ConsumerState<MapScreen>
     // 남아있는 게 자연스럽다.
     if (oldWidget.isActive && !widget.isActive) {
       _resetSearchState();
+      _recreateMapPlatformView();
     }
+  }
+
+  void _recreateMapPlatformView() {
+    if (!mounted) return;
+    setState(() {
+      _mapController = null;
+      _resultMarkers.clear();
+      _smallStyles.clear();
+      _bigStyles.clear();
+      _myLocationMarker = null;
+      _mapKey = UniqueKey();
+    });
   }
 
   void _resetSearchState() {
