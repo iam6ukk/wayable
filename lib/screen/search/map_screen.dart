@@ -747,22 +747,43 @@ class _MapScreenState extends ConsumerState<MapScreen>
     }
   }
 
+  // _handleMapReady(캐시 위치 → 실제 GPS 위치 순서로 최대 두 번 호출)와
+  // _handleMyLocationTap이 겹쳐 호출될 수 있어서, 이 함수가 아직 끝나지
+  // 않은 동안 또 호출되면 새 요청은 건너뛴다 — 그렇지 않으면 같은 마커를
+  // 두 호출이 동시에 지우려다 두 번째 removePoi가 이미 지워진(무효화된)
+  // 네이티브 참조를 건드려 NullPointerException이 나고, 그 뒤로는
+  // _myLocationMarker가 무효한 값으로 남아 "내 위치로 이동" 버튼이
+  // 계속 먹통이 됐었다.
+  bool _isUpdatingMyLocationMarker = false;
+
   Future<void> _updateMyLocationMarker(LatLng position) async {
     final controller = _mapController;
-    if (controller == null) return;
-
-    if (_myLocationMarker != null) {
-      await controller.labelLayer.removePoi(_myLocationMarker!);
-      _myLocationMarker = null;
+    if (controller == null || _isUpdatingMyLocationMarker) return;
+    _isUpdatingMyLocationMarker = true;
+    try {
+      if (_myLocationMarker != null) {
+        final previousMarker = _myLocationMarker!;
+        // 지우는 도중 실패해도 무효한 참조를 계속 들고 있지 않도록 먼저
+        // 비워둔다 — removePoi 자체는 실패해도(이미 없는 마커라도) 새
+        // 마커를 그리는 데는 지장이 없다.
+        _myLocationMarker = null;
+        try {
+          await controller.labelLayer.removePoi(previousMarker);
+        } catch (e) {
+          AppLogger.debug('[Map] 이전 내 위치 마커 제거 실패(무시): $e');
+        }
+      }
+      final icon = await KImage.fromWidget(
+        const _MyLocationDot(),
+        const Size(_kMyLocationDotSize, _kMyLocationDotSize),
+      );
+      _myLocationMarker = await controller.labelLayer.addPoi(
+        position,
+        style: PoiStyle(icon: icon),
+      );
+    } finally {
+      _isUpdatingMyLocationMarker = false;
     }
-    final icon = await KImage.fromWidget(
-      const _MyLocationDot(),
-      const Size(_kMyLocationDotSize, _kMyLocationDotSize),
-    );
-    _myLocationMarker = await controller.labelLayer.addPoi(
-      position,
-      style: PoiStyle(icon: icon),
-    );
   }
 
   Future<void> _handleMyLocationTap() async {
