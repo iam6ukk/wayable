@@ -7,6 +7,7 @@ import 'package:kakao_map_sdk/kakao_map_sdk.dart';
 import '../../model/accessibility/accessibility_field.dart';
 import '../../model/tour/tour_category.dart';
 import '../../model/tour/tour_spot.dart';
+import '../../navigation/navigator_key.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/bookmark_provider.dart';
 import '../../providers/navigation_provider.dart';
@@ -239,7 +240,7 @@ class MapScreen extends ConsumerStatefulWidget {
 }
 
 class _MapScreenState extends ConsumerState<MapScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, RouteAware {
   final _locationService = LocationService();
   final _kakaoLocalService = KakaoLocalService();
   final _tourSpotService = TourSpotService();
@@ -283,6 +284,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
   // 버튼을 시트 바로 위에 붙이려면 드래그로 계속 바뀌는 이 값을 알아야 한다.
   double _sheetExtent = _kSheetHeightFraction;
   Key _mapKey = UniqueKey();
+  // SpotDetailScreen 등이 Navigator.push로 이 화면 위에 얹히는 동안 true.
+  // 탭 전환이 아니라 MainShell의 Offstage가 안 걸리는 경우라, 하이브리드
+  // 컴포지션 네이티브 뷰가 그 위에 그대로 비쳐 보이지 않도록 이 플래그가
+  // true인 동안은 KakaoMap 위젯 자체를 그리지 않는다([didPushNext]).
+  bool _isCoveredByRoute = false;
 
   @override
   void initState() {
@@ -291,6 +297,31 @@ class _MapScreenState extends ConsumerState<MapScreen>
     // 지도 플랫폼 뷰가 만들어지는 동안(onMapReady 호출 전) GPS 조회를 병렬로
     // 미리 시작해서, 지도가 뜨자마자 바로 카메라를 옮길 수 있게 한다.
     _initialPositionFuture = _locationService.getCurrentPosition();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) routeObserver.subscribe(this, route);
+  }
+
+  /// 이 화면(정확히는 MainShell) 위에 다른 라우트가 push되어 이 화면을
+  /// 덮었을 때. 탭을 벗어날 때 쓰는 [_recreateMapPlatformView]와 똑같이
+  /// 컨트롤러/마커를 정리하고 새 key를 발급해, 가려져 있던 동안의 낡은
+  /// 플랫폼 뷰가 그대로 남아있지 않게 한다.
+  @override
+  void didPushNext() {
+    _recreateMapPlatformView();
+    if (mounted) setState(() => _isCoveredByRoute = true);
+  }
+
+  /// 위에 덮였던 라우트가 pop되어 이 화면이 다시 보일 때. KakaoMap을 다시
+  /// 그리면 onMapReady가 새로 호출되어 위치를 재조회하고, 검색 결과가
+  /// 남아있었다면 [_handleMapReady]에서 그 결과의 마커도 다시 그린다.
+  @override
+  void didPopNext() {
+    if (mounted) setState(() => _isCoveredByRoute = false);
   }
 
   @override
@@ -344,6 +375,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    routeObserver.unsubscribe(this);
     // 이 화면을 벗어날 때 하단 탭 바 숨김 상태가 다른 탭에 남지 않게 되돌린다.
     ref.read(mapResultsActiveProvider.notifier).state = false;
     _searchController.dispose();
@@ -427,6 +459,17 @@ class _MapScreenState extends ConsumerState<MapScreen>
     _regionCode = position != null
         ? await _resolveRegionCode(latLng) ?? _kFallbackRegionCode
         : _kFallbackRegionCode;
+
+    // 다른 화면이 덮었다 사라지며([didPopNext]) 플랫폼 뷰가 새로 만들어진
+    // 경우, 검색 결과 목록(_results)은 그대로 남아있지만 그 마커들은 이전
+    // (지금은 사라진) 컨트롤러에 붙어있던 것들이라 새 컨트롤러에는 하나도
+    // 없다 — 다시 그리고, 카메라도 GPS 위치 대신 보고 있던 활성 스팟으로
+    // 되돌린다.
+    if (_results.isNotEmpty) {
+      await _renderResultMarkers(_results);
+      await _syncActiveMarkerStyle(0, _activeIndex);
+      await _focusCameraOn(_activeIndex);
+    }
   }
 
   /// GPS 좌표 → 카카오 역지오코딩 → area_codes.json 매칭까지, home_screen.dart의
@@ -704,22 +747,43 @@ class _MapScreenState extends ConsumerState<MapScreen>
     }
   }
 
+  // _handleMapReady(캐시 위치 → 실제 GPS 위치 순서로 최대 두 번 호출)와
+  // _handleMyLocationTap이 겹쳐 호출될 수 있어서, 이 함수가 아직 끝나지
+  // 않은 동안 또 호출되면 새 요청은 건너뛴다 — 그렇지 않으면 같은 마커를
+  // 두 호출이 동시에 지우려다 두 번째 removePoi가 이미 지워진(무효화된)
+  // 네이티브 참조를 건드려 NullPointerException이 나고, 그 뒤로는
+  // _myLocationMarker가 무효한 값으로 남아 "내 위치로 이동" 버튼이
+  // 계속 먹통이 됐었다.
+  bool _isUpdatingMyLocationMarker = false;
+
   Future<void> _updateMyLocationMarker(LatLng position) async {
     final controller = _mapController;
-    if (controller == null) return;
-
-    if (_myLocationMarker != null) {
-      await controller.labelLayer.removePoi(_myLocationMarker!);
-      _myLocationMarker = null;
+    if (controller == null || _isUpdatingMyLocationMarker) return;
+    _isUpdatingMyLocationMarker = true;
+    try {
+      if (_myLocationMarker != null) {
+        final previousMarker = _myLocationMarker!;
+        // 지우는 도중 실패해도 무효한 참조를 계속 들고 있지 않도록 먼저
+        // 비워둔다 — removePoi 자체는 실패해도(이미 없는 마커라도) 새
+        // 마커를 그리는 데는 지장이 없다.
+        _myLocationMarker = null;
+        try {
+          await controller.labelLayer.removePoi(previousMarker);
+        } catch (e) {
+          AppLogger.debug('[Map] 이전 내 위치 마커 제거 실패(무시): $e');
+        }
+      }
+      final icon = await KImage.fromWidget(
+        const _MyLocationDot(),
+        const Size(_kMyLocationDotSize, _kMyLocationDotSize),
+      );
+      _myLocationMarker = await controller.labelLayer.addPoi(
+        position,
+        style: PoiStyle(icon: icon),
+      );
+    } finally {
+      _isUpdatingMyLocationMarker = false;
     }
-    final icon = await KImage.fromWidget(
-      const _MyLocationDot(),
-      const Size(_kMyLocationDotSize, _kMyLocationDotSize),
-    );
-    _myLocationMarker = await controller.labelLayer.addPoi(
-      position,
-      style: PoiStyle(icon: icon),
-    );
   }
 
   Future<void> _handleMyLocationTap() async {
@@ -816,23 +880,32 @@ class _MapScreenState extends ConsumerState<MapScreen>
                 // content-desc 없는 단일 노드). 대신 이 영역 전체를 하나의
                 // 안내 노드로 감싸, 스크린 리더 사용자가 지도 대신 아래
                 // 목록으로 안내받도록 한다.
-                child: Semantics(
-                  label: '지도, 마커 정보는 아래 목록에서 확인할 수 있습니다',
-                  excludeSemantics: true,
-                  child: KakaoMap(
-                    key: _mapKey,
-                    option: KakaoMapOption(
-                      position: _currentPosition,
-                      zoomLevel: _kDefaultZoomLevel,
-                    ),
-                    onMapReady: _handleMapReady,
-                    // 기본(Virtual Display) 모드는 바텀시트 높이 변화 등으로 뷰가
-                    // 리사이즈될 때 SurfaceProducer가 이미 해제된 상태에서 접근해
-                    // NPE로 앱이 죽는 경우가 있었다(kakao_map_sdk 자체 문서에도
-                    // 기본 모드가 상태관리 측면에서 문제가 있다고 명시되어 있음).
-                    forceHybridComposition: true,
-                  ),
-                ),
+                //
+                // 이 화면 위에 다른 라우트가 push된 동안([_isCoveredByRoute])은
+                // KakaoMap 위젯 자체를 안 그린다 — 하이브리드 컴포지션
+                // 네이티브 뷰는 Offstage와 달리 Flutter의 페인트 순서를 따르지
+                // 않아서, 그냥 두면 위에 덮인 화면(예: 상세 화면) 위로 그대로
+                // 비쳐 보인다.
+                child: _isCoveredByRoute
+                    ? ColoredBox(color: AppColors.background)
+                    : Semantics(
+                        label: '지도, 마커 정보는 아래 목록에서 확인할 수 있습니다',
+                        excludeSemantics: true,
+                        child: KakaoMap(
+                          key: _mapKey,
+                          option: KakaoMapOption(
+                            position: _currentPosition,
+                            zoomLevel: _kDefaultZoomLevel,
+                          ),
+                          onMapReady: _handleMapReady,
+                          // 기본(Virtual Display) 모드는 바텀시트 높이 변화
+                          // 등으로 뷰가 리사이즈될 때 SurfaceProducer가 이미
+                          // 해제된 상태에서 접근해 NPE로 앱이 죽는 경우가
+                          // 있었다(kakao_map_sdk 자체 문서에도 기본 모드가
+                          // 상태관리 측면에서 문제가 있다고 명시되어 있음).
+                          forceHybridComposition: true,
+                        ),
+                      ),
               ),
               // 검색창(+검색 전에는 카테고리 탭) 영역은 지도 위에 투명하게 뜨면
               // 안 되고, 피그마처럼 고정 배경(연한 파랑)이 깔린 하나의 헤더
