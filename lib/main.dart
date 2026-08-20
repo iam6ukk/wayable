@@ -107,6 +107,7 @@ class MyApp extends StatelessWidget {
       minTextAdapt: true,
       builder: (context, child) => MaterialApp(
         navigatorKey: navigatorKey,
+        navigatorObservers: [routeObserver],
         debugShowCheckedModeBanner: false,
         scrollBehavior: _NoStretchScrollBehavior(),
         theme: ThemeData(
