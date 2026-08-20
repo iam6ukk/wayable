@@ -4,11 +4,14 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../model/faq/faq_category.dart';
 import '../../model/faq/faq_data.dart';
 import '../../model/faq/faq_item.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/app_dialog.dart';
 import '../../widgets/bottom_nav_bar.dart';
 import '../../widgets/chevron_icon.dart';
 import '../../widgets/top_logo_banner.dart';
+import '../auth/login_screen.dart';
 
 class FaqScreen extends ConsumerStatefulWidget {
   const FaqScreen({super.key});
@@ -20,6 +23,31 @@ class FaqScreen extends ConsumerStatefulWidget {
 class _FaqScreenState extends ConsumerState<FaqScreen> {
   FaqCategory? _selectedCategory;
   final Set<String> _expandedQuestions = {};
+
+  /// 하단 탭 바 아이콘 탭. 회원 전용 탭(저장목록/마이페이지)은 MainShell의
+  /// _handleTabSelected와 같은 기준으로 비회원을 먼저 걸러야 한다 — 여기서
+  /// 그냥 tabSwitchRequestProvider만 채우고 pop하면 그 판단 없이 바로
+  /// 저장목록/마이페이지 화면이 열려버린다.
+  Future<void> _handleBottomNavTap(BottomNavTab tab) async {
+    final isGuest = ref.read(authStateProvider).user == null;
+    if (isGuest && kMemberOnlyTabs.contains(tab)) {
+      final goLogin = await showTwoButtonDialog(
+        context,
+        content: '회원에게만 제공되는 기능입니다.\n로그인 하시겠습니까?',
+        primaryLabel: '로그인하기',
+        secondaryLabel: '취소',
+      );
+      if (goLogin == true && context.mounted) {
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
+      }
+      return;
+    }
+
+    ref.read(tabSwitchRequestProvider.notifier).state = tab;
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,10 +116,7 @@ class _FaqScreenState extends ConsumerState<FaqScreen> {
             ),
             BottomNavBar(
               currentTab: BottomNavTab.myPage,
-              onTabSelected: (tab) {
-                ref.read(tabSwitchRequestProvider.notifier).state = tab;
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              },
+              onTabSelected: _handleBottomNavTap,
             ),
           ],
         ),
