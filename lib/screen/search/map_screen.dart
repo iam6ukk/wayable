@@ -544,9 +544,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
       _isLoading = true;
     });
 
-    final spots = await _tourSpotService.searchByRegion(regionCode);
-    final keyword = _searchController.text.trim().toLowerCase();
     final category = _selectedCategory;
+    final spots = await _tourSpotService.searchByRegion(
+      regionCode,
+      contentTypeId: category?.contentTypeId,
+    );
+    final keyword = _searchController.text.trim().toLowerCase();
     final minLevel = _minFitLevel;
     final selectedFields = resolveSelectedFields(
       ref.read(authStateProvider).user,
@@ -789,7 +792,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
   }
 
   Future<void> _handleMyLocationTap() async {
-    final position = await _locationService.getCurrentPosition();
+    final position = await _locationService.getCurrentPosition(
+      forceRefresh: true,
+    );
     if (position == null || !mounted) return;
 
     final latLng = LatLng(position.latitude, position.longitude);

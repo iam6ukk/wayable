@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
 import '../providers/bookmark_provider.dart';
@@ -11,6 +12,7 @@ import '../screen/search/explore_screen.dart';
 import '../screen/search/map_screen.dart';
 import '../widgets/app_dialog.dart';
 import '../widgets/bottom_nav_bar.dart';
+import '../widgets/toast.dart';
 import '../widgets/top_logo_banner.dart';
 
 /// 하단 탭 화면들의 공용 셸. 상단 배너와 하단 탭 바는 고정한 채
@@ -34,10 +36,31 @@ class _MainShellState extends ConsumerState<MainShell> {
   // 화면이 깜빡이는 문제가 있어 아예 탭을 뜰 때 없애지 않는 쪽으로 고쳤다.
   late final Set<BottomNavTab> _mountedTabs = {_currentTab};
 
+  // 방문한 탭 순서를 기억해뒀다가 시스템 뒤로가기를 누르면 그 순서를
+  // 거슬러 되돌아간다(안드로이드 표준 흐름). 홈에서 다른 탭으로 간 뒤
+  // 되돌아와 이력이 다시 비면, 그때는 실제로 홈 화면에 있는 것이므로
+  // 뒤로가기 한 번 더 누르면 앱이 꺼지는 게 맞다.
+  final List<BottomNavTab> _tabHistory = [];
+
+  // 홈 탭에서 뒤로가기를 두 번 눌러야 종료되게 하기 위한 마지막 누름
+  // 시각. null이거나 일정 시간이 지났으면 첫 번째 누름으로 보고 안내
+  // 토스트만 띄우고, 그 안에 다시 누르면 실제로 앱을 종료한다.
+  DateTime? _lastHomeBackPressAt;
+
   void _switchTab(BottomNavTab tab) {
+    if (tab == _currentTab) return;
     setState(() {
+      _tabHistory.add(_currentTab);
       _mountedTabs.add(tab);
       _currentTab = tab;
+    });
+  }
+
+  void _goToPreviousTab() {
+    setState(() {
+      _currentTab = _tabHistory.isNotEmpty
+          ? _tabHistory.removeLast()
+          : BottomNavTab.home;
     });
   }
 
@@ -100,69 +123,91 @@ class _MainShellState extends ConsumerState<MainShell> {
     final hideBottomNav =
         _currentTab == BottomNavTab.map && ref.watch(mapResultsActiveProvider);
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      // 기본값(true)이면 키보드가 열고 닫힐 때마다 이 셸 전체(배너+콘텐츠+
-      // 하단 탭바)가 매 프레임 리사이즈되면서, 탐색 화면의 하단 고정 스크롤
-      // 버튼(Positioned bottom)이 그 리사이즈를 따라 눈에 띄게 움직여 화면이
-      // 덜컥거리는 것처럼 보였다. 키보드 입력이 있는 화면은 탐색 탭 검색창
-      // 하나뿐이고 위쪽에 있어 키보드에 가려질 일도 없어서 꺼도 안전하다.
-      resizeToAvoidBottomInset: false,
-      // resizeToAvoidBottomInset만으로는 부족했다 — Scaffold body는 리사이즈
-      // 안 해도, 탐색 화면 검색창(TextField)이 포커스를 받으면 그 안의
-      // EditableText가 MediaQuery.viewInsets.bottom(키보드 높이)을 그대로
-      // 보고 "키보드에 안 가리게" 스스로 상위 스크롤뷰를 위로 스크롤시켜서,
-      // 검색 제출 시 화면이 살짝 올라갔다 내려오는 것처럼 보였다. 이 셸
-      // 아래로는 keyboard inset 자체를 안 보이게 없애서 그 자동 스크롤이
-      // 아예 발생하지 않게 한다.
-      body: MediaQuery.removeViewInsets(
-        context: context,
-        removeBottom: true,
-        child: SafeArea(
-          top: false,
-          bottom: false,
-          child: Column(
-            children: [
-              // 지도 화면은 자체 상단 배경 밴드(검색창+카테고리)가 상태바
-              // 인셋까지 직접 챙기는 피그마 시안이라, 여기서 로고 배너를
-              // 또 얹으면 파란 헤더가 두 겹으로 보인다.
-              if (_currentTab != BottomNavTab.map) const TopLogoBanner(),
-              Expanded(
-                // 탭 콘텐츠가 짧으면(예: 탐색 화면이 검색 전/결과 없음
-                // 상태일 때) Stack이 기본 정렬(top-start)이 아니면 세로
-                // 가운데로 쏠려 배너 바로 아래에 여백이 생기므로 명시적으로
-                // 위쪽 정렬한다.
-                child: Stack(
-                  alignment: Alignment.topCenter,
-                  children: [
-                    for (final tab in BottomNavTab.values)
-                      if (_mountedTabs.contains(tab))
-                        Offstage(
-                          // 방문한 탭이 늘어날수록 이 리스트 안에서 각
-                          // 위젯의 순번(index)이 밀릴 수 있는데, key 없이
-                          // 위치로만 매칭하면 Flutter가 다른 탭 위젯을 같은
-                          // 자리의 것으로 착각해 엉뚱하게 지웠다 새로
-                          // 만들어버린다(상태 유지가 깨짐). tab 자체를
-                          // key로 고정해 순번이 바뀌어도 항상 같은 탭끼리
-                          // 매칭되게 한다.
-                          key: ValueKey(tab),
-                          offstage: _currentTab != tab,
-                          // 보이지 않는 탭은 애니메이션 틱도 같이 멈춰서
-                          // 백그라운드에서 불필요하게 돌지 않게 한다.
-                          child: TickerMode(
-                            enabled: _currentTab == tab,
-                            child: _buildScreen(tab),
+    return PopScope(
+      // 탭 이동이든 홈에서의 종료 확인 토스트든 항상 직접 판단해서
+      // 처리해야 하므로, 시스템이 곧바로 pop(=앱 종료)하게 두지 않는다.
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_currentTab != BottomNavTab.home) {
+          _goToPreviousTab();
+          return;
+        }
+        final now = DateTime.now();
+        final pressedAgainQuickly =
+            _lastHomeBackPressAt != null &&
+            now.difference(_lastHomeBackPressAt!) < const Duration(seconds: 2);
+        if (pressedAgainQuickly) {
+          SystemNavigator.pop();
+        } else {
+          _lastHomeBackPressAt = now;
+          showAndroidToast(context, "'뒤로 가기'를 한 번 더 누르면 종료됩니다.");
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        // 기본값(true)이면 키보드가 열고 닫힐 때마다 이 셸 전체(배너+콘텐츠+
+        // 하단 탭바)가 매 프레임 리사이즈되면서, 탐색 화면의 하단 고정 스크롤
+        // 버튼(Positioned bottom)이 그 리사이즈를 따라 눈에 띄게 움직여 화면이
+        // 덜컥거리는 것처럼 보였다. 키보드 입력이 있는 화면은 탐색 탭 검색창
+        // 하나뿐이고 위쪽에 있어 키보드에 가려질 일도 없어서 꺼도 안전하다.
+        resizeToAvoidBottomInset: false,
+        // resizeToAvoidBottomInset만으로는 부족했다 — Scaffold body는 리사이즈
+        // 안 해도, 탐색 화면 검색창(TextField)이 포커스를 받으면 그 안의
+        // EditableText가 MediaQuery.viewInsets.bottom(키보드 높이)을 그대로
+        // 보고 "키보드에 안 가리게" 스스로 상위 스크롤뷰를 위로 스크롤시켜서,
+        // 검색 제출 시 화면이 살짝 올라갔다 내려오는 것처럼 보였다. 이 셸
+        // 아래로는 keyboard inset 자체를 안 보이게 없애서 그 자동 스크롤이
+        // 아예 발생하지 않게 한다.
+        body: MediaQuery.removeViewInsets(
+          context: context,
+          removeBottom: true,
+          child: SafeArea(
+            top: false,
+            bottom: false,
+            child: Column(
+              children: [
+                // 지도 화면은 자체 상단 배경 밴드(검색창+카테고리)가 상태바
+                // 인셋까지 직접 챙기는 피그마 시안이라, 여기서 로고 배너를
+                // 또 얹으면 파란 헤더가 두 겹으로 보인다.
+                if (_currentTab != BottomNavTab.map) const TopLogoBanner(),
+                Expanded(
+                  // 탭 콘텐츠가 짧으면(예: 탐색 화면이 검색 전/결과 없음
+                  // 상태일 때) Stack이 기본 정렬(top-start)이 아니면 세로
+                  // 가운데로 쏠려 배너 바로 아래에 여백이 생기므로 명시적으로
+                  // 위쪽 정렬한다.
+                  child: Stack(
+                    alignment: Alignment.topCenter,
+                    children: [
+                      for (final tab in BottomNavTab.values)
+                        if (_mountedTabs.contains(tab))
+                          Offstage(
+                            // 방문한 탭이 늘어날수록 이 리스트 안에서 각
+                            // 위젯의 순번(index)이 밀릴 수 있는데, key 없이
+                            // 위치로만 매칭하면 Flutter가 다른 탭 위젯을 같은
+                            // 자리의 것으로 착각해 엉뚱하게 지웠다 새로
+                            // 만들어버린다(상태 유지가 깨짐). tab 자체를
+                            // key로 고정해 순번이 바뀌어도 항상 같은 탭끼리
+                            // 매칭되게 한다.
+                            key: ValueKey(tab),
+                            offstage: _currentTab != tab,
+                            // 보이지 않는 탭은 애니메이션 틱도 같이 멈춰서
+                            // 백그라운드에서 불필요하게 돌지 않게 한다.
+                            child: TickerMode(
+                              enabled: _currentTab == tab,
+                              child: _buildScreen(tab),
+                            ),
                           ),
-                        ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              if (!hideBottomNav)
-                BottomNavBar(
-                  currentTab: _currentTab,
-                  onTabSelected: _handleTabSelected,
-                ),
-            ],
+                if (!hideBottomNav)
+                  BottomNavBar(
+                    currentTab: _currentTab,
+                    onTabSelected: _handleTabSelected,
+                  ),
+              ],
+            ),
           ),
         ),
       ),

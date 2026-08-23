@@ -4,7 +4,36 @@ import 'package:wayable/utils/app_logger.dart';
 /// 사용자 GPS 위치 조회. 위치 서비스가 꺼져있거나 권한이 거부되면 null을 반환하고,
 /// 호출부(홈 화면)는 이 경우 랜덤 지역으로 폴백한다.
 class LocationService {
-  Future<Position?> getCurrentPosition() async {
+  // 홈/지도/저장목록 화면이 각자 새 GPS fix를 기다리면(최대 8초) 탭을 오갈
+  // 때마다 반복해서 느려진다. 짧은 시간 안에는 실측이 크게 달라지지 않는다고
+  // 보고, 마지막으로 잡은 위치를 static으로 앱 전체가 공유해 재사용한다.
+  static Position? _cachedPosition;
+
+  // 수도권은 대중교통으로 30분이면 인접 구/시로도 이동 가능하지만, 지방은
+  // 시군구 하나를 넘어가는 데 보통 30분 이상 걸린다. "오늘 발견"류 추천
+  // 기능은 위치가 며칠씩 정밀할 필요가 없어 이 정도 오차는 감수할 만하다.
+  static const _cacheFreshDuration = Duration(minutes: 30);
+
+  bool _isFresh(Position position) =>
+      DateTime.now().difference(position.timestamp) < _cacheFreshDuration;
+
+  /// [forceRefresh]가 true면 캐시가 신선해도 무시하고 항상 실측한다.
+  /// "내 위치" 버튼처럼 사용자가 명시적으로 지금 위치를 다시 요청한
+  /// 경우에 쓴다.
+  Future<Position?> getCurrentPosition({bool forceRefresh = false}) async {
+    final cached = _cachedPosition;
+    if (!forceRefresh && cached != null && _isFresh(cached)) {
+      return cached;
+    }
+
+    final position = await _fetchCurrentPosition();
+    if (position != null) {
+      _cachedPosition = position;
+    }
+    return position;
+  }
+
+  Future<Position?> _fetchCurrentPosition() async {
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
         AppLogger.debug('[Location] 위치 서비스 꺼짐');

@@ -56,7 +56,8 @@ void _registerFontLicenses() {
 // Freepik(Magnific)의 "출처표기 조건부 무료 상업이용" 라이선스 아이콘 —
 // 홈 화면 상황별 카드(situation_*)에 쓰는 3D 아이콘 5종의 출처 고지
 void _registerImageLicenses() {
-  const attribution = 'designed by Freepik - Magnific.com (https://www.magnific.com)';
+  const attribution =
+      'designed by Freepik - Magnific.com (https://www.magnific.com)';
   const items = {
     '고령자 맞춤 아이콘 (situation_seniorCompanion)':
         'https://www.magnific.com/free-psd/3d-render-disability-icon_165590100.htm',
@@ -72,13 +73,16 @@ void _registerImageLicenses() {
 
   LicenseRegistry.addLicense(() async* {
     for (final entry in items.entries) {
-      yield LicenseEntryWithLineBreaks(['Freepik 3D 아이콘 - ${entry.key}'], '''
+      yield LicenseEntryWithLineBreaks(
+        ['Freepik 3D 아이콘 - ${entry.key}'],
+        '''
 License type: Free for commercial use WITH ATTRIBUTION license
 Licensor: Freepik - Magnific.com
 Item URL: ${entry.value}
 
 Attribution: $attribution
-''');
+''',
+      );
     }
   });
 }
