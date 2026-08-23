@@ -138,11 +138,31 @@ class TourSpotService {
 
   /// [regionCode](TourSpot.lDongRegnCd, 시/도 코드)에 속하는 여행지를 콘텐츠
   /// 타입 구분 없이 전부 서버 쿼리로 가져온다 (홈 화면 "이번 달 추천 도시" 배너용).
-  Future<List<TourSpot>> searchByRegion(String regionCode) async {
+  // 카테고리 없이 키워드만으로 찾는 검색은 부분일치라 서버 쿼리로 표현할 수
+  // 없어 지역 전체를 그대로 받아야 한다. 실측 최대치(2026-08 기준 경기도
+  // 약 1,637건)를 기준으로 여유 있게 잡은 안전 상한이라, 데이터가 계속
+  // 늘어나므로 주기적으로 실측 최대치를 다시 확인해 조정해야 한다.
+  static const _regionFetchSafetyLimit = 600;
+
+  /// [contentTypeId]가 있으면 지역+카테고리를 서버에서 같이 좁혀서 받는다
+  /// (카테고리로 좁혀도 실측상 지역당 최대 수백 건 수준이라 별도 상한이
+  /// 필요 없다). 카테고리 없이 부르면(키워드만으로 클라이언트 필터링할
+  /// 때) [_regionFetchSafetyLimit] 상한을 건다.
+  Future<List<TourSpot>> searchByRegion(
+    String regionCode, {
+    String? contentTypeId,
+  }) async {
     try {
-      final snapshot = await _collection
-          .where('basic.lDongRegnCd', isEqualTo: regionCode)
-          .get();
+      Query<Map<String, dynamic>> query = _collection.where(
+        'basic.lDongRegnCd',
+        isEqualTo: regionCode,
+      );
+      if (contentTypeId != null) {
+        query = query.where('basic.contentTypeId', isEqualTo: contentTypeId);
+      } else {
+        query = query.limit(_regionFetchSafetyLimit);
+      }
+      final snapshot = await query.get();
       return snapshot.docs
           .map((doc) => TourSpot.fromFirestore(doc.id, doc.data()))
           .toList();
