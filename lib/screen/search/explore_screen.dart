@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -12,6 +13,7 @@ import '../../providers/navigation_provider.dart';
 import '../../services/tour/tour_spot_service.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/app_logger.dart';
+import '../../utils/image_cache_size.dart';
 import '../../widgets/image_placeholder.dart';
 import '../../widgets/loading_overlay.dart';
 import '../../widgets/scroll_fab.dart';
@@ -936,18 +938,35 @@ class _ResultCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(12.r),
               child: spot.firstImage == null
                   ? _buildImagePlaceholder()
-                  : Image.network(
-                      spot.firstImage!,
-                      fit: BoxFit.cover,
-                      // 관광공사 제공 사진 우하단에 로고가 찍혀있는 경우가
-                      // 많아서, 크롭이 생기더라도 그 모서리는 항상
-                      // 보존되도록 우하단 기준으로 자른다.
-                      alignment: Alignment.bottomRight,
-                      errorBuilder: (context, error, stackTrace) =>
-                          _buildImagePlaceholder(),
-                      loadingBuilder: (context, child, progress) {
-                        if (progress == null) return child;
-                        return _buildImagePlaceholder(loading: true);
+                  : LayoutBuilder(
+                      builder: (context, constraints) {
+                        final dpr = MediaQuery.of(context).devicePixelRatio;
+                        final cacheW = cacheDimension(
+                          constraints.maxWidth,
+                          dpr,
+                        );
+                        final cacheH = cacheDimension(
+                          constraints.maxHeight,
+                          dpr,
+                        );
+                        return CachedNetworkImage(
+                          imageUrl: spot.firstImage!,
+                          fit: BoxFit.cover,
+                          fadeInDuration: Duration.zero,
+                          fadeOutDuration: Duration.zero,
+                          // 관광공사 제공 사진 우하단에 로고가 찍혀있는 경우가
+                          // 많아서, 크롭이 생기더라도 그 모서리는 항상
+                          // 보존되도록 우하단 기준으로 자른다.
+                          alignment: Alignment.bottomRight,
+                          memCacheWidth: cacheW,
+                          memCacheHeight: cacheH,
+                          maxWidthDiskCache: cacheW,
+                          maxHeightDiskCache: cacheH,
+                          errorWidget: (context, url, error) =>
+                              _buildImagePlaceholder(),
+                          placeholder: (context, url) =>
+                              _buildImagePlaceholder(loading: true),
+                        );
                       },
                     ),
             ),
