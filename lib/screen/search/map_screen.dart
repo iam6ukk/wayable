@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -19,6 +20,7 @@ import '../../services/tour/tour_spot_service.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/accessibility_fit_level.dart';
 import '../../utils/app_logger.dart';
+import '../../utils/image_cache_size.dart';
 import '../../widgets/app_dialog.dart';
 import '../../widgets/chevron_icon.dart';
 import '../../widgets/image_placeholder.dart';
@@ -2092,14 +2094,32 @@ class _SpotListCard extends ConsumerWidget {
                 height: _kResultCardImageHeight.h,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12.r),
-                  child: Image.network(
-                    images.first,
+                  child: CachedNetworkImage(
+                    imageUrl: images.first,
                     fit: BoxFit.cover,
+                    fadeInDuration: Duration.zero,
+                    fadeOutDuration: Duration.zero,
                     // 관광공사 제공 사진 우하단에 로고가 찍혀있는 경우가
                     // 많아서, 크롭이 생기더라도 그 모서리는 항상
                     // 보존되도록 우하단 기준으로 자른다.
                     alignment: Alignment.bottomRight,
-                    errorBuilder: (_, _, _) => const ImagePlaceholder(),
+                    memCacheWidth: cacheDimension(
+                      _kResultCardImageHeight.h * 172 / 113,
+                      MediaQuery.of(context).devicePixelRatio,
+                    ),
+                    memCacheHeight: cacheDimension(
+                      _kResultCardImageHeight.h,
+                      MediaQuery.of(context).devicePixelRatio,
+                    ),
+                    maxWidthDiskCache: cacheDimension(
+                      _kResultCardImageHeight.h * 172 / 113,
+                      MediaQuery.of(context).devicePixelRatio,
+                    ),
+                    maxHeightDiskCache: cacheDimension(
+                      _kResultCardImageHeight.h,
+                      MediaQuery.of(context).devicePixelRatio,
+                    ),
+                    errorWidget: (_, _, _) => const ImagePlaceholder(),
                   ),
                 ),
               ),

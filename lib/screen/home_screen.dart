@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:wayable/model/accessibility/accessibility_profile.dart';
 import 'package:wayable/model/region/area_code.dart';
 import 'package:wayable/providers/navigation_provider.dart';
@@ -14,9 +15,9 @@ import 'package:wayable/model/tour/tour_spot.dart';
 import 'package:wayable/services/location/location_service.dart';
 import 'package:wayable/services/region/area_code_repository.dart';
 import 'package:wayable/services/region/kakao_local_service.dart';
-import 'package:wayable/services/tour/tour_detail_service.dart';
 import 'package:wayable/services/tour/tour_spot_service.dart';
 import 'package:wayable/utils/app_logger.dart';
+import 'package:wayable/utils/image_cache_size.dart';
 import 'package:wayable/widgets/bottom_nav_bar.dart';
 
 const _kCarouselLoopMultiplier = 1000;
@@ -114,17 +115,14 @@ const _kMostSavedPanelVerticalPadding = 12.0;
 const _kMostSavedPanelBaselineHeight = 38.0;
 
 class _FeaturedSpot {
-  const _FeaturedSpot({
-    required this.contentId,
-    required this.title,
-    required this.regionName,
-    required this.imageUrl,
-  });
+  const _FeaturedSpot({required this.spot, required this.regionName});
 
-  final String contentId;
-  final String title;
+  final TourSpot spot;
   final String regionName;
-  final String imageUrl;
+
+  String get contentId => spot.contentId;
+  String get title => spot.title;
+  String get imageUrl => spot.firstImage!;
 }
 
 class _HeroSlide {
@@ -171,7 +169,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _locationService = LocationService();
   final _kakaoLocalService = KakaoLocalService();
   final _tourSpotService = TourSpotService();
-  final _tourDetailService = TourDetailService();
+
+  double get _devicePixelRatio => MediaQuery.of(context).devicePixelRatio;
 
   // null이면 로딩 중 → _buildDiscoverySection()이 실제 값 대신 스켈레톤을 보여준다.
   _DiscoverySpot? _discoverySpot;
@@ -181,6 +180,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // GPS로 얻은 SigunguCode
   // null이면 미동의/실패 상태로, 후보가 바뀔 때마다 소속 구를 다시 역참조해 location에 쓴다.
   SigunguCode? _sigungu;
+  // 화면 진입 시 한 번만 확정해 새로고침에서도 재사용하는 위치(GPS 재호출 없음).
+  // null이면 미동의/실패 상태로, 새로고침은 기존 구 단위 제외 방식으로 폴백한다.
+  Position? _position;
+  bool _isRefreshingDiscoverySpot = false;
 
   Map<String, SigunguCode> _sigunguByMemberCode = const {};
   Map<String, AreaCode> _areaCodeBySidoName = const {};
@@ -216,7 +219,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       );
       final withImages = spots
           .where((spot) => (spot.firstImage ?? '').isNotEmpty)
-          .take(3)
           .toList();
       if (!mounted) return;
       setState(() {
@@ -225,15 +227,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
-  /// 홈페이지 URL이 있으면 외부 브라우저로 열고, 없으면 아무 동작도 하지 않는다.
-  Future<void> _onFeaturedSpotTap(String contentId) async {
-    final info = await _tourDetailService.fetchCommonInfo(contentId);
-    final homepage = info?.homepage;
-    if (homepage == null || homepage.isEmpty) return;
-    final uri = Uri.tryParse(homepage);
-    if (uri == null) return;
-    if (!mounted) return;
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  void _onFeaturedSpotTap(TourSpot spot) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => SpotDetailScreen(spot: spot)));
   }
 
   /// 맞춤 무장애 여행 관련, 대분류 데이터만 가지고 이동함.
@@ -317,6 +314,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     await areaCodesFuture;
     final position = await positionFuture;
+    _position = position;
 
     var candidates = spots;
     SigunguCode? sigungu;
@@ -356,8 +354,56 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
-  /// 새로고침 아이콘 탭 핸들러: 전국 여행지 중 지금 있는 구를 제외하고 랜덤 재선정
-  void _refreshDiscoverySpot() {
+  /// 새로고침 아이콘 탭 핸들러. 위치가 확정돼 있으면(_position) 화면 진입 시
+  /// 잡아둔 그 위치를 그대로 재사용해(GPS 재호출 없음) 반경 100km 안에서 랜덤
+  /// 재선정하고, 위치가 없으면(미동의/실패) 기존처럼 지금 있는 구를 제외한
+  /// 전국 후보에서 랜덤 재선정한다.
+  Future<void> _refreshDiscoverySpot() async {
+    if (_isRefreshingDiscoverySpot) return;
+
+    final position = _position;
+    if (position == null) {
+      _refreshDiscoverySpotBySigungu();
+      return;
+    }
+
+    setState(() => _isRefreshingDiscoverySpot = true);
+    try {
+      final nearby = await _tourSpotService.searchNearby(
+        centerLat: position.latitude,
+        centerLng: position.longitude,
+        excludeSpotId: _chosenSpot?.contentId,
+      );
+      final candidates = nearby
+          .where((spot) => (spot.firstImage ?? '').isNotEmpty)
+          .toList();
+      if (candidates.isEmpty) {
+        _refreshDiscoverySpotBySigungu();
+        return;
+      }
+      final chosen = candidates[Random().nextInt(candidates.length)];
+      final distanceKm =
+          Geolocator.distanceBetween(
+            position.latitude,
+            position.longitude,
+            chosen.mapY!,
+            chosen.mapX!,
+          ) /
+          1000;
+      AppLogger.debug(
+        '[Discovery] 새로고침(반경검색): ${chosen.title} - '
+        '기준좌표로부터 ${distanceKm.toStringAsFixed(1)}km',
+      );
+      if (!mounted) return;
+      setState(() => _applySpot(chosen));
+    } finally {
+      if (mounted) setState(() => _isRefreshingDiscoverySpot = false);
+    }
+  }
+
+  /// 위치 미확정/반경 안 후보 없음일 때의 폴백: 전국 여행지 중 지금 있는 구를
+  /// 제외하고 랜덤 재선정.
+  void _refreshDiscoverySpotBySigungu() {
     if (_allSpotsWithImages.length <= 1) return;
     final pool = _allSpotsWithImages.where((spot) {
       if (spot.contentId == _chosenSpot?.contentId) return false;
@@ -438,14 +484,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final featured = shuffled
         .take(5)
-        .map(
-          (spot) => _FeaturedSpot(
-            contentId: spot.contentId,
-            title: spot.title,
-            regionName: region.name,
-            imageUrl: spot.firstImage!,
-          ),
-        )
+        .map((spot) => _FeaturedSpot(spot: spot, regionName: region.name))
         .toList();
 
     if (!mounted) return;
@@ -522,19 +561,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
               final spot = slide.spot!;
               return Semantics(
-                label: '${spot.title}, ${spot.regionName} 홈페이지 열기',
-                link: true,
+                label: '${spot.title}, ${spot.regionName} 상세보기',
+                button: true,
                 excludeSemantics: true,
                 child: GestureDetector(
-                  onTap: () => _onFeaturedSpotTap(spot.contentId),
+                  onTap: () => _onFeaturedSpotTap(spot.spot),
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.network(
-                        spot.imageUrl,
+                      CachedNetworkImage(
+                        imageUrl: spot.imageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) =>
-                            _buildImageErrorPlaceholder(),
+                        fadeInDuration: Duration.zero,
+                        fadeOutDuration: Duration.zero,
+                        memCacheWidth: cacheDimension(1.sw, _devicePixelRatio),
+                        memCacheHeight: cacheDimension(
+                          171.h,
+                          _devicePixelRatio,
+                        ),
+                        maxWidthDiskCache: cacheDimension(
+                          1.sw,
+                          _devicePixelRatio,
+                        ),
+                        maxHeightDiskCache: cacheDimension(
+                          171.h,
+                          _devicePixelRatio,
+                        ),
+                        errorWidget: (_, _, _) => _buildImageErrorPlaceholder(),
                       ),
                       const DecoratedBox(
                         decoration: BoxDecoration(
@@ -699,50 +752,82 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 height: 213.h,
                 child: spot == null
                     ? _buildSkeletonBox()
-                    : Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Image.network(
-                            spot.imageUrl,
-                            fit: BoxFit.cover,
-                            alignment: Alignment.bottomCenter,
-                            errorBuilder: (_, _, _) =>
-                                _buildImageErrorPlaceholder(),
-                          ),
-                          const DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Color(0x1A000000),
-                                  Color(0x1A000000),
-                                  Color(0xFF000000),
-                                  Color(0xFF000000),
-                                ],
-                                stops: [0, 0.692, 0.996, 1],
-                              ),
+                    : Semantics(
+                        label: '${spot.name}, ${spot.location} 상세보기',
+                        button: true,
+                        excludeSemantics: true,
+                        child: GestureDetector(
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  SpotDetailScreen(spot: _chosenSpot!),
                             ),
                           ),
-                          Positioned(
-                            left: 12.w,
-                            right: 13.w,
-                            bottom: 12.h,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  spot.name,
-                                  style: TextStyle(
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              CachedNetworkImage(
+                                imageUrl: spot.imageUrl,
+                                fit: BoxFit.cover,
+                                alignment: Alignment.bottomCenter,
+                                fadeInDuration: Duration.zero,
+                                fadeOutDuration: Duration.zero,
+                                // Row의 flex 120:241 비율대로 나뉜 실제 카드 너비.
+                                memCacheWidth: cacheDimension(
+                                  (1.sw - 32.w) * 241 / 361,
+                                  _devicePixelRatio,
+                                ),
+                                memCacheHeight: cacheDimension(
+                                  213.h,
+                                  _devicePixelRatio,
+                                ),
+                                maxWidthDiskCache: cacheDimension(
+                                  (1.sw - 32.w) * 241 / 361,
+                                  _devicePixelRatio,
+                                ),
+                                maxHeightDiskCache: cacheDimension(
+                                  213.h,
+                                  _devicePixelRatio,
+                                ),
+                                errorWidget: (_, _, _) =>
+                                    _buildImageErrorPlaceholder(),
+                              ),
+                              const DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Color(0x1A000000),
+                                      Color(0x1A000000),
+                                      Color(0xFF000000),
+                                      Color(0xFF000000),
+                                    ],
+                                    stops: [0, 0.692, 0.996, 1],
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                              Positioned(
+                                left: 12.w,
+                                right: 13.w,
+                                bottom: 12.h,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      spot.name,
+                                      style: TextStyle(
+                                        fontSize: 16.sp,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
               ),
             ),
@@ -1137,12 +1222,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(15.r),
-                child: Image.network(
-                  spot.firstImage!,
+                child: CachedNetworkImage(
+                  imageUrl: spot.firstImage!,
                   width: imageWidth,
                   height: imageHeight,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => _buildImageErrorPlaceholder(),
+                  fadeInDuration: Duration.zero,
+                  fadeOutDuration: Duration.zero,
+                  memCacheWidth: cacheDimension(imageWidth, _devicePixelRatio),
+                  memCacheHeight: cacheDimension(
+                    imageHeight,
+                    _devicePixelRatio,
+                  ),
+                  maxWidthDiskCache: cacheDimension(
+                    imageWidth,
+                    _devicePixelRatio,
+                  ),
+                  maxHeightDiskCache: cacheDimension(
+                    imageHeight,
+                    _devicePixelRatio,
+                  ),
+                  errorWidget: (_, _, _) => _buildImageErrorPlaceholder(),
                 ),
               ),
               Positioned(top: -8.h, left: -8.w, child: _buildRankBadge(rank)),

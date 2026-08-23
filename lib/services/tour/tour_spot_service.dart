@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:wayable/model/tour/tour_spot.dart';
 import 'package:wayable/utils/app_logger.dart';
 
@@ -80,11 +81,53 @@ class TourSpotService {
     }
   }
 
+  /// 홈 화면 "발견 여행지" 새로고침용 반경 검색. `basic.mapY`(위도) 범위로
+  /// Firestore에서 1차로 걸러 후보군을 가져온 뒤, 그 안에서 실제 좌표 거리
+  /// (위도+경도 모두 사용)로 [radiusKm] 원 안에 드는지 다시 정밀 필터링한다.
+  /// 위도 범위만으로는 같은 위도라도 경도가 먼 지점이 섞여 들어오기 때문에
+  /// 클라이언트 정밀 필터가 필수다. 랜덤 선택은 호출부(home_screen.dart)의
+  /// 책임이라 여기서는 후보 리스트만 반환한다.
+  Future<List<TourSpot>> searchNearby({
+    required double centerLat,
+    required double centerLng,
+    double radiusKm = 100,
+    String? excludeSpotId,
+  }) async {
+    try {
+      // 위도 1도 ≈ 111km.
+      final latDelta = radiusKm / 111.0;
+      final snapshot = await _collection
+          .where('basic.mapY', isGreaterThan: centerLat - latDelta)
+          .where('basic.mapY', isLessThan: centerLat + latDelta)
+          .get();
+
+      final radiusMeters = radiusKm * 1000;
+      return snapshot.docs
+          .map((doc) => TourSpot.fromFirestore(doc.id, doc.data()))
+          .where((spot) {
+            if (spot.contentId == excludeSpotId) return false;
+            if (spot.mapX == null || spot.mapY == null) return false;
+            final distanceMeters = Geolocator.distanceBetween(
+              centerLat,
+              centerLng,
+              spot.mapY!,
+              spot.mapX!,
+            );
+            return distanceMeters <= radiusMeters;
+          })
+          .toList();
+    } catch (e) {
+      AppLogger.error('[TourSpotService] 주변 여행지 반경 조회 실패', error: e);
+      return [];
+    }
+  }
+
   /// bookmarkCount를 확인하고 있다가 실시간으로 변경될 수 있도록 스냅샷 리스너를 쓴다.
-  /// 현재 상위 3개의 북마크만 가지고 표출하고 있다.
+  /// 상위 3개만 표출하므로 서버 쿼리 단계에서 limit(3)으로 잘라 받아온다.
   Stream<List<TourSpot>> watchMostBookmarked() {
     return _collection
         .orderBy('bookmarkCount', descending: true)
+        .limit(3)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
