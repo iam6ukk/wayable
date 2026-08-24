@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -19,6 +20,7 @@ import '../../services/tour/tour_spot_service.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/accessibility_fit_level.dart';
 import '../../utils/app_logger.dart';
+import '../../utils/image_cache_size.dart';
 import '../../widgets/app_dialog.dart';
 import '../../widgets/chevron_icon.dart';
 import '../../widgets/image_placeholder.dart';
@@ -36,6 +38,11 @@ const _kDefaultZoomLevel = 15;
 /// 결과 지도에 한 번에 찍을 마커 상한. 지역 전체를 다 받아온 뒤 거리순으로
 /// 자르므로, 마커가 너무 많아 렌더링/터치가 버벅이지 않게 상한을 둔다.
 const _kMaxMarkers = 20;
+
+/// 정확도순 정렬에서 주소 매칭을 장소명 매칭보다 항상 뒤로 보내기 위한
+/// 오프셋. 장소명 인덱스(현실적으로 수십 자 이내)보다 충분히 크면 되므로
+/// 여유 있게 잡는다.
+const _kAddressRankOffset = 1 << 10;
 
 /// 활성/비활성 핀 크기. 이미지 자체는 실제 검색결과 화면(831:763 등)에서 쓰인
 /// 원본 컴포넌트인 피그마 노드 643:222(Group 147, 활성)/643:221(Group 146, 비활성)를
@@ -499,13 +506,26 @@ class _MapScreenState extends ConsumerState<MapScreen>
   double _distanceOf(TourSpot spot) =>
       LatLng(spot.mapY!, spot.mapX!).distance(_currentPosition);
 
-  /// "정확도순"은 검색어와 제목이 얼마나 가깝게 일치하는지로 줄을 세운다 —
-  /// 제목 안에서 검색어가 더 앞쪽에 나올수록 관련도가 높다고 본다. 검색어가
+  /// "정확도순"은 검색어와 얼마나 가깝게 일치하는지로 줄을 세운다 — 제목
+  /// 안에서 검색어가 더 앞쪽에 나올수록 관련도가 높다고 본다. 검색어가
   /// 없으면 기준으로 삼을 신호가 없어 거리순과 동률로 취급한다.
+  ///
+  /// 장소명으로 찾는 경우("경복궁")는 사용자가 정확히 아는 곳을 찾는
+  /// 강한 신호고, 주소로 찾는 경우("역삼동")는 카카오맵 자체 검색과
+  /// 마찬가지로 상대적으로 탐색적인 신호로 본다. 그래서 장소명이 매칭되면
+  /// 그 인덱스를 그대로 쓰고, 장소명엔 없고 주소에서만 매칭되면 장소명
+  /// 매칭보다 항상 뒤로 가도록 [_kAddressRankOffset]을 더한다.
   int _accuracyRank(TourSpot spot, String keyword) {
     if (keyword.isEmpty) return 0;
-    final index = spot.title.toLowerCase().indexOf(keyword);
-    return index < 0 ? 1 << 20 : index;
+    final titleIndex = spot.title.toLowerCase().indexOf(keyword);
+    if (titleIndex >= 0) return titleIndex;
+
+    final address = '${spot.addr1} ${spot.addr2 ?? ''}'.toLowerCase();
+    final addressIndex = address.indexOf(keyword);
+    if (addressIndex >= 0) return _kAddressRankOffset + addressIndex;
+
+    // 필터(_runSearch)를 이미 통과했다면 이론상 여기 닿지 않는다.
+    return 1 << 20;
   }
 
   /// GPS로 잡은 최초 위치가 아니라, 사용자가 지도를 움직여 지금 실제로 보고
@@ -542,9 +562,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
       _isLoading = true;
     });
 
-    final spots = await _tourSpotService.searchByRegion(regionCode);
-    final keyword = _searchController.text.trim().toLowerCase();
     final category = _selectedCategory;
+    final spots = await _tourSpotService.searchByRegion(
+      regionCode,
+      contentTypeId: category?.contentTypeId,
+    );
+    final keyword = _searchController.text.trim().toLowerCase();
     final minLevel = _minFitLevel;
     final selectedFields = resolveSelectedFields(
       ref.read(authStateProvider).user,
@@ -552,8 +575,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
     final filtered = spots.where((spot) {
       if (spot.mapX == null || spot.mapY == null) return false;
-      if (keyword.isNotEmpty && !spot.title.toLowerCase().contains(keyword)) {
-        return false;
+      if (keyword.isNotEmpty) {
+        final titleMatches = spot.title.toLowerCase().contains(keyword);
+        final addressMatches =
+            spot.addr1.toLowerCase().contains(keyword) ||
+            (spot.addr2?.toLowerCase().contains(keyword) ?? false);
+        if (!titleMatches && !addressMatches) return false;
       }
       if (category != null && spot.contentTypeId != category.contentTypeId) {
         return false;
@@ -787,7 +814,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
   }
 
   Future<void> _handleMyLocationTap() async {
-    final position = await _locationService.getCurrentPosition();
+    final position = await _locationService.getCurrentPosition(
+      forceRefresh: true,
+    );
     if (position == null || !mounted) return;
 
     final latLng = LatLng(position.latitude, position.longitude);
@@ -2092,14 +2121,32 @@ class _SpotListCard extends ConsumerWidget {
                 height: _kResultCardImageHeight.h,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12.r),
-                  child: Image.network(
-                    images.first,
+                  child: CachedNetworkImage(
+                    imageUrl: images.first,
                     fit: BoxFit.cover,
+                    fadeInDuration: Duration.zero,
+                    fadeOutDuration: Duration.zero,
                     // 관광공사 제공 사진 우하단에 로고가 찍혀있는 경우가
                     // 많아서, 크롭이 생기더라도 그 모서리는 항상
                     // 보존되도록 우하단 기준으로 자른다.
                     alignment: Alignment.bottomRight,
-                    errorBuilder: (_, _, _) => const ImagePlaceholder(),
+                    memCacheWidth: cacheDimension(
+                      _kResultCardImageHeight.h * 172 / 113,
+                      MediaQuery.of(context).devicePixelRatio,
+                    ),
+                    memCacheHeight: cacheDimension(
+                      _kResultCardImageHeight.h,
+                      MediaQuery.of(context).devicePixelRatio,
+                    ),
+                    maxWidthDiskCache: cacheDimension(
+                      _kResultCardImageHeight.h * 172 / 113,
+                      MediaQuery.of(context).devicePixelRatio,
+                    ),
+                    maxHeightDiskCache: cacheDimension(
+                      _kResultCardImageHeight.h,
+                      MediaQuery.of(context).devicePixelRatio,
+                    ),
+                    errorWidget: (_, _, _) => const ImagePlaceholder(),
                   ),
                 ),
               ),
