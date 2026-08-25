@@ -60,9 +60,27 @@ class LocationService {
     } catch (e) {
       // GPS가 실내 등에서 새 fix를 못 잡으면 timeLimit 없이는 무한 대기했다
       // (지도 화면이 계속 서울 기본값에 머무는 원인). 타임아웃/실패 시에도
-      // 기기가 예전에 잡아둔 위치가 있으면 그거라도 쓰는 게 기본 위치보다 낫다.
+      // 기기가 예전에 잡아둔 위치가 있으면 그거라도 쓰는 게 기본 위치보다
+      // 낫다 — 다만 getLastKnownPosition() 자체엔 타임아웃이 없어 기기에
+      // 따라 응답이 아예 없을 수 있고(에뮬레이터에서 실제로 1분 넘게 무한
+      // 대기하는 걸 확인함), 반환값도 몇 시간~며칠 전에 잡힌 오래된 위치일
+      // 수 있는데 검증 없이 그대로 믿으면 "GPS 허용했는데 엉뚱한 지역이
+      // 나온다"는 결과로 이어진다. 그래서 이 폴백도 타임아웃을 걸고,
+      // _isFresh로 신선도까지 확인한다.
       AppLogger.warning('[Location] 위치 조회 실패, 마지막 위치로 폴백 ($e)');
-      return await Geolocator.getLastKnownPosition();
+      try {
+        final lastKnown = await Geolocator.getLastKnownPosition().timeout(
+          const Duration(seconds: 3),
+        );
+        if (lastKnown != null && _isFresh(lastKnown)) {
+          return lastKnown;
+        }
+        AppLogger.debug('[Location] 마지막 위치가 없거나 너무 오래됨');
+        return null;
+      } catch (e) {
+        AppLogger.warning('[Location] 마지막 위치 조회도 실패 ($e)');
+        return null;
+      }
     }
   }
 }
