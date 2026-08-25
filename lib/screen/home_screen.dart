@@ -300,21 +300,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return null;
   }
 
-  /// GPS 동의 시: 좌표 → 카카오 역지오코딩으로 얻은 구에 있는 실제 여행지들을 후보로 한다.
-  /// GPS 미동의/실패/해당 구에 매칭되는 여행지 없음: 전체 여행지를 후보로 한다.
+  /// GPS 동의 시: 위치부터 확정한 뒤 그 좌표 반경 100km 안의 여행지만 후보로
+  /// 받아온다(searchNearby) — 후보군 자체가 항상 내 주변으로 좁혀져 있어야,
+  /// 그 안에서 역지오코딩으로 구를 매칭하지 못해도 최소한 "내 주변"이라는
+  /// 보장은 깨지지 않는다. 예전엔 위치와 무관한 임의의 200건을 먼저 받아온
+  /// 뒤 그중 내 구와 겹치는 게 있으면 쓰는 방식이라, 겹치는 게 하나도 없으면
+  /// 조용히 그 200건 전체(내 위치와 무관한 전국 표본) 중 랜덤으로 새는
+  /// 버그가 있었다.
+  /// GPS 미동의/실패: 전체 여행지를 후보로 한다.
   Future<void> _loadDiscoverySpot() async {
-    final spotsFuture = _tourSpotService.fetchDiscoveryCandidates();
     final areaCodesFuture = _loadAreaCodeLookups();
     final positionFuture = _locationService.getCurrentPosition();
-    final rawSpots = await spotsFuture;
-    final spots = rawSpots
-        .where((spot) => (spot.firstImage ?? '').isNotEmpty)
-        .toList();
-    if (spots.isEmpty) return;
+    // 새로고침(_refreshDiscoverySpotBySigungu)이 GPS 실패 시 쓸 전국 폴백
+    // 풀은 위치 확정 여부와 무관하게 항상 필요해서 미리 같이 받아둔다.
+    final fallbackFuture = _tourSpotService.fetchDiscoveryCandidates();
 
     await areaCodesFuture;
     final position = await positionFuture;
     _position = position;
+
+    final rawSpots = position != null
+        ? await _tourSpotService.searchNearby(
+            centerLat: position.latitude,
+            centerLng: position.longitude,
+          )
+        : await fallbackFuture;
+    final spots = rawSpots
+        .where((spot) => (spot.firstImage ?? '').isNotEmpty)
+        .toList();
+    final fallbackSpots = (await fallbackFuture)
+        .where((spot) => (spot.firstImage ?? '').isNotEmpty)
+        .toList();
+
+    if (!mounted) return;
+    if (spots.isEmpty) {
+      setState(() => _allSpotsWithImages = fallbackSpots);
+      return;
+    }
 
     var candidates = spots;
     SigunguCode? sigungu;
@@ -338,6 +360,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     resolved,
               )
               .toList();
+          // 반경 검색 결과 안에 정확히 내 구와 일치하는 여행지가 없어도
+          // (예: 구 경계 근처) candidates는 이미 반경 100km 안이므로 그대로
+          // "내 주변" 후보로 쓴다 — 구 라벨만 못 붙일 뿐 전국 랜덤으로
+          // 새지 않는다.
           if (matched.isNotEmpty) {
             candidates = matched;
             sigungu = resolved;
@@ -348,7 +374,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     if (!mounted) return;
     setState(() {
-      _allSpotsWithImages = spots;
+      _allSpotsWithImages = fallbackSpots;
       _sigungu = sigungu;
       _applySpot(candidates[Random().nextInt(candidates.length)]);
     });
