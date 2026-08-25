@@ -13,6 +13,14 @@ const _kDefaultFolderId = 'default';
 const _kActionMenuWidth = 111.0;
 const _kActionMenuItemHeight = 110.0 / 3;
 
+/// 점3개 버튼 터치 영역이 실제 아이콘(24) 좌우로 넓어지는 폭. 오른쪽은 이
+/// 값만큼 페이지 여백 안쪽까지, 왼쪽은 이 값만큼 텍스트 쪽 공간을 침범한다.
+const _kMoreButtonTouchMargin = 25.0;
+
+/// 위 터치 영역이 화면/리스트 오른쪽 끝에 완전히 딱 붙지 않도록 살짝
+/// 띄우는 폭.
+const _kMoreButtonEdgeGap = 4.0;
+
 /// 폴더 목록 일괄 정렬 기준
 /// 정렬을 고르면 순서 편집(드래그)과 동일하게 order 필드를 다시 매겨서 저장한다
 /// 여행지 저장 목록 탭 순서에도 그대로 반영된다.
@@ -337,56 +345,87 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
     final isDefault = folder.id == _kDefaultFolderId;
     return SizedBox(
       height: 61.h,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 32.w),
-        child: Row(
-          children: [
-            ExcludeSemantics(
-              child: Icon(
-                Icons.folder_outlined,
-                size: 20.r,
-                color: AppColors.textPrimary,
-              ),
+      // 점3개 버튼의 터치 영역을 리스트 좌우 여백(32) 안쪽으로도 넓히려면
+      // 그 버튼만 이 여백 밖으로 뺄 수 있어야 해서, 기존처럼 Row 전체를
+      // symmetric padding으로 감싸지 않고 좌우 여백을 각 끝에서 개별적으로
+      // 넣는다.
+      child: Row(
+        children: [
+          SizedBox(width: 32.w),
+          ExcludeSemantics(
+            child: Icon(
+              Icons.folder_outlined,
+              size: 20.r,
+              color: AppColors.textPrimary,
             ),
-            SizedBox(width: 17.w),
-            Expanded(
-              child: Text(
-                folder.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 15.sp,
-                  color: AppColors.textSecondary,
+          ),
+          SizedBox(width: 17.w),
+          Expanded(
+            child: Text(
+              folder.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 15.sp, color: AppColors.textSecondary),
+            ),
+          ),
+          if (!isDefault)
+            SimplePopupMenu<String>(
+              tooltip: '${folder.name} 폴더 관리',
+              // 정렬 기준 메뉴와 크기를 맞춘다(피그마상 두 메뉴 모두
+              // 111×110, 3항목 동일 디자인).
+              width: _kActionMenuWidth.w,
+              itemHeight: _kActionMenuItemHeight.h,
+              // PopupMenuButton은 버튼이 화면 오른쪽에 가까우면 메뉴 오른쪽
+              // 끝을 버튼 오른쪽 끝에 자동으로 맞춰서 왼쪽으로 펼쳐준다. 단,
+              // 그 "버튼 오른쪽 끝" 기준은 child(터치 영역) 박스의 오른쪽
+              // 끝이지 실제로 보이는 아이콘의 오른쪽 끝이 아니다. 지금은
+              // 터치 영역이 아이콘보다 오른쪽으로 _kMoreButtonTouchMargin만큼
+              // 더 넓으므로(아래 child 참고) 그 차이만큼 offset.dx를 왼쪽으로
+              // 당겨서 기준점을 실제 아이콘 오른쪽 끝으로 되돌린다.
+              offset: Offset(
+                -_kMoreButtonTouchMargin.w,
+                (61.h + 24.r) / 2,
+              ),
+              options: const [
+                SimplePopupMenuOption('rename', '이름 변경'),
+                SimplePopupMenuOption('reorder', '순서 편집'),
+                SimplePopupMenuOption('delete', '폴더 삭제'),
+              ],
+              onSelected: (action) =>
+                  _handleMenuSelected(context, folder, action),
+              // PopupMenuButton의 탭 영역은 child의 렌더 크기 그대로라,
+              // 아이콘 자체가 24라 실기기에서 터치가 잘 안 먹힌다는 제보가
+              // 있었다. 오른쪽은 원래 페이지 여백(32) 중 _kMoreButtonTouchMargin
+              // 만큼만 침범해서 아이콘을 그 안쪽에 Align으로 고정하고(그래야
+              // SizedBox의 tight 제약이 아이콘을 억지로 늘리지 않는다), 왼쪽도
+              // 텍스트 쪽으로 같은 폭만큼 넓힌다.
+              child: SizedBox(
+                height: 61.h,
+                width: 24.w + _kMoreButtonTouchMargin.w * 2,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: SizedBox(
+                    width: 24.w + _kMoreButtonTouchMargin.w,
+                    child: Padding(
+                      padding: EdgeInsets.only(right: _kMoreButtonTouchMargin.w),
+                      child: Icon(
+                        Icons.more_vert,
+                        size: 24.r,
+                        color: AppColors.bottomNavActive,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
-            if (!isDefault)
-              SimplePopupMenu<String>(
-                tooltip: '${folder.name} 폴더 관리',
-                // 정렬 기준 메뉴와 크기를 맞춘다(피그마상 두 메뉴 모두
-                // 111×110, 3항목 동일 디자인).
-                width: _kActionMenuWidth.w,
-                itemHeight: _kActionMenuItemHeight.h,
-                // offset의 기본값(Offset.zero)은 메뉴가 버튼(점3개 아이콘)과
-                // 같은 위치에서부터 겹쳐 자라나서, 메뉴가 버튼 자체를
-                // 덮어버린다. 버튼 높이(24)만큼 아래로 내려서 버튼 바로
-                // 아래에서 메뉴가 시작하도록 한다.
-                offset: Offset(0, 24.r),
-                options: const [
-                  SimplePopupMenuOption('rename', '이름 변경'),
-                  SimplePopupMenuOption('reorder', '순서 편집'),
-                  SimplePopupMenuOption('delete', '폴더 삭제'),
-                ],
-                onSelected: (action) =>
-                    _handleMenuSelected(context, folder, action),
-                child: Icon(
-                  Icons.more_vert,
-                  size: 24.r,
-                  color: AppColors.bottomNavActive,
-                ),
-              ),
-          ],
-        ),
+          if (!isDefault)
+            // 터치 영역(오른쪽 끝)이 화면 끝에 딱 붙어서 오른쪽 여백만
+            // 유독 커 보인다는 피드백이 있었다. 실제로 화면 끝과 살짝
+            // 떨어지도록 뒤에 여백을 추가한다.
+            SizedBox(width: _kMoreButtonEdgeGap.w)
+          else
+            SizedBox(width: 32.w),
+        ],
       ),
     );
   }
@@ -456,14 +495,26 @@ class _FolderEditScreenState extends State<FolderEditScreen> {
               style: TextStyle(fontSize: 15.sp, color: AppColors.textSecondary),
             ),
           ),
+          // 드래그 시작 판정 영역을 아이콘 크기(24)가 아니라 리스트 행
+          // 높이(61)만큼 키우고 너비도 살짝 넓힌다. 아이콘이 원래 있던
+          // 위치(끝에서 딱 붙은 자리)는 그대로 유지해야 하므로 커진 영역
+          // 안에서 오른쪽 끝으로 정렬한다(늘어난 여유 공간은 왼쪽으로만
+          // 붙는다) — 점3개 버튼 터치 영역을 넓힐 때와 같은 방식.
           ReorderableDragStartListener(
             index: index,
-            child: Semantics(
-              label: '${folder.name} 순서 이동 핸들',
-              child: Icon(
-                Icons.dehaze,
-                size: 24.r,
-                color: AppColors.bottomNavActive,
+            child: SizedBox(
+              height: 61.h,
+              width: 40.w,
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Semantics(
+                  label: '${folder.name} 순서 이동 핸들',
+                  child: Icon(
+                    Icons.dehaze,
+                    size: 24.r,
+                    color: AppColors.bottomNavActive,
+                  ),
+                ),
               ),
             ),
           ),

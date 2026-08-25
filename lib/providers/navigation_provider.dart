@@ -24,3 +24,14 @@ final pendingAccessibilityRequestProvider =
 /// 보고 하단 탭 바를 숨긴다(피그마 지도기반 검색 결과 화면에는 하단 탭 바가
 /// 없음 — 바텀시트가 화면 하단까지 차지하는 전체화면에 가까운 레이아웃).
 final mapResultsActiveProvider = StateProvider<bool>((ref) => false);
+
+/// 지금 활성 탭 화면이 자신의 로컬 UI 상태(펼쳐진 필터, 편집 모드 등) 때문에
+/// 시스템 뒤로가기를 직접 소비하고 있는 동안 true. MainShell도 같은 라우트에
+/// PopScope를 두고 있어서, 이 값을 확인하지 않으면 화면의 로컬 뒤로가기
+/// 처리(예: 폴더 편집 모드 빠져나가기)와 MainShell의 탭 이력 되돌리기가 같은
+/// 뒤로가기 한 번에 동시에 일어나 버린다(로컬 처리는 안 보이고 탭만
+/// 전환된 것처럼 보이는 버그). 활성 탭 화면은 자신의 로컬 PopScope의
+/// canPop과 정확히 같은 조건으로 이 값을 갱신하고, 비활성화되면 반드시
+/// false로 되돌려야 한다(안 그러면 백그라운드 탭의 오래된 값이 남아 있는
+/// 다른 탭의 정상적인 뒤로가기까지 막아버린다).
+final localBackInterceptActiveProvider = StateProvider<bool>((ref) => false);
