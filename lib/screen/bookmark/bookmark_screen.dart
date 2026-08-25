@@ -8,6 +8,7 @@ import '../../model/accessibility/accessibility_profile.dart';
 import '../../model/bookmark/bookmark_folder.dart';
 import '../../model/tour/tour_spot.dart';
 import '../../providers/bookmark_provider.dart';
+import '../../providers/navigation_provider.dart';
 import '../../services/location/location_service.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/image_cache_size.dart';
@@ -19,7 +20,13 @@ import '../search/spot_detail_screen.dart';
 import 'folder_edit_screen.dart';
 
 class SavedListScreen extends ConsumerStatefulWidget {
-  const SavedListScreen({super.key});
+  const SavedListScreen({super.key, required this.isActive});
+
+  /// 지금 하단 탭에서 실제로 보이고 있는 탭인지. MainShell이 탭을 떠나도
+  /// 이 화면을 지우지 않고 숨겨만 두므로, 대신 이 값이 false로 바뀌는
+  /// 시점을 감지해 편집 모드를 빠져나가고 로컬 뒤로가기 소비 상태도 꺼둔다
+  /// (지도 탭과 동일한 패턴).
+  final bool isActive;
 
   @override
   ConsumerState<SavedListScreen> createState() => _SavedListScreenState();
@@ -104,7 +111,24 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
   void _scrollToBottom() => _scrollActiveTab((c) => c.position.maxScrollExtent);
 
   @override
+  void didUpdateWidget(covariant SavedListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 다른 탭으로 넘어가는 순간(=이 화면이 비활성화되는 순간) 편집 모드에
+    // 남아있지 않게 정리한다 — 안 그러면 편집 모드로 남은 채로 로컬
+    // 뒤로가기 소비 상태가 다른 탭에서도 계속 true로 남아 그 탭의 정상적인
+    // 뒤로가기까지 막아버린다.
+    if (oldWidget.isActive && !widget.isActive) {
+      setState(() {
+        _showFolderEdit = false;
+        _isFolderReorderMode = false;
+      });
+      ref.read(localBackInterceptActiveProvider.notifier).state = false;
+    }
+  }
+
+  @override
   void dispose() {
+    ref.read(localBackInterceptActiveProvider.notifier).state = false;
     _tabController.dispose();
     super.dispose();
   }
@@ -132,6 +156,17 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
       _rebuildTabController(folders.length);
     }
 
+    // MainShell도 이 화면과 같은 라우트에 PopScope를 두고 있어서, 이 값을
+    // 알려주지 않으면 아래 폴더 편집 모드의 로컬 뒤로가기 처리와 MainShell의
+    // 탭 이력 되돌리기가 뒤로가기 한 번에 동시에 일어나 버린다(편집 모드
+    // 탈출은 안 보이고 탭만 전환된 것처럼 보이는 버그).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final wantsLocalBack = widget.isActive && _showFolderEdit;
+      final notifier = ref.read(localBackInterceptActiveProvider.notifier);
+      if (notifier.state != wantsLocalBack) notifier.state = wantsLocalBack;
+    });
+
     if (_showFolderEdit) {
       // 이 화면은 별도 라우트 없이 SavedListScreen 콘텐츠만 갈아끼운 것이라,
       // 그대로 두면 시스템 뒤로가기가 화면(=앱)까지 pop해버린다(map_screen.dart
@@ -154,9 +189,8 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
           onReorderModeChanged: (value) =>
               setState(() => _isFolderReorderMode = value),
           onBack: () => setState(() => _showFolderEdit = false),
-          onRenameFolder: (folder, newName) => ref
-              .read(bookmarkProvider.notifier)
-              .renameFolder(folder, newName),
+          onRenameFolder: (folder, newName) =>
+              ref.read(bookmarkProvider.notifier).renameFolder(folder, newName),
           onDeleteFolder: (folder) =>
               ref.read(bookmarkProvider.notifier).deleteFolder(folder),
           onAddFolder: (name) =>

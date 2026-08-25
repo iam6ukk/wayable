@@ -95,7 +95,11 @@ class _MainShellState extends ConsumerState<MainShell> {
       BottomNavTab.map => MapScreen(isActive: tab == _currentTab),
       BottomNavTab.home => const HomeScreen(),
       BottomNavTab.myPage => const MyPageScreen(),
-      BottomNavTab.bookmark => const SavedListScreen(),
+      // 저장목록 화면은 폴더 편집/순서편집 모드일 때 뒤로가기를 자체적으로
+      // 소비하므로(로컬 편집 모드만 빠져나감), 지금 활성 탭인지를 넘겨줘
+      // 비활성화되는 순간 그 소비 여부를 나타내는 상태를 반드시 꺼두게
+      // 한다(안 그러면 다른 탭에서 뒤로가기가 막힐 수 있다).
+      BottomNavTab.bookmark => SavedListScreen(isActive: tab == _currentTab),
     };
   }
 
@@ -130,6 +134,12 @@ class _MainShellState extends ConsumerState<MainShell> {
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         if (_currentTab != BottomNavTab.home) {
+          // 활성 탭 화면(지도 필터/검색, 저장목록 편집 모드 등)이 이번
+          // 뒤로가기를 자기 화면 안에서 이미 처리하고 있다면(자신의
+          // PopScope가 같은 라우트에 있어 이 콜백과 함께 호출됨) 탭
+          // 전환까지 같이 해버리면 안 된다 — 로컬 처리는 안 보이고 탭만
+          // 바뀐 것처럼 보이는 버그가 생긴다.
+          if (ref.read(localBackInterceptActiveProvider)) return;
           _goToPreviousTab();
           return;
         }

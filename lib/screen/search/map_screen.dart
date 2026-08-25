@@ -385,6 +385,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
     routeObserver.unsubscribe(this);
     // 이 화면을 벗어날 때 하단 탭 바 숨김 상태가 다른 탭에 남지 않게 되돌린다.
     ref.read(mapResultsActiveProvider.notifier).state = false;
+    // 마찬가지로 로컬 뒤로가기 소비 상태도 다른 탭에 남아있으면 그 탭의
+    // 정상적인 뒤로가기까지 막아버리니 반드시 꺼둔다.
+    ref.read(localBackInterceptActiveProvider.notifier).state = false;
     _searchController.dispose();
     // DraggableScrollableSheet가 자기가 만든 scrollController는 알아서
     // dispose하므로 여기서는 리스너만 떼어낸다.
@@ -877,6 +880,19 @@ class _MapScreenState extends ConsumerState<MapScreen>
       if (!mounted) return;
       final notifier = ref.read(mapResultsActiveProvider.notifier);
       if (notifier.state != _hasSearched) notifier.state = _hasSearched;
+
+      // MainShell도 이 화면과 같은 라우트에 PopScope를 두고 있어서, 이 값을
+      // 알려주지 않으면 아래 이 화면의 로컬 뒤로가기 처리(필터 접기/검색
+      // 상태 초기화)와 MainShell의 탭 이력 되돌리기가 뒤로가기 한 번에
+      // 동시에 일어나 버린다. 아래 PopScope의 canPop과 정확히 같은 조건.
+      final wantsLocalBack =
+          widget.isActive && (_expandedFilter != null || _hasSearched);
+      final localBackNotifier = ref.read(
+        localBackInterceptActiveProvider.notifier,
+      );
+      if (localBackNotifier.state != wantsLocalBack) {
+        localBackNotifier.state = wantsLocalBack;
+      }
     });
 
     return PopScope(
