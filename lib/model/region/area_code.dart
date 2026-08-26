@@ -21,6 +21,16 @@ class SigunguCode {
 
   bool matches(String? spotSigunguCode) =>
       spotSigunguCode != null && memberCodes.contains(spotSigunguCode);
+
+  // 관심 지역 선택(최대 3개)을 Set<SigunguCode>로 다루는 화면들이 code 값만
+  // 같으면 같은 시/군구로 취급해야 한다 — 기본 식별 동등성(==)만으로는
+  // AreaCodeRepository의 캐시된 객체가 아닌 다른 인스턴스가 섞였을 때
+  // Set.contains/remove가 어긋난다.
+  @override
+  bool operator ==(Object other) => other is SigunguCode && other.code == code;
+
+  @override
+  int get hashCode => code.hashCode;
 }
 
 /// TourAPI ldongCode2(법정동 코드 조회) 결과를 담는 시/도 코드.

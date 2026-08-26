@@ -1490,7 +1490,7 @@ class _ResultSheet extends StatelessWidget {
                 height: constraints.maxHeight,
                 child: Center(
                   child: Text(
-                    '주변에 조건에 맞는 여행지가 없습니다.',
+                    '조건에 맞는 여행지가 주변에 없습니다.',
                     style: TextStyle(
                       fontSize: 14.sp,
                       color: AppColors.textQuaternary,

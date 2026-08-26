@@ -1,99 +1,73 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../model/accessibility/accessibility_field.dart';
-import '../../model/accessibility/accessibility_field_mapping.dart';
-import '../../model/accessibility/accessibility_profile.dart';
+import '../../model/region/area_code.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/user_service.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/app_logger.dart';
 import '../../widgets/app_dialog.dart';
-import 'accessibility_region_screen.dart';
+import '../../widgets/toast.dart';
 
-const _kProfileOrder = [
-  AccessibilityProfile.physicalAssist,
-  AccessibilityProfile.visionAssist,
-  AccessibilityProfile.hearingAssist,
-  AccessibilityProfile.infantFamily,
-  AccessibilityProfile.seniorCompanion,
-];
-
-const _kCurrentStep = 2;
+const _kCurrentStep = 4;
 const _kTotalSteps = 4;
 
-class AccessibilityDetailScreen extends ConsumerStatefulWidget {
-  const AccessibilityDetailScreen({
+/// 관심 지역의 세부 지역(시/군/구)을 최소 1개, 최대 3개까지 고를 수 있다.
+const _kMaxSigungu = 3;
+
+/// 접근성 프로필 설정 4단계(마지막): 세부 지역 선택 + 최종 저장.
+///
+/// 1~3단계에서 모은 편의정보/관심 지역(시/도)을 여기서 한 번에 Firestore에
+/// 저장한다 — accessibility_detail_screen.dart의 기존 저장 로직을 그대로
+/// 가져오되, 관심 지역 필드를 같이 얹는다.
+class AccessibilitySubregionScreen extends ConsumerStatefulWidget {
+  const AccessibilitySubregionScreen({
     super.key,
-    required this.selectedProfiles,
+    required this.accessibilityFieldsByProfile,
+    required this.sido,
     required this.onComplete,
   });
 
-  final Set<AccessibilityProfile> selectedProfiles;
+  final Map<String, List<String>> accessibilityFieldsByProfile;
+  final AreaCode sido;
 
   /// 설정을 마치거나(저장) 건너뛰었을 때 호출된다.
-  /// 접근성 프로필 화면 진입 경로에 따라 리턴 페이지 결정
   final VoidCallback onComplete;
 
   @override
-  ConsumerState<AccessibilityDetailScreen> createState() =>
-      _AccessibilityDetailScreenState();
+  ConsumerState<AccessibilitySubregionScreen> createState() =>
+      _AccessibilitySubregionScreenState();
 }
 
-class _AccessibilityDetailScreenState
-    extends ConsumerState<AccessibilityDetailScreen> {
-  // 대분류별로 독립된 필드 선택 상태를 가짐
-  // 같은 무장애 편의정보를 공유하는 대분류(예: seniorCompanion과 physicalAssist)가 있어도
-  // 한쪽에서 고른다고 다른 쪽 칩까지 같이 활성화되면 안 되기 때문
-  final Map<AccessibilityProfile, Set<AccessibilityField>> _selectedFields = {};
-  final Set<AccessibilityProfile> _selectAllProfiles = {};
+class _AccessibilitySubregionScreenState
+    extends ConsumerState<AccessibilitySubregionScreen> {
+  final _userService = UserService();
+  final Set<SigunguCode> _selected = {};
 
   @override
   void initState() {
     super.initState();
-    // 이전 단계에서 유지된 대분류는 기존에 저장했던 편의정보를 그대로 복원하고,
-    // 이번에 새로 추가한 대분류는 저장된 값이 없으니 자연히 빈 상태로 시작된다
-    // (온보딩 경로는 저장된 값 자체가 없어 전부 빈 상태).
-    final saved =
-        ref.read(authStateProvider).user?.accessibilityFieldsByProfile ??
-        const {};
-    for (final profile in widget.selectedProfiles) {
-      final fieldNames = saved[profile.name];
-      if (fieldNames == null) continue;
-      if (fieldNames.isEmpty) {
-        _selectAllProfiles.add(profile);
-      } else {
-        _selectedFields[profile] = fieldNames
-            .map((name) => AccessibilityField.values.asNameMap()[name])
-            .whereType<AccessibilityField>()
-            .toSet();
-      }
-    }
+    // 마이페이지 "프로필 수정하기"로 들어왔고 지금 고른 시/도가 기존에
+    // 저장했던 시/도와 같다면, 그 안에서 저장했던 세부 지역도 미리 선택해둔다.
+    final user = ref.read(authStateProvider).user;
+    if (user?.interestSidoCode != widget.sido.code) return;
+    final savedCodes = user?.interestSigunguCodes ?? const [];
+    _selected.addAll(
+      widget.sido.sigungu.where((sg) => savedCodes.contains(sg.code)),
+    );
   }
 
-  void _toggleSelection(
-    AccessibilityProfile profile,
-    AccessibilityField field,
-  ) {
+  void _toggleSelection(SigunguCode sigungu) {
     setState(() {
-      final fields = _selectedFields.putIfAbsent(profile, () => {});
-      if (fields.contains(field)) {
-        fields.remove(field);
-      } else {
-        fields.add(field);
+      if (_selected.contains(sigungu)) {
+        _selected.remove(sigungu);
+        return;
       }
-      // 개별 필드를 직접 고르면 그 대분류의 '전체' 선택 해제
-      _selectAllProfiles.remove(profile);
-    });
-  }
-
-  void _toggleSelectAll(AccessibilityProfile profile) {
-    setState(() {
-      if (_selectAllProfiles.contains(profile)) {
-        _selectAllProfiles.remove(profile);
-      } else {
-        _selectAllProfiles.add(profile);
-        // '전체'를 고르면 그 대분류 안에서 개별로 골라둔 필드 해제
-        _selectedFields[profile]?.clear();
+      if (_selected.length >= _kMaxSigungu) {
+        showAndroidToast(context, '최대 $_kMaxSigungu개까지 선택할 수 있어요.');
+        return;
       }
+      _selected.add(sigungu);
     });
   }
 
@@ -110,60 +84,47 @@ class _AccessibilityDetailScreenState
     widget.onComplete();
   }
 
-  bool _hasSelectionFor(AccessibilityProfile profile) {
-    if (_selectAllProfiles.contains(profile)) return true;
-    return _selectedFields[profile]?.isNotEmpty ?? false;
-  }
+  Future<void> _handleSave() async {
+    if (_selected.isEmpty) {
+      showAndroidToast(context, '지역을 최소 1개 이상 선택해 주세요.');
+      return;
+    }
 
-  /// profile별로 개별 선택된 필드를 그대로 저장한다 (빈 리스트 = "전체").
-  /// 지체장애/고령자동반처럼 필드가 겹치는 profile이 있어서, 여기서 flat하게
-  /// 합쳐버리면 나중에 어느 profile의 선택이었는지 복원할 수 없어진다.
-  Map<String, List<String>> _resolveFieldsByProfile(
-    List<AccessibilityProfile> profiles,
-  ) {
-    return {
-      for (final profile in profiles)
-        profile.name: (_selectedFields[profile] ?? const {})
-            .map((f) => f.name)
-            .toList(),
-    };
-  }
+    final currentUser = ref.read(authStateProvider).user;
+    if (currentUser == null) {
+      AppLogger.error('[AccessibilitySubregionScreen] 로그인된 유저 정보가 없어 저장을 건너뜀');
+      if (!mounted) return;
+      widget.onComplete();
+      return;
+    }
 
-  /// 실제 저장은 3·4단계(관심 지역 선택)를 마친 뒤 4단계에서 한 번에 이뤄진다
-  /// (편의정보+지역을 같은 Firestore 문서 갱신으로 묶기 위함). 여기서는 이번
-  /// 단계에서 고른 편의정보를 profile별 Map으로 정리해 다음 단계로 넘긴다.
-  Future<void> _handleNext(List<AccessibilityProfile> profiles) async {
-    final hasUnselectedProfile = profiles.any(
-      (profile) => !_hasSelectionFor(profile),
+    final updatedUser = currentUser.copyWith(
+      accessibilityFieldsByProfile: widget.accessibilityFieldsByProfile,
+      interestSidoCode: widget.sido.code,
+      interestSigunguCodes: _selected.map((sg) => sg.code).toList(),
     );
 
-    if (hasUnselectedProfile) {
-      final confirmed = await showTwoButtonDialog(
-        context,
-        content: '편의 정보를 선택하지 않은 경우,\n전체 항목을 기준으로 정보가 제공됩니다.',
-        primaryLabel: '확인',
-        secondaryLabel: '취소',
-      );
-      if (confirmed != true) return;
+    try {
+      await _userService.updateUser(updatedUser);
+      ref.read(authStateProvider.notifier).setUser(updatedUser);
+    } catch (e) {
+      if (!mounted) return;
+      await showInfoDialog(context, content: '저장에 실패했습니다.\n다시 시도해 주세요.');
+      return;
     }
 
     if (!mounted) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => AccessibilityRegionScreen(
-          accessibilityFieldsByProfile: _resolveFieldsByProfile(profiles),
-          onComplete: widget.onComplete,
-        ),
-      ),
+    await showInfoDialog(
+      context,
+      content: '접근성 프로필이 저장됐습니다.\n마이페이지에서 수정할 수 있습니다.',
     );
+
+    if (!mounted) return;
+    widget.onComplete();
   }
 
   @override
   Widget build(BuildContext context) {
-    final orderedProfiles = _kProfileOrder
-        .where((profile) => widget.selectedProfiles.contains(profile))
-        .toList();
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -189,7 +150,7 @@ class _AccessibilityDetailScreenState
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           // arrow_back_ios_new 글리프는 아이콘 박스 안에서 살짝 오른쪽으로
-                          // 치우쳐 그려져 있어, 아래 진행 숫자(1/4)와 좌측 라인을
+                          // 치우쳐 그려져 있어, 아래 진행 숫자(n/4)와 좌측 라인을
                           // 맞추려면 그만큼 왼쪽으로 당겨줘야 한다.
                           Transform.translate(
                             offset: Offset(-4.w, 0),
@@ -253,7 +214,7 @@ class _AccessibilityDetailScreenState
                 child: LinearProgressIndicator(
                   value: _kCurrentStep / _kTotalSteps,
                   minHeight: 4.h,
-                  backgroundColor: const Color(0xFFE3E3E3),
+                  backgroundColor: AppColors.toggleUnselectedBackground,
                   valueColor: AlwaysStoppedAnimation(AppColors.primary),
                 ),
               ),
@@ -262,7 +223,7 @@ class _AccessibilityDetailScreenState
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24.w),
               child: Text(
-                '필요하신 편의 정보를 선택해 주세요.',
+                '${widget.sido.name}의 세부 지역을 선택해 주세요.',
                 style: TextStyle(
                   fontSize: 19.sp,
                   fontWeight: FontWeight.w500,
@@ -274,7 +235,7 @@ class _AccessibilityDetailScreenState
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24.w),
               child: Text(
-                '선택해 주신 항목 기준으로 정보를 안내해 드려요.',
+                '최대 $_kMaxSigungu개까지 선택할 수 있어요.',
                 style: TextStyle(
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w300,
@@ -284,13 +245,14 @@ class _AccessibilityDetailScreenState
             ),
             SizedBox(height: 24.h),
             Expanded(
-              child: Padding(
+              child: SingleChildScrollView(
                 padding: EdgeInsets.symmetric(horizontal: 24.w),
-                child: ListView.separated(
-                  itemCount: orderedProfiles.length,
-                  separatorBuilder: (_, _) => SizedBox(height: 22.h),
-                  itemBuilder: (context, index) =>
-                      _buildSection(orderedProfiles[index]),
+                child: Wrap(
+                  spacing: 10.w,
+                  runSpacing: 10.h,
+                  children: widget.sido.sigungu
+                      .map((sigungu) => _buildChip(sigungu))
+                      .toList(),
                 ),
               ),
             ),
@@ -301,7 +263,7 @@ class _AccessibilityDetailScreenState
                 width: double.infinity,
                 height: 48.55.h,
                 child: ElevatedButton(
-                  onPressed: () => _handleNext(orderedProfiles),
+                  onPressed: _handleSave,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -311,7 +273,7 @@ class _AccessibilityDetailScreenState
                     ),
                   ),
                   child: Text(
-                    '다음으로',
+                    '저장하기',
                     style: TextStyle(
                       fontSize: 13.sp,
                       fontWeight: FontWeight.w600,
@@ -327,71 +289,15 @@ class _AccessibilityDetailScreenState
     );
   }
 
-  Widget _buildSection(AccessibilityProfile profile) {
-    final fields = AccessibilityFieldMapping.mapping[profile] ?? const [];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            ExcludeSemantics(
-              child: Icon(profile.icon, size: 24.r, color: AppColors.primary),
-            ),
-            SizedBox(width: 6.w),
-            Text(
-              profile.label,
-              style: TextStyle(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 12.h),
-        Wrap(
-          spacing: 10.w,
-          runSpacing: 10.h,
-          children: [
-            _buildAllChip(profile),
-            ...fields.map((field) => _buildChip(profile, field)),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAllChip(AccessibilityProfile profile) {
-    final isSelected = _selectAllProfiles.contains(profile);
-    return _chip(
-      label: '전체',
-      isSelected: isSelected,
-      onTap: () => _toggleSelectAll(profile),
-    );
-  }
-
-  Widget _buildChip(AccessibilityProfile profile, AccessibilityField field) {
-    final isSelected = _selectedFields[profile]?.contains(field) ?? false;
-    return _chip(
-      label: field.label,
-      isSelected: isSelected,
-      onTap: () => _toggleSelection(profile, field),
-    );
-  }
-
-  Widget _chip({
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildChip(SigunguCode sigungu) {
+    final isSelected = _selected.contains(sigungu);
     return Semantics(
-      label: label,
+      label: sigungu.name,
       button: true,
       selected: isSelected,
       excludeSemantics: true,
       child: GestureDetector(
-        onTap: onTap,
+        onTap: () => _toggleSelection(sigungu),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
@@ -400,7 +306,7 @@ class _AccessibilityDetailScreenState
             borderRadius: BorderRadius.circular(22.r),
           ),
           child: Text(
-            label,
+            sigungu.name,
             style: TextStyle(
               fontSize: 12.sp,
               fontWeight: isSelected ? FontWeight.w500 : FontWeight.w300,

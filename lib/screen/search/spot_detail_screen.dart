@@ -28,7 +28,7 @@ import '../bookmark/save_to_folder_sheet.dart';
 
 /// 여행지 상세 화면. 탐색 결과 카드를 눌렀을 때 진입하며, contentId를 기준으로
 /// 공통정보(detailCommon2)/소개정보(detailIntro2)/무장애정보(detailWithTour2)를
-/// 조회해 시설정보와 편의정보(장애유형별 탭)를 보여준다.
+/// 조회해 시설 정보와 편의 정보(장애유형별 탭)를 보여준다.
 class SpotDetailScreen extends ConsumerStatefulWidget {
   const SpotDetailScreen({super.key, required this.spot});
 
@@ -418,7 +418,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
     return ImagePlaceholder(iconSize: 32.r);
   }
 
-  /// contentTypeId에 맞는 시설정보 필드 목록(tour_facility_field_config.dart)을
+  /// contentTypeId에 맞는 시설 정보 필드 목록(tour_facility_field_config.dart)을
   /// 가져와 라벨/값 테이블로 보여준다. homepage는 항상 공통정보(detailCommon2)에서,
   /// 나머지는 소개정보(detailIntro2) 원본 응답에서 필드명으로 직접 조회한다.
   Widget _buildFacilitySection() {
@@ -428,7 +428,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '시설정보',
+          '시설 정보',
           style: TextStyle(
             fontSize: 16.sp,
             fontWeight: FontWeight.w600,
@@ -438,7 +438,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
         SizedBox(height: 12.h),
         if (fields == null || fields.isEmpty)
           Text(
-            '등록된 시설정보가 없습니다.',
+            '등록된 시설 정보가 없습니다.',
             style: TextStyle(fontSize: 12.sp, color: AppColors.textQuaternary),
           )
         else
@@ -605,7 +605,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '편의정보',
+          '편의 정보',
           style: TextStyle(
             fontSize: 16.sp,
             fontWeight: FontWeight.w600,
@@ -616,12 +616,12 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
         SizedBox(height: 4.h),
         if (categories.isEmpty)
           Text(
-            '등록된 편의정보가 없습니다.',
+            '등록된 편의 정보가 없습니다.',
             style: TextStyle(fontSize: 12.sp, color: AppColors.textQuaternary),
           )
         else
           Text(
-            '장애 유형별 편의정보를 확인하세요.',
+            '장애 유형별 편의 정보를 확인하세요.',
             style: TextStyle(
               fontSize: 12.sp,
               fontWeight: FontWeight.w500,
@@ -690,7 +690,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                   ),
                 ),
                 Semantics(
-                  label: '${category.profile.label} 편의정보',
+                  label: '${category.profile.label} 편의 정보',
                   button: true,
                   expanded: isExpanded,
                   excludeSemantics: true,
