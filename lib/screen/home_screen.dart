@@ -882,7 +882,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               SizedBox(height: 6.h),
               Text(
-                '관심있는 유형에 맞는 맞춤 여행지를 추천해드려요.',
+                '관심 있는 유형에 맞는 맞춤 여행지를 추천해 드려요.',
                 style: TextStyle(
                   fontSize: 12.sp,
                   fontWeight: FontWeight.w400,
