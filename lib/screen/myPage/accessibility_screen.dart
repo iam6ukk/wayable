@@ -75,7 +75,15 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final nickname = ref.watch(authStateProvider).user?.nickname ?? '게스트';
+    // 이 화면도 마이페이지/온보딩 경로로만 들어오므로 user가 null인 경우는
+    // 실질적으로 없다 — SSO 프로필에 닉네임이 없는 회원을 게스트로 잘못
+    // 표시하지 않도록 구분한다(mypage_screen.dart와 동일한 이유).
+    final user = ref.watch(authStateProvider).user;
+    final nickname = user == null
+        ? '게스트'
+        : (user.nickname?.isNotEmpty ?? false)
+        ? user.nickname!
+        : '회원';
 
     return Scaffold(
       backgroundColor: Colors.white,

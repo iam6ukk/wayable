@@ -121,7 +121,15 @@ class MyPageScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authStateProvider).user;
-    final nickname = user?.nickname ?? '게스트';
+    // 마이페이지 탭 자체가 비로그인 사용자를 막아서(main_shell.dart의
+    // kMemberOnlyTabs 게이트) user가 null인 경우는 실질적으로 없고, 여기서
+    // '게스트'가 보일 수 있는 건 SSO 프로필에 닉네임이 없어 null로 들어온
+    // 회원뿐이다 — 그런 경우를 게스트로 잘못 표시하지 않도록 구분한다.
+    final nickname = user == null
+        ? '게스트'
+        : (user.nickname?.isNotEmpty ?? false)
+        ? user.nickname!
+        : '회원';
     final profiles = (user?.accessibilityProfiles ?? const [])
         .map(_profileFromName)
         .whereType<AccessibilityProfile>()

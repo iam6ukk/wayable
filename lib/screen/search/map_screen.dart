@@ -39,10 +39,25 @@ const _kDefaultZoomLevel = 15;
 /// 자르므로, 마커가 너무 많아 렌더링/터치가 버벅이지 않게 상한을 둔다.
 const _kMaxMarkers = 20;
 
-/// 정확도순 정렬에서 주소 매칭을 장소명 매칭보다 항상 뒤로 보내기 위한
-/// 오프셋. 장소명 인덱스(현실적으로 수십 자 이내)보다 충분히 크면 되므로
-/// 여유 있게 잡는다.
+/// 정확도순 정렬 3단계 오프셋. 장소명 매칭(인덱스 그대로) < 주소 시/도
+/// 매칭(_kSidoRankOffset~) < 주소 그 외(시/군/구 이하) 매칭(_kAddressRankOffset~)
+/// 순으로 뒤로 보낸다. 각 인덱스가 현실적으로 수십 자 이내라 이 정도 간격이면
+/// 단계끼리 절대 안 섞인다.
+///
+/// 시/도 단계를 따로 두는 이유: addr1은 "부산광역시 해운대구 ..."처럼 한
+/// 줄로 붙어 있어서, 단순 부분일치만 쓰면 "○○군 부산면"처럼 시/군/구 이하
+/// 단위에 검색어가 우연히 걸리는 지명과 진짜 그 시/도 소재 여행지를 구분할
+/// 수 없다 ("부산" 검색 시 엉뚱한 "부산면"이 먼저 뜨는 문제). addr1의 첫
+/// 토큰(시/도)에서 걸리는 매칭만 이 단계로 인정하고, 나머지(시/군/구 이하,
+/// addr2)는 한 단계 더 뒤로 보낸다.
+const _kSidoRankOffset = 1 << 8;
 const _kAddressRankOffset = 1 << 10;
+
+/// 검색어가 있을 때는 카메라 위치와 무관하게 전국 대상으로 찾으므로, 지역
+/// 하나로 좁혀서 받던 기존 상한(_regionFetchSafetyLimit=600)과 비슷한
+/// 여유치를 둔다 — 정확도 랭킹은 클라이언트에서 매기므로, 서버가 실제
+/// 매칭 건수를 다 돌려줘야 상위 [_kMaxMarkers]건이 잘려나가지 않는다.
+const _kKeywordSearchPageSize = 600;
 
 /// 활성/비활성 핀 크기. 이미지 자체는 실제 검색결과 화면(831:763 등)에서 쓰인
 /// 원본 컴포넌트인 피그마 노드 643:222(Group 147, 활성)/643:221(Group 146, 비활성)를
@@ -514,16 +529,25 @@ class _MapScreenState extends ConsumerState<MapScreen>
   /// 없으면 기준으로 삼을 신호가 없어 거리순과 동률로 취급한다.
   ///
   /// 장소명으로 찾는 경우("경복궁")는 사용자가 정확히 아는 곳을 찾는
-  /// 강한 신호고, 주소로 찾는 경우("역삼동")는 카카오맵 자체 검색과
-  /// 마찬가지로 상대적으로 탐색적인 신호로 본다. 그래서 장소명이 매칭되면
-  /// 그 인덱스를 그대로 쓰고, 장소명엔 없고 주소에서만 매칭되면 장소명
-  /// 매칭보다 항상 뒤로 가도록 [_kAddressRankOffset]을 더한다.
+  /// 강한 신호고, 주소로 찾는 경우는 카카오맵 자체 검색과 마찬가지로
+  /// 상대적으로 탐색적인 신호로 본다. 주소 매칭은 다시 두 단계로 나누는데,
+  /// addr1의 첫 토큰(시/도, 예: "부산광역시")에서 걸리면 [_kSidoRankOffset]
+  /// 단계로, 나머지(시/군/구 이하 또는 addr2)에서만 걸리면 그보다 더 뒤인
+  /// [_kAddressRankOffset] 단계로 보낸다. 이렇게 나누지 않으면 "부산"
+  /// 검색 시 "○○군 부산면"처럼 시/군/구 이하 단위에 우연히 검색어가 걸린
+  /// 지명이, 진짜 부산광역시 소재 여행지와 구분 없이 같은 순위로 섞여버린다.
   int _accuracyRank(TourSpot spot, String keyword) {
     if (keyword.isEmpty) return 0;
     final titleIndex = spot.title.toLowerCase().indexOf(keyword);
     if (titleIndex >= 0) return titleIndex;
 
-    final address = '${spot.addr1} ${spot.addr2 ?? ''}'.toLowerCase();
+    final addr1 = spot.addr1.toLowerCase();
+    final tokens = addr1.split(' ');
+    final sido = tokens.isNotEmpty ? tokens.first : '';
+    final sidoIndex = sido.indexOf(keyword);
+    if (sidoIndex >= 0) return _kSidoRankOffset + sidoIndex;
+
+    final address = '$addr1 ${spot.addr2 ?? ''}'.toLowerCase();
     final addressIndex = address.indexOf(keyword);
     if (addressIndex >= 0) return _kAddressRankOffset + addressIndex;
 
@@ -552,25 +576,41 @@ class _MapScreenState extends ConsumerState<MapScreen>
   Future<void> _handleResearchThisArea() => _runSearch();
 
   /// 검색어 제출/카테고리·정렬·적합레벨 선택 시 즉시 호출된다. 지역 전체를
-  /// 받아 좌표 있는 장소만 남기고, 키워드(제목 부분일치)·카테고리·최소
+  /// 받아 좌표 있는 장소만 남기고, 키워드(제목·주소 부분일치)·카테고리·최소
   /// 적합레벨로 거른 뒤 선택한 기준으로 정렬해 상위 [_kMaxMarkers]건만
   /// 마커+바텀시트 목록으로 그린다.
+  ///
+  /// 검색어가 있을 때는 카메라가 보고 있는 지역으로 후보군을 좁히지 않고
+  /// 전국 tourSpots를 대상으로 찾는다 — 카메라 위치 기준으로 지역을 먼저
+  /// 좁혀버리면, 찾으려는 장소가 그 지역 밖에 있을 때 제목이 정확히
+  /// 일치해도 후보군에 아예 못 들어와 못 찾는 문제가 있었다. 검색어 없이
+  /// 카테고리만 고르는 탐색은 지금처럼 카메라 위치 기준 지역으로 좁힌다.
   Future<void> _runSearch() async {
     await _syncPositionFromCamera();
-    final regionCode = _regionCode;
-    if (regionCode == null) return;
+    final keyword = _searchController.text.trim().toLowerCase();
+    final category = _selectedCategory;
+
+    if (keyword.isEmpty && _regionCode == null) return;
 
     setState(() {
       _hasSearched = true;
       _isLoading = true;
     });
 
-    final category = _selectedCategory;
-    final spots = await _tourSpotService.searchByRegion(
-      regionCode,
-      contentTypeId: category?.contentTypeId,
-    );
-    final keyword = _searchController.text.trim().toLowerCase();
+    final List<TourSpot> spots;
+    if (keyword.isNotEmpty) {
+      final result = await _tourSpotService.search(
+        keyword: keyword,
+        categoryIds: category != null ? [category.contentTypeId] : null,
+        pageSize: _kKeywordSearchPageSize,
+      );
+      spots = result.spots;
+    } else {
+      spots = await _tourSpotService.searchByRegion(
+        _regionCode!,
+        contentTypeId: category?.contentTypeId,
+      );
+    }
     final minLevel = _minFitLevel;
     final selectedFields = resolveSelectedFields(
       ref.read(authStateProvider).user,
@@ -625,10 +665,10 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final nearest = filtered.take(_kMaxMarkers).toList();
 
     AppLogger.debug(
-      '[Map] 검색 region=$regionCode keyword="$keyword" '
-      'category=${category?.label} sort=${_sortOption.label} '
-      'minLevel=${minLevel?.label} 결과=${filtered.length}건 '
-      '(마커=${nearest.length}건)',
+      '[Map] 검색 ${keyword.isNotEmpty ? "전국(keyword)" : "region=$_regionCode"} '
+      'keyword="$keyword" category=${category?.label} '
+      'sort=${_sortOption.label} minLevel=${minLevel?.label} '
+      '결과=${filtered.length}건 (마커=${nearest.length}건)',
     );
 
     await _renderResultMarkers(nearest);
@@ -831,6 +871,18 @@ class _MapScreenState extends ConsumerState<MapScreen>
     await _updateMyLocationMarker(latLng);
   }
 
+  /// 검색어를 입력해 제출한 시점에만, 기본 정렬을 거리순에서 정확도순으로
+  /// 자동 전환한다("부산" 검색 시 우연히 더 가까운 오탐이 거리순에서 먼저
+  /// 뜨는 걸 막기 위함). 이후 사용자가 정렬을 직접 다른 걸로 바꾸면 그
+  /// 선택을 존중하고, 검색을 완전히 접고 나가면(_resetSearchState) 다시
+  /// 거리순으로 돌아간다.
+  void _handleSearchSubmitted() {
+    if (_searchController.text.trim().isNotEmpty) {
+      setState(() => _sortOption = _SortOption.accuracy);
+    }
+    _runSearch();
+  }
+
   void _handleCategoryTap(TourCategory category) {
     setState(() {
       _selectedCategory = _selectedCategory == category ? null : category;
@@ -976,7 +1028,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                 top: topInset + 18.23.h,
                 child: _SearchBar(
                   controller: _searchController,
-                  onSubmitted: (_) => _runSearch(),
+                  onSubmitted: (_) => _handleSearchSubmitted(),
                 ),
               ),
               if (!_hasSearched) ...[
