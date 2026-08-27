@@ -81,8 +81,11 @@ export const searchTourSpots = onCall(
       for (const docSnapshot of snapshot.docs) {
         const doc = docSnapshot.data() as FirestoreTourSpotDoc;
 
-        if (keyword && !doc.basic.title.toLowerCase().includes(keyword)) {
-          continue;
+        if (keyword) {
+          const titleMatches = doc.basic.title.toLowerCase().includes(keyword);
+          const address = `${doc.basic.addr1} ${doc.basic.addr2 ?? ""}`.toLowerCase();
+          const addressMatches = address.includes(keyword);
+          if (!titleMatches && !addressMatches) continue;
         }
         if (
           sigunguMemberCodes.length > 0 &&
