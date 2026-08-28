@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../model/accessibility/accessibility_field.dart';
 import '../../model/accessibility/accessibility_field_mapping.dart';
 import '../../model/accessibility/accessibility_profile.dart';
@@ -181,17 +182,15 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     _applyDefaultRegion();
   }
 
-  /// 유저 계정에 저장된 관심 지역(시/도+시/군구)을 필터로 미리 채워둔다.
-  /// area_codes.json을 읽어야 해서 비동기다 — 완료되기 전까지는 지역 필터가
-  /// 비어 보이다가 잠시 뒤 채워진다(ExploreFilterScreen의 지역 탭 로딩과
-  /// 같은 성격의 지연).
-  Future<void> _applyDefaultRegion() async {
+  /// 유저 계정에 저장된 관심 지역(시/도+시/군구)을 AreaCode/SigunguCode로
+  /// 변환한다. area_codes.json을 읽어야 해서 비동기다. 저장된 지역이 없거나
+  /// (탈퇴/개편 등으로) 더 이상 존재하지 않는 코드면 null.
+  Future<({AreaCode sido, Set<SigunguCode> sigungus})?> _resolveUserRegion() async {
     final user = ref.read(authStateProvider).user;
     final sidoCode = user?.interestSidoCode;
-    if (sidoCode == null) return;
+    if (sidoCode == null) return null;
 
     final areaCodes = await AreaCodeRepository.load();
-    if (!mounted) return;
 
     AreaCode? sido;
     for (final area in areaCodes) {
@@ -200,21 +199,45 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         break;
       }
     }
-    if (sido == null) return;
+    if (sido == null) return null;
 
     final savedSigunguCodes = user?.interestSigunguCodes ?? const [];
     final sigungus = sido.sigungu
         .where((sg) => savedSigunguCodes.contains(sg.code))
         .toSet();
+    return (sido: sido, sigungus: sigungus);
+  }
 
+  /// 유저 계정에 저장된 관심 지역(시/도+시/군구)을 필터로 미리 채워둔다.
+  /// 완료되기 전까지는 지역 필터가 비어 보이다가 잠시 뒤 채워진다
+  /// (ExploreFilterScreen의 지역 탭 로딩과 같은 성격의 지연).
+  Future<void> _applyDefaultRegion() async {
+    final region = await _resolveUserRegion();
+    if (!mounted || region == null) return;
     setState(() {
-      _selectedSido = sido;
-      _selectedSigungus = sigungus;
+      _selectedSido = region.sido;
+      _selectedSigungus = region.sigungus;
     });
   }
 
+  /// 유저 계정에 저장된 관심 지역(시/도+시/군구)이 있으면 필터에 채워 넣고,
+  /// 없으면 지역 없이(=접근성 대분류만으로 전국 대상) 검색을 실행한다.
+  Future<void> _applyRegionAndSearch() async {
+    final region = await _resolveUserRegion();
+    if (!mounted) return;
+    if (region != null) {
+      setState(() {
+        _selectedSido = region.sido;
+        _selectedSigungus = region.sigungus;
+      });
+    }
+    _handleSearch();
+  }
+
   /// 지역/카테고리/검색어 등 기존 필터를 전부 지운 뒤 [profile] 대분류만
-  /// 켜고 상세 카테고리는 "전체"(빈 Set)로 맞춰 바로 검색을 실행한다.
+  /// 켜고 상세 카테고리는 "전체"(빈 Set)로 맞춘다. 유저 계정에 저장된 관심
+  /// 지역이 있으면 그 지역까지 좁혀서, 없으면 대분류만으로 전국을 대상으로
+  /// 바로 검색을 실행한다.
   void _applyPendingAccessibilityRequest(AccessibilityProfile profile) {
     _selectedSido = null;
     _selectedSigungus = {};
@@ -225,7 +248,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(pendingAccessibilityRequestProvider.notifier).state = null;
-      _handleSearch();
+      _applyRegionAndSearch();
     });
   }
 
@@ -498,7 +521,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       });
       _searchController.clear();
       ref.read(pendingAccessibilityRequestProvider.notifier).state = null;
-      _handleSearch();
+      _applyRegionAndSearch();
     });
 
     return Stack(
@@ -912,8 +935,8 @@ class _EmptyResultState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Image.asset(
-            'assets/images/explore/empty_search.png',
+          SvgPicture.asset(
+            'assets/images/explore/empty_search.svg',
             width: 60.r,
             height: 60.r,
           ),
