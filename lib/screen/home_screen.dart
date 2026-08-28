@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:wayable/model/accessibility/accessibility_profile.dart';
 import 'package:wayable/model/region/area_code.dart';
@@ -87,9 +88,9 @@ const _kAccessibilityCardImageScale = {
 };
 
 const _kRankBadgeImages = {
-  1: 'assets/images/home/ranking_1st.png',
-  2: 'assets/images/home/ranking_2nd.png',
-  3: 'assets/images/home/ranking_3rd.png',
+  1: 'assets/images/home/ranking_1st.svg',
+  2: 'assets/images/home/ranking_2nd.svg',
+  3: 'assets/images/home/ranking_3rd.svg',
   4: 'assets/images/home/ranking_4th.png',
   5: 'assets/images/home/ranking_5th.png',
 };
@@ -1319,6 +1320,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildRankBadge(int rank) {
-    return Image.asset(_kRankBadgeImages[rank]!, width: 28.w, height: 35.h);
+    final path = _kRankBadgeImages[rank]!;
+    if (path.endsWith('.svg')) {
+      return SvgPicture.asset(path, width: 28.w, height: 35.h);
+    }
+    return Image.asset(path, width: 28.w, height: 35.h);
   }
 }

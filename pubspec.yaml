@@ -48,6 +48,7 @@ dependencies:
   lottie: ^3.5.0
   kakao_map_sdk: ^1.2.6
   cached_network_image: ^3.4.1
+  flutter_svg: ^2.2.1
 
 dev_dependencies:
   change_app_package_name: ^1.5.0

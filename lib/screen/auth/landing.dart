@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:wayable/navigation/main_shell.dart';
 import 'package:wayable/providers/auth_provider.dart';
 import 'package:wayable/screen/auth/login_screen.dart';
@@ -107,8 +108,8 @@ class _LandingPageState extends ConsumerState<LandingPage> {
                   createRectTween: (begin, end) =>
                       _EasedRectTween(begin: begin, end: end),
                   child: ExcludeSemantics(
-                    child: Image.asset(
-                      'assets/images/common/wayable.png',
+                    child: SvgPicture.asset(
+                      'assets/images/common/wayable.svg',
                       width: 123.w,
                       height: 125.h,
                     ),

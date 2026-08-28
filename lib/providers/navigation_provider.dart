@@ -16,7 +16,9 @@ const kMemberOnlyTabs = {BottomNavTab.myPage, BottomNavTab.bookmark};
 
 /// 홈 화면의 "무장애 여행" 카드를 눌렀을 때, 맞춤 여행지 탐색 탭이 어떤
 /// 접근성 대분류(상세 카테고리는 전체)로 바로 검색된 상태를 보여줄지 담아둔다.
-/// ExploreScreen이 이 값을 소비한 뒤 다시 null로 비운다.
+/// ExploreScreen이 이 값을 소비하면서 유저 계정에 저장된 관심 지역(시/도+
+/// 시/군구)이 있으면 같이 채워 넣고, 없으면 대분류만으로 전국을 검색한다.
+/// 소비한 뒤에는 다시 null로 비운다.
 final pendingAccessibilityRequestProvider =
     StateProvider<AccessibilityProfile?>((ref) => null);
 

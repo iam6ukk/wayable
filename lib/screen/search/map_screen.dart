@@ -61,7 +61,8 @@ const _kKeywordSearchPageSize = 600;
 
 /// 활성/비활성 핀 크기. 이미지 자체는 실제 검색결과 화면(831:763 등)에서 쓰인
 /// 원본 컴포넌트인 피그마 노드 643:222(Group 147, 활성)/643:221(Group 146, 비활성)를
-/// 그대로 내려받은 asset(assets/images/explore/map_pin_active.png·map_pin_inactive.png).
+/// 내려받은 SVG를 래스터화한 asset(assets/images/explore/map_pin_active.png·map_pin_inactive.png).
+/// 카카오맵 SDK의 POI 아이콘(KImage.fromAsset)이 비트맵만 지원해 SVG를 직접 쓸 수 없다.
 /// (643:224/226은 이름만 비슷한 별도 초안 도형이라 실제로 쓰이는 노드가 아니었음.)
 const _kActivePinSize = 32.0;
 const _kInactivePinSize = 16.0;
