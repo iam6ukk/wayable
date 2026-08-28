@@ -47,6 +47,18 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
   bool _isFolderReorderMode = false;
   int _lastFolderCount = 0;
 
+  // MainShell이 이 화면을 Offstage로만 숨기고 절대 지우지 않기 때문에(카메라
+  // 위치 등을 유지하려는 다른 탭들과 같은 패턴), 저장 목록 탭 자체를
+  // 벗어났다 돌아오는 것만으로는 _FolderSpotList의 State가 안 지워진다 —
+  // 지금 보이고 있던 폴더 탭은 initState가 다시 안 불려서 스냅샷이 그대로
+  // 남는다(북마크 해제한 카드가 안 사라짐). 반면 "다른 폴더 탭으로 이동"이
+  // 정상 동작했던 건, TabBarView가 AutomaticKeepAlive 없이 화면 밖으로
+  // 밀려난 탭 페이지를 실제로 지워버려서 우연히 재생성됐던 것뿐이다. 그래서
+  // 저장 목록 탭에 "다시 들어올 때"를 명시적으로 감지해 이 값을 올리고,
+  // 아래 TabBarView의 key에 섞어 넣어 모든 폴더 탭의 _FolderSpotList를
+  // 강제로 새로 만든다(=스냅샷을 그 시점 bookmarkProvider 상태로 다시 찍는다).
+  int _snapshotEpoch = 0;
+
   // 상하단 이동 버튼은 현재 보이는 탭의 목록을 스크롤해야 하는데, 탭마다
   // ListView(및 그 ScrollController)를 소유한 _FolderSpotList가 각각 독립된
   // State라서 부모가 직접 만들 수 없다. 대신 각 _FolderSpotList가 자기
@@ -123,6 +135,12 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
         _isFolderReorderMode = false;
       });
       ref.read(localBackInterceptActiveProvider.notifier).state = false;
+    }
+    // 반대로 이 탭에 "다시" 들어오는 시점(비활성 → 활성)에는, 그동안 다른
+    // 화면에서 해제됐을 수 있는 북마크를 반영하도록 모든 폴더 탭의
+    // _FolderSpotList 스냅샷을 새로 찍는다. _snapshotEpoch 필드 주석 참고.
+    if (!oldWidget.isActive && widget.isActive) {
+      setState(() => _snapshotEpoch++);
     }
   }
 
@@ -215,7 +233,7 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
                   children: folders
                       .map(
                         (folder) => _FolderSpotList(
-                          key: ValueKey(folder.id),
+                          key: ValueKey('${folder.id}_$_snapshotEpoch'),
                           folder: folder,
                           currentPosition: _currentPosition,
                           onScrollControllerReady:
