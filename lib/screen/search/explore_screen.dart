@@ -2,7 +2,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../model/accessibility/accessibility_field.dart';
 import '../../model/accessibility/accessibility_field_mapping.dart';
 import '../../model/accessibility/accessibility_profile.dart';
@@ -935,8 +934,12 @@ class _EmptyResultState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SvgPicture.asset(
-            'assets/images/explore/empty_search.svg',
+          // flutter_svg가 <pattern> 요소(이미지 채우기)를 지원하지 않아서
+          // (dnfield/flutter_svg#289) 이 아이콘은 SVG로 쓸 수 없다 — 피그마의
+          // "이미지 채우기" 레이어를 SVG로 내보내면 항상 이 형태로 나오는데,
+          // 파일 자체가 멀쩡해도 조용히 아무것도 안 그려진다. PNG로 고정.
+          Image.asset(
+            'assets/images/explore/empty_search.png',
             width: 60.r,
             height: 60.r,
           ),
