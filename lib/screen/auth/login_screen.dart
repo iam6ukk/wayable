@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:wayable/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../navigation/main_shell.dart';
@@ -92,8 +93,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: Hero(
                     tag: 'app_logo',
                     child: ExcludeSemantics(
-                      child: Image.asset(
-                        'assets/images/common/wayable.png',
+                      child: SvgPicture.asset(
+                        'assets/images/common/wayable.svg',
                         width: 106.w,
                         height: 108.h,
                         fit: BoxFit.contain,

@@ -130,7 +130,7 @@ Future<String?> showFolderNameInputDialog(
   required String title,
   required String primaryLabel,
   String initialName = '',
-  String hintText = '폴더 이름을 입력해주세요',
+  String hintText = '폴더 이름을 입력해 주세요',
 }) {
   final controller = TextEditingController(text: initialName);
   return showDialog<String>(

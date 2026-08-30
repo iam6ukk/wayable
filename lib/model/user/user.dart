@@ -13,6 +13,13 @@ class AppUser {
   /// 복원할 수 없어진다 (accessibility_detail_screen.dart 참고).
   final Map<String, List<String>> accessibilityFieldsByProfile;
 
+  /// 관심 지역(시/도) 코드. area_codes.json의 AreaCode.code.
+  final String? interestSidoCode;
+
+  /// 관심 지역의 세부 지역(시/군/구) 코드 목록(최대 3개). SigunguCode.code.
+  /// [interestSidoCode]가 가리키는 시/도에 속한 항목들이다.
+  final List<String> interestSigunguCodes;
+
   final DateTime createdAt; // 생성일
 
   AppUser({
@@ -21,6 +28,8 @@ class AppUser {
     this.email,
     required this.provider,
     this.accessibilityFieldsByProfile = const {},
+    this.interestSidoCode,
+    this.interestSigunguCodes = const [],
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -37,6 +46,8 @@ class AppUser {
       'email': email,
       'provider': provider,
       'accessibilityFieldsByProfile': accessibilityFieldsByProfile,
+      'interestSidoCode': interestSidoCode,
+      'interestSigunguCodes': interestSigunguCodes,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -54,6 +65,10 @@ class AppUser {
               .map(
                 (key, value) => MapEntry(key, List<String>.from(value as List)),
               ),
+      interestSidoCode: data['interestSidoCode'] as String?,
+      interestSigunguCodes: List<String>.from(
+        data['interestSigunguCodes'] as List? ?? const [],
+      ),
       createdAt: data['createdAt'] != null
           ? (data['createdAt'] as Timestamp).toDate()
           : DateTime.now(),
@@ -65,6 +80,8 @@ class AppUser {
     String? nickname,
     String? email,
     Map<String, List<String>>? accessibilityFieldsByProfile,
+    String? interestSidoCode,
+    List<String>? interestSigunguCodes,
   }) {
     return AppUser(
       uid: uid,
@@ -73,6 +90,8 @@ class AppUser {
       provider: provider,
       accessibilityFieldsByProfile:
           accessibilityFieldsByProfile ?? this.accessibilityFieldsByProfile,
+      interestSidoCode: interestSidoCode ?? this.interestSidoCode,
+      interestSigunguCodes: interestSigunguCodes ?? this.interestSigunguCodes,
       createdAt: createdAt,
     );
   }

@@ -55,7 +55,14 @@ function matchesAcceptableFields(
 }
 
 export const searchTourSpots = onCall(
-  { region: "asia-northeast3" },
+  // regionCode 없이(=전국 대상) 호출되면 tourSpots 컬렉션 전체를 한 번에
+  // 메모리에 올리는데, 데이터가 늘면서 기본 256MiB를 넘겨 컨테이너가 강제
+  // 종료되는 사고가 실제로 나고 있었다(로그: "Memory limit of 256 MiB
+  // exceeded" → 요청 자체가 응답 없이 끊김 → 클라이언트는 이걸 실패로 보고
+  // 빈 결과로 처리 → 화면엔 "검색결과 없음"으로만 보임). 512MiB로 올려
+  // 당장의 크래시부터 막는다 — 근본적으로는 전체 스캔 대신 Firestore
+  // 쿼리로 좁히는 구조 개선이 필요하다.
+  { region: "asia-northeast3", memory: "512MiB" },
   async (request) => {
     const data = (request.data ?? {}) as SearchSpotsRequest;
     const page = data.page && data.page > 0 ? data.page : 1;
@@ -81,8 +88,11 @@ export const searchTourSpots = onCall(
       for (const docSnapshot of snapshot.docs) {
         const doc = docSnapshot.data() as FirestoreTourSpotDoc;
 
-        if (keyword && !doc.basic.title.toLowerCase().includes(keyword)) {
-          continue;
+        if (keyword) {
+          const titleMatches = doc.basic.title.toLowerCase().includes(keyword);
+          const address = `${doc.basic.addr1} ${doc.basic.addr2 ?? ""}`.toLowerCase();
+          const addressMatches = address.includes(keyword);
+          if (!titleMatches && !addressMatches) continue;
         }
         if (
           sigunguMemberCodes.length > 0 &&

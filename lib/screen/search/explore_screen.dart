@@ -10,6 +10,7 @@ import '../../model/tour/tour_category.dart';
 import '../../model/tour/tour_spot.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/navigation_provider.dart';
+import '../../services/region/area_code_repository.dart';
 import '../../services/tour/tour_spot_service.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/app_logger.dart';
@@ -82,7 +83,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   // 통합필터선택 화면에서 저장한 상세 필터.
   Map<AccessibilityProfile, Set<AccessibilityField>> _selectedFields = {};
   AreaCode? _selectedSido;
-  SigunguCode? _selectedSigungu;
+  Set<SigunguCode> _selectedSigungus = {};
   Set<TourCategory> _selectedCategories = {};
 
   // 홈 화면 무장애 카드 탭은 pendingAccessibilityRequestProvider를 쓰기와
@@ -108,6 +109,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     final pendingProfile = ref.read(pendingAccessibilityRequestProvider);
     if (pendingProfile != null) {
       _applyPendingAccessibilityRequest(pendingProfile);
+    } else {
+      // 저장된 관심 지역이 있으면 필터로 미리 채워둔다. 지역 코드를
+      // AreaCode/SigunguCode 객체로 바꾸려면 area_codes.json을 읽어와야 해서
+      // (AreaCodeRepository.load) 위 접근성 기본값과 달리 비동기로 처리한다.
+      _applyDefaultRegion();
     }
   }
 
@@ -162,7 +168,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       _activeProfiles = defaultProfiles;
       _selectedFields = _defaultSelectedFields(defaultProfiles);
       _selectedSido = null;
-      _selectedSigungu = null;
+      _selectedSigungus = {};
       _selectedCategories = {};
       _currentBatch = const [];
       _loadedBatchNumber = 0;
@@ -172,13 +178,68 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       _isLoading = false;
     });
     _searchController.clear();
+    _applyDefaultRegion();
+  }
+
+  /// 유저 계정에 저장된 관심 지역(시/도+시/군구)을 AreaCode/SigunguCode로
+  /// 변환한다. area_codes.json을 읽어야 해서 비동기다. 저장된 지역이 없거나
+  /// (탈퇴/개편 등으로) 더 이상 존재하지 않는 코드면 null.
+  Future<({AreaCode sido, Set<SigunguCode> sigungus})?> _resolveUserRegion() async {
+    final user = ref.read(authStateProvider).user;
+    final sidoCode = user?.interestSidoCode;
+    if (sidoCode == null) return null;
+
+    final areaCodes = await AreaCodeRepository.load();
+
+    AreaCode? sido;
+    for (final area in areaCodes) {
+      if (area.code == sidoCode) {
+        sido = area;
+        break;
+      }
+    }
+    if (sido == null) return null;
+
+    final savedSigunguCodes = user?.interestSigunguCodes ?? const [];
+    final sigungus = sido.sigungu
+        .where((sg) => savedSigunguCodes.contains(sg.code))
+        .toSet();
+    return (sido: sido, sigungus: sigungus);
+  }
+
+  /// 유저 계정에 저장된 관심 지역(시/도+시/군구)을 필터로 미리 채워둔다.
+  /// 완료되기 전까지는 지역 필터가 비어 보이다가 잠시 뒤 채워진다
+  /// (ExploreFilterScreen의 지역 탭 로딩과 같은 성격의 지연).
+  Future<void> _applyDefaultRegion() async {
+    final region = await _resolveUserRegion();
+    if (!mounted || region == null) return;
+    setState(() {
+      _selectedSido = region.sido;
+      _selectedSigungus = region.sigungus;
+    });
+  }
+
+  /// 유저 계정에 저장된 관심 지역(시/도+시/군구)이 있으면 필터에 채워 넣고,
+  /// 없으면 지역 없이(=접근성 대분류만으로 전국 대상) 검색을 실행한다.
+  Future<void> _applyRegionAndSearch() async {
+    final region = await _resolveUserRegion();
+    if (!mounted) return;
+    if (region != null) {
+      setState(() {
+        _selectedSido = region.sido;
+        _selectedSigungus = region.sigungus;
+      });
+    }
+    _handleSearch();
   }
 
   /// 지역/카테고리/검색어 등 기존 필터를 전부 지운 뒤 [profile] 대분류만
-  /// 켜고 상세 카테고리는 "전체"(빈 Set)로 맞춰 바로 검색을 실행한다.
+  /// 켜고 상세 카테고리는 "전체"(빈 Set)로 맞춘다. 유저 계정에 저장된 관심
+  /// 지역이 있으면 그 지역까지 좁혀서, 없으면 대분류만으로 전국을 대상으로
+  /// 바로 검색을 실행한다.
   void _applyPendingAccessibilityRequest(AccessibilityProfile profile) {
     _selectedSido = null;
-    _selectedSigungu = null;
+    _selectedSigungus = {};
     _selectedCategories = {};
     _activeProfiles = {profile};
     _selectedFields = {profile: {}};
@@ -186,7 +247,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(pendingAccessibilityRequestProvider.notifier).state = null;
-      _handleSearch();
+      _applyRegionAndSearch();
     });
   }
 
@@ -256,7 +317,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           activeProfiles: _activeProfiles,
           initialSelectedFields: _selectedFields,
           initialSido: _selectedSido,
-          initialSigungu: _selectedSigungu,
+          initialSigungus: _selectedSigungus,
           initialCategories: _selectedCategories,
         ),
       ),
@@ -266,7 +327,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     setState(() {
       _selectedFields = result.selectedFields;
       _selectedSido = result.sido;
-      _selectedSigungu = result.sigungu;
+      _selectedSigungus = result.sigungus;
       _selectedCategories = result.categories;
     });
   }
@@ -306,19 +367,19 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           onRemove: () {
             setState(() {
               _selectedSido = null;
-              _selectedSigungu = null;
+              _selectedSigungus = {};
             });
           },
         ),
       );
     }
 
-    if (_selectedSigungu != null) {
+    for (final sigungu in _selectedSigungus) {
       chips.add(
         _ActiveFilterChip(
-          label: _selectedSigungu!.name,
+          label: sigungu.name,
           onRemove: () {
-            setState(() => _selectedSigungu = null);
+            setState(() => _selectedSigungus.remove(sigungu));
           },
         ),
       );
@@ -359,7 +420,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           ? null
           : _selectedCategories.map((c) => c.contentTypeId).toList(),
       acceptableFields: _acceptableFieldNames,
-      sigunguMemberCodes: _selectedSigungu?.memberCodes,
+      sigunguMemberCodes: _selectedSigungus.isEmpty
+          ? null
+          : _selectedSigungus.expand((sg) => sg.memberCodes).toList(),
       page: batchNumber,
       pageSize: _kBatchSize,
     );
@@ -382,7 +445,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
     AppLogger.debug(
       '[Explore] 검색 keyword="${_searchController.text.trim()}" '
-      'region=${_selectedSido?.code} sigungu=${_selectedSigungu?.name} '
+      'region=${_selectedSido?.code} '
+      'sigungu=${_selectedSigungus.map((sg) => sg.name).toList()} '
       'categories=${_selectedCategories.map((c) => c.label).toList()} '
       'acceptableFields=$_acceptableFieldNames',
     );
@@ -449,14 +513,14 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       _skipNextActivationReset = true;
       setState(() {
         _selectedSido = null;
-        _selectedSigungu = null;
+        _selectedSigungus = {};
         _selectedCategories = {};
         _activeProfiles = {profile};
         _selectedFields = {profile: {}};
       });
       _searchController.clear();
       ref.read(pendingAccessibilityRequestProvider.notifier).state = null;
-      _handleSearch();
+      _applyRegionAndSearch();
     });
 
     return Stack(
@@ -512,7 +576,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       _FilterSelectRow(onTap: _openFilterScreen),
       SizedBox(height: 4.h),
       Text(
-        '편의정보와 지역, 카테고리를 선택할 수 있어요.',
+        '편의 정보와 지역, 카테고리를 선택할 수 있어요.',
         style: TextStyle(fontSize: 10.sp, color: AppColors.textTertiary),
       ),
       if (_activeFilterChips.isNotEmpty) ...[
@@ -835,7 +899,7 @@ class _FilterSelectRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: '필터선택, 편의정보·지역·카테고리 선택',
+      label: '필터 선택, 편의 정보·지역·카테고리 선택',
       button: true,
       excludeSemantics: true,
       child: InkWell(
@@ -844,7 +908,7 @@ class _FilterSelectRow extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              '필터선택',
+              '필터 선택',
               style: TextStyle(
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w500,
@@ -870,6 +934,10 @@ class _EmptyResultState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // flutter_svg가 <pattern> 요소(이미지 채우기)를 지원하지 않아서
+          // (dnfield/flutter_svg#289) 이 아이콘은 SVG로 쓸 수 없다 — 피그마의
+          // "이미지 채우기" 레이어를 SVG로 내보내면 항상 이 형태로 나오는데,
+          // 파일 자체가 멀쩡해도 조용히 아무것도 안 그려진다. PNG로 고정.
           Image.asset(
             'assets/images/explore/empty_search.png',
             width: 60.r,
@@ -877,7 +945,7 @@ class _EmptyResultState extends StatelessWidget {
           ),
           SizedBox(height: 16.h),
           Text(
-            '검색 결과가 없습니다.',
+            '조건에 맞는 여행지가 없습니다.',
             style: TextStyle(
               fontSize: 16.sp,
               fontWeight: FontWeight.w400,
@@ -932,85 +1000,85 @@ class _ResultCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-          AspectRatio(
-            aspectRatio: 172 / 113,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12.r),
-              child: spot.firstImage == null
-                  ? _buildImagePlaceholder()
-                  : LayoutBuilder(
-                      builder: (context, constraints) {
-                        final dpr = MediaQuery.of(context).devicePixelRatio;
-                        final cacheW = cacheDimension(
-                          constraints.maxWidth,
-                          dpr,
-                        );
-                        final cacheH = cacheDimension(
-                          constraints.maxHeight,
-                          dpr,
-                        );
-                        return CachedNetworkImage(
-                          imageUrl: spot.firstImage!,
-                          fit: BoxFit.cover,
-                          fadeInDuration: Duration.zero,
-                          fadeOutDuration: Duration.zero,
-                          // 관광공사 제공 사진 우하단에 로고가 찍혀있는 경우가
-                          // 많아서, 크롭이 생기더라도 그 모서리는 항상
-                          // 보존되도록 우하단 기준으로 자른다.
-                          alignment: Alignment.bottomRight,
-                          memCacheWidth: cacheW,
-                          memCacheHeight: cacheH,
-                          maxWidthDiskCache: cacheW,
-                          maxHeightDiskCache: cacheH,
-                          errorWidget: (context, url, error) =>
-                              _buildImagePlaceholder(),
-                          placeholder: (context, url) =>
-                              _buildImagePlaceholder(loading: true),
-                        );
-                      },
-                    ),
-            ),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            spot.title,
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          SizedBox(height: 4.h),
-          Text(
-            spot.addr1,
-            style: TextStyle(
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w300,
-              color: AppColors.textSecondary,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          if (spot.supportedProfiles.isNotEmpty) ...[
-            SizedBox(height: 6.h),
-            Row(
-              children: _kProfileOrder
-                  .where((p) => spot.supportedProfiles.contains(p))
-                  .map(
-                    (p) => Padding(
-                      padding: EdgeInsets.only(right: 4.w),
-                      child: Icon(
-                        p.icon,
-                        size: 14.r,
-                        color: AppColors.toggleUnselected,
+            AspectRatio(
+              aspectRatio: 172 / 113,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12.r),
+                child: spot.firstImage == null
+                    ? _buildImagePlaceholder()
+                    : LayoutBuilder(
+                        builder: (context, constraints) {
+                          final dpr = MediaQuery.of(context).devicePixelRatio;
+                          final cacheW = cacheDimension(
+                            constraints.maxWidth,
+                            dpr,
+                          );
+                          final cacheH = cacheDimension(
+                            constraints.maxHeight,
+                            dpr,
+                          );
+                          return CachedNetworkImage(
+                            imageUrl: spot.firstImage!,
+                            fit: BoxFit.cover,
+                            fadeInDuration: Duration.zero,
+                            fadeOutDuration: Duration.zero,
+                            // 관광공사 제공 사진 우하단에 로고가 찍혀있는 경우가
+                            // 많아서, 크롭이 생기더라도 그 모서리는 항상
+                            // 보존되도록 우하단 기준으로 자른다.
+                            alignment: Alignment.bottomRight,
+                            memCacheWidth: cacheW,
+                            memCacheHeight: cacheH,
+                            maxWidthDiskCache: cacheW,
+                            maxHeightDiskCache: cacheH,
+                            errorWidget: (context, url, error) =>
+                                _buildImagePlaceholder(),
+                            placeholder: (context, url) =>
+                                _buildImagePlaceholder(loading: true),
+                          );
+                        },
                       ),
-                    ),
-                  )
-                  .toList(),
+              ),
             ),
-          ],
+            SizedBox(height: 8.h),
+            Text(
+              spot.title,
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              spot.addr1,
+              style: TextStyle(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w300,
+                color: AppColors.textSecondary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (spot.supportedProfiles.isNotEmpty) ...[
+              SizedBox(height: 6.h),
+              Row(
+                children: _kProfileOrder
+                    .where((p) => spot.supportedProfiles.contains(p))
+                    .map(
+                      (p) => Padding(
+                        padding: EdgeInsets.only(right: 4.w),
+                        child: Icon(
+                          p.icon,
+                          size: 14.r,
+                          color: AppColors.toggleUnselected,
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
           ],
         ),
       ),

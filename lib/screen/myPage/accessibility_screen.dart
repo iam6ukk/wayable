@@ -18,7 +18,7 @@ const _kProfileOrder = [
 ];
 
 const _kCurrentStep = 1;
-const _kTotalSteps = 2;
+const _kTotalSteps = 4;
 
 class AccessibilityScreen extends ConsumerStatefulWidget {
   const AccessibilityScreen({super.key, required this.onComplete});
@@ -75,7 +75,15 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final nickname = ref.watch(authStateProvider).user?.nickname ?? '게스트';
+    // 이 화면도 마이페이지/온보딩 경로로만 들어오므로 user가 null인 경우는
+    // 실질적으로 없다 — SSO 프로필에 닉네임이 없는 회원을 게스트로 잘못
+    // 표시하지 않도록 구분한다(mypage_screen.dart와 동일한 이유).
+    final user = ref.watch(authStateProvider).user;
+    final nickname = user == null
+        ? '게스트'
+        : (user.nickname?.isNotEmpty ?? false)
+        ? user.nickname!
+        : '회원';
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -138,7 +146,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24.w),
               child: Text(
-                '$nickname님의 관심유형을 선택해 주세요.',
+                '$nickname님의 관심 유형을 선택해 주세요.',
                 style: TextStyle(
                   fontSize: 19.sp,
                   fontWeight: FontWeight.w500,
@@ -150,7 +158,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24.w),
               child: Text(
-                '선택해 주신 관심유형에 맞춰 추천해 드려요.',
+                '선택해 주신 관심 유형에 맞춰 추천해 드려요.',
                 style: TextStyle(
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w300,
@@ -258,9 +266,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                 child: Icon(
                   profile.icon,
                   size: 48.r,
-                  color: isSelected
-                      ? Colors.white
-                      : AppColors.toggleUnselected,
+                  color: isSelected ? Colors.white : AppColors.toggleUnselected,
                 ),
               ),
               SizedBox(height: 12.h),

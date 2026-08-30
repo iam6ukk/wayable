@@ -5,7 +5,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:wayable/utils/app_logger.dart';
 import 'package:wayable/widgets/app_dialog.dart';
 import '../../model/accessibility/accessibility_profile.dart';
+import '../../model/region/area_code.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/region/area_code_repository.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/toast.dart';
 import '../auth/login_screen.dart';
@@ -119,7 +121,15 @@ class MyPageScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authStateProvider).user;
-    final nickname = user?.nickname ?? '게스트';
+    // 마이페이지 탭 자체가 비로그인 사용자를 막아서(main_shell.dart의
+    // kMemberOnlyTabs 게이트) user가 null인 경우는 실질적으로 없고, 여기서
+    // '게스트'가 보일 수 있는 건 SSO 프로필에 닉네임이 없어 null로 들어온
+    // 회원뿐이다 — 그런 경우를 게스트로 잘못 표시하지 않도록 구분한다.
+    final nickname = user == null
+        ? '게스트'
+        : (user.nickname?.isNotEmpty ?? false)
+        ? user.nickname!
+        : '회원';
     final profiles = (user?.accessibilityProfiles ?? const [])
         .map(_profileFromName)
         .whereType<AccessibilityProfile>()
@@ -140,7 +150,7 @@ class MyPageScreen extends ConsumerWidget {
             ),
           ),
           SizedBox(height: 23.h),
-          _buildAccessibilityCard(context, profiles),
+          _buildAccessibilityCard(context, profiles, user?.interestSidoCode),
           SizedBox(height: 15.h),
           _buildSection(
             title: '내 설정',
@@ -197,6 +207,7 @@ class MyPageScreen extends ConsumerWidget {
   Widget _buildAccessibilityCard(
     BuildContext context,
     List<AccessibilityProfile> profiles,
+    String? interestSidoCode,
   ) {
     return Container(
       width: double.infinity,
@@ -228,6 +239,7 @@ class MyPageScreen extends ConsumerWidget {
             )
           else
             for (final profile in profiles) _buildProfileRow(profile),
+          if (interestSidoCode != null) _buildRegionRow(interestSidoCode),
           SizedBox(height: 16.h),
           Align(
             alignment: Alignment.centerRight,
@@ -260,6 +272,49 @@ class MyPageScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // 관심 지역(시/도)을 보여주는 행. 시/군구는 카드에는 안 보여준다(요청사항).
+  // area_codes.json에서 이름을 찾아야 해서(AreaCodeRepository.load) 비동기다
+  // — 이미 캐시된 뒤라면 다음 프레임에 바로 채워진다.
+  Widget _buildRegionRow(String interestSidoCode) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 10.h),
+      child: FutureBuilder<List<AreaCode>>(
+        future: AreaCodeRepository.load(),
+        builder: (context, snapshot) {
+          final areaCodes = snapshot.data ?? const [];
+          AreaCode? sido;
+          for (final area in areaCodes) {
+            if (area.code == interestSidoCode) {
+              sido = area;
+              break;
+            }
+          }
+          if (sido == null) return const SizedBox.shrink();
+          return Row(
+            children: [
+              ExcludeSemantics(
+                child: Icon(
+                  Icons.pin_drop_outlined,
+                  size: 18.r,
+                  color: AppColors.toggleUnselected,
+                ),
+              ),
+              SizedBox(width: 8.w),
+              Text(
+                sido.name,
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

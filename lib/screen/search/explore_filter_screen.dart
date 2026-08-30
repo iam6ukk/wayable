@@ -22,15 +22,21 @@ class ExploreFilterResult {
   const ExploreFilterResult({
     required this.selectedFields,
     required this.sido,
-    required this.sigungu,
+    required this.sigungus,
     required this.categories,
   });
 
   final Map<AccessibilityProfile, Set<AccessibilityField>> selectedFields;
   final AreaCode? sido;
-  final SigunguCode? sigungu;
+
+  /// 선택한 시/군구(최대 [kMaxInterestSigungu]개). 전부 [sido]에 속한다.
+  final Set<SigunguCode> sigungus;
   final Set<TourCategory> categories;
 }
+
+/// 관심 지역 시/군구를 최대 몇 개까지 고를 수 있는지. 접근성 프로필 설정
+/// 4단계(세부 지역 선택)와 같은 규칙을 쓴다.
+const kMaxInterestSigungu = 3;
 
 /// 맞춤 여행지 탐색의 상세 필터 선택 화면 (무장애정보/지역/카테고리 3탭).
 /// 무장애정보 탭은 기본 화면에서 활성화된 접근성 대분류에 한해서만 상세 필드를 보여준다.
@@ -40,7 +46,7 @@ class ExploreFilterScreen extends StatefulWidget {
     required this.activeProfiles,
     required this.initialSelectedFields,
     required this.initialSido,
-    required this.initialSigungu,
+    required this.initialSigungus,
     required this.initialCategories,
   });
 
@@ -48,7 +54,7 @@ class ExploreFilterScreen extends StatefulWidget {
   final Map<AccessibilityProfile, Set<AccessibilityField>>
   initialSelectedFields;
   final AreaCode? initialSido;
-  final SigunguCode? initialSigungu;
+  final Set<SigunguCode> initialSigungus;
   final Set<TourCategory> initialCategories;
 
   @override
@@ -58,7 +64,7 @@ class ExploreFilterScreen extends StatefulWidget {
 class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
   late Map<AccessibilityProfile, Set<AccessibilityField>> _selectedFields;
   AreaCode? _sido;
-  SigunguCode? _sigungu;
+  late Set<SigunguCode> _sigungus;
   late Set<TourCategory> _categories;
 
   List<AreaCode> _areaCodes = const [];
@@ -72,7 +78,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
         entry.key: {...entry.value},
     };
     _sido = widget.initialSido;
-    _sigungu = widget.initialSigungu;
+    _sigungus = {...widget.initialSigungus};
     _categories = {...widget.initialCategories};
     _loadAreaCodes();
   }
@@ -103,19 +109,22 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
 
   void _selectSido(AreaCode area) {
     setState(() {
-      if (_sido?.code == area.code) {
-        _sido = null;
-        _sigungu = null;
-      } else {
-        _sido = area;
-        _sigungu = null;
-      }
+      _sido = _sido?.code == area.code ? null : area;
+      // 시/도가 바뀌면 그 아래 골라뒀던 시/군구는 더 이상 유효하지 않다.
+      _sigungus = {};
     });
   }
 
   void _selectSigungu(SigunguCode sigungu) {
     setState(() {
-      _sigungu = _sigungu?.code == sigungu.code ? null : sigungu;
+      if (_sigungus.contains(sigungu)) {
+        _sigungus.remove(sigungu);
+        return;
+      }
+      // 최대 개수를 넘겨 고르려는 시도는 조용히 무시한다(이 화면은 바텀시트라
+      // 토스트를 띄울 자리가 마땅치 않다 — 4단계 마법사와 달리 여기선 그냥 무시).
+      if (_sigungus.length >= kMaxInterestSigungu) return;
+      _sigungus.add(sigungu);
     });
   }
 
@@ -133,7 +142,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
     setState(() {
       _selectedFields = {};
       _sido = null;
-      _sigungu = null;
+      _sigungus = {};
       _categories = {};
     });
   }
@@ -143,7 +152,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
       ExploreFilterResult(
         selectedFields: _selectedFields,
         sido: _sido,
-        sigungu: _sigungu,
+        sigungus: _sigungus,
         categories: _categories,
       ),
     );
@@ -178,7 +187,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
                     ),
                     tabs: [
                       Tab(
-                        text: _tabLabel('편의정보', _accessibilitySelectionCount),
+                        text: _tabLabel('편의 정보', _accessibilitySelectionCount),
                       ),
                       Tab(text: _tabLabel('지역', _regionSelectionCount)),
                       Tab(text: _tabLabel('카테고리', _categories.length)),
@@ -209,8 +218,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
   int get _accessibilitySelectionCount =>
       _selectedFields.values.where((fields) => fields.isNotEmpty).length;
 
-  int get _regionSelectionCount =>
-      (_sido != null ? 1 : 0) + (_sigungu != null ? 1 : 0);
+  int get _regionSelectionCount => (_sido != null ? 1 : 0) + _sigungus.length;
 
   String _tabLabel(String label, int count) =>
       count > 0 ? '$label $count' : label;
@@ -253,7 +261,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
         child: Padding(
           padding: EdgeInsets.all(24.r),
           child: Text(
-            '탐색 화면에서 접근성 대분류를 먼저 선택해 주세요.',
+            '탐색 화면에서 접근성 유형을 먼저 선택해 주세요.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 14.sp, color: AppColors.textQuaternary),
           ),
@@ -282,7 +290,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
             Icon(profile.icon, size: 24.r, color: AppColors.primary),
             SizedBox(width: 6.w),
             Text(
-              '편의정보 > ${profile.label}',
+              '편의 정보 > ${profile.label}',
               style: TextStyle(
                 fontSize: 13.sp,
                 fontWeight: FontWeight.w600,
@@ -358,7 +366,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
                 .map(
                   (sigungu) => _chip(
                     label: sigungu.name,
-                    isSelected: _sigungu?.code == sigungu.code,
+                    isSelected: _sigungus.contains(sigungu),
                     onTap: () => _selectSigungu(sigungu),
                   ),
                 )
@@ -463,9 +471,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(20.r),
             border: Border.all(
-              color: isSelected
-                  ? AppColors.textPrimary
-                  : AppColors.boldDivider,
+              color: isSelected ? AppColors.textPrimary : AppColors.boldDivider,
               width: isSelected ? 1 : 0.5,
               strokeAlign: BorderSide.strokeAlignInside,
             ),
@@ -477,7 +483,10 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
                 opacity: 0,
                 child: Text(
                   label,
-                  style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
               Text(

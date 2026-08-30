@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:geolocator/geolocator.dart';
@@ -81,17 +83,32 @@ class TourSpotService {
     }
   }
 
-  /// 홈 화면 "발견 여행지" 새로고침용 반경 검색. `basic.mapY`(위도) 범위로
-  /// Firestore에서 1차로 걸러 후보군을 가져온 뒤, 그 안에서 실제 좌표 거리
-  /// (위도+경도 모두 사용)로 [radiusKm] 원 안에 드는지 다시 정밀 필터링한다.
-  /// 위도 범위만으로는 같은 위도라도 경도가 먼 지점이 섞여 들어오기 때문에
-  /// 클라이언트 정밀 필터가 필수다. 랜덤 선택은 호출부(home_screen.dart)의
-  /// 책임이라 여기서는 후보 리스트만 반환한다.
+  /// 홈 화면 "발견 여행지" 초기 로드/새로고침용 반경 검색. `basic.mapY`(위도)
+  /// 범위로 Firestore에서 1차로 걸러 후보군을 가져온 뒤, 그 안에서 실제
+  /// 좌표 거리(위도+경도 모두 사용)로 [radiusKm] 원 안에 드는지 다시 정밀
+  /// 필터링한다. 위도 범위만으로는 같은 위도라도 경도가 먼 지점이 섞여
+  /// 들어오기 때문에 클라이언트 정밀 필터가 필수다. 랜덤 선택은 호출부
+  /// (home_screen.dart)의 책임이라 여기서는 후보 리스트만 반환한다.
+  ///
+  /// [limit]은 정렬 없이 그냥 상한만 거는 것이라 "가장 가까운 N개" 보장은
+  /// 없다 — 호출부가 이 안에서 무작위로 하나를 뽑는 용도(추천)라 어차피
+  /// 순서가 중요하지 않아서 괜찮다. "정확히 가장 가까운 N개"가 필요한
+  /// 곳(지도 화면 등)에는 이 파라미터를 그대로 쓰면 안 된다.
+  ///
+  /// Firestore는 range 필터(`isGreaterThan`/`isLessThan`)를 쓰면 orderBy를
+  /// 안 줘도 그 필드(mapY) 기준 오름차순으로 암묵 정렬한다. 그 상태로
+  /// limit만 걸면 매번 반경의 남쪽 끝 [limit]건만 고정으로 받아오게 되어
+  /// (풀이 [limit]건보다 크면 북쪽 절반은 후보에 아예 못 들어옴), 결과가
+  /// 매번 특정 방향으로 쏠린다. Firestore가 "완전 무작위 N건" 쿼리 자체를
+  /// 지원하지 않아 진짜 균등 샘플링은 안 되지만, 호출마다 오름차순/
+  /// 내림차순을 무작위로 바꿔 남쪽/북쪽 끝을 번갈아 받아오는 것만으로도
+  /// "항상 같은 쪽으로 고정" 문제는 없앨 수 있다.
   Future<List<TourSpot>> searchNearby({
     required double centerLat,
     required double centerLng,
     double radiusKm = 100,
     String? excludeSpotId,
+    int limit = 200,
   }) async {
     try {
       // 위도 1도 ≈ 111km.
@@ -99,6 +116,8 @@ class TourSpotService {
       final snapshot = await _collection
           .where('basic.mapY', isGreaterThan: centerLat - latDelta)
           .where('basic.mapY', isLessThan: centerLat + latDelta)
+          .orderBy('basic.mapY', descending: Random().nextBool())
+          .limit(limit)
           .get();
 
       final radiusMeters = radiusKm * 1000;

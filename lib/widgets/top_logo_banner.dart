@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../theme/app_colors.dart';
 
 /// 상단 로고 배너. 화면 최상단에 고정으로 붙는 공통 헤더.
@@ -25,8 +26,8 @@ class TopLogoBanner extends StatelessWidget {
         height: kToolbarHeight.h,
         child: Center(
           child: ExcludeSemantics(
-            child: Image.asset(
-              'assets/images/common/wayable.png',
+            child: SvgPicture.asset(
+              'assets/images/common/wayable.svg',
               height: 28.h,
             ),
           ),
