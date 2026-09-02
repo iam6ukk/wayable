@@ -102,6 +102,11 @@ class KakaoAuthService {
 
   // 회원탈퇴
   // 북마크 삭제 → Firestore 유저 문서 삭제 → Firebase 계정 삭제 → 카카오 연결 해제
+  //
+  // user.delete()까지 성공했다면 탈퇴는 이미 끝난 것으로 본다. 그 뒤의
+  // unlink()(카카오 쪽 연결 해제)는 부수적인 뒷정리라, 이게 실패해도 전체를
+  // 실패로 리턴하면 안 된다 — 구글 쪽과 같은 이유(google_auth_service.dart
+  // deleteAccount 참고).
   Future<bool> deleteAccount() async {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -112,10 +117,24 @@ class KakaoAuthService {
         await _userService.deleteUser(uid);
       }
 
-      await FirebaseAuth.instance.currentUser?.delete();
-      await kakao.UserApi.instance.unlink();
-      // 카카오 unlink를 먼저 하면 세션은 남았는데 앱-계정 연결만 끊김
-      // 이후 재로그인 시 데이터 정리가 애매해져 마지막에 수행
+      try {
+        await FirebaseAuth.instance.currentUser?.delete();
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'requires-recent-login') {
+          await _reauthenticateKakao();
+          await FirebaseAuth.instance.currentUser?.delete();
+        } else {
+          rethrow;
+        }
+      }
+
+      try {
+        await kakao.UserApi.instance.unlink();
+        // 카카오 unlink를 먼저 하면 세션은 남았는데 앱-계정 연결만 끊김
+        // 이후 재로그인 시 데이터 정리가 애매해져 마지막에 수행
+      } catch (e) {
+        AppLogger.error('[Auth] 카카오 연결 해제 실패 (계정 탈퇴 자체는 완료됨)', error: e);
+      }
 
       AppLogger.info('[Auth] 카카오 회원탈퇴 완료');
       return true;
@@ -123,6 +142,33 @@ class KakaoAuthService {
       AppLogger.error('[Auth] 카카오 회원탈퇴 실패', error: e);
       return false;
     }
+  }
+
+  // Firebase 계정 삭제는 Custom Token 로그인이라 reauthenticateWithCredential을
+  // 못 쓴다(표준 프로바이더 크리덴셜이 아니라서). 대신 로그인 때와 동일하게
+  // 카카오 토큰을 새로 받아 kakaoCustomToken 함수로 새 Firebase Custom Token을
+  // 발급받고, 그걸로 다시 signInWithCustomToken 해서 세션(최근 로그인 시각)을
+  // 갱신한다.
+  Future<void> _reauthenticateKakao() async {
+    kakao.OAuthToken token;
+    if (await kakao.isKakaoTalkInstalled()) {
+      try {
+        token = await kakao.UserApi.instance.loginWithKakaoTalk();
+      } catch (error) {
+        token = await kakao.UserApi.instance.loginWithKakaoAccount();
+      }
+    } else {
+      token = await kakao.UserApi.instance.loginWithKakaoAccount();
+    }
+
+    final result = await FirebaseFunctions.instanceFor(
+      region: 'asia-northeast3',
+    ).httpsCallable('kakaoCustomToken').call({
+      'kakaoAccessToken': token.accessToken,
+    });
+    final firebaseToken = result.data['firebaseToken'];
+
+    await FirebaseAuth.instance.signInWithCustomToken(firebaseToken);
   }
 
   // 로그아웃

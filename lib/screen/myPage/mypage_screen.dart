@@ -81,10 +81,14 @@ class MyPageScreen extends ConsumerWidget {
     if (!context.mounted) return;
 
     if (success) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
+      // 회원탈퇴 쪽과 같은 이유로 한 프레임 미룬다(_handleDeleteAccount 참고).
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
+      });
     } else {
       showAndroidToast(context, '로그아웃에 실패했습니다. 다시 시도해 주세요.');
     }
@@ -109,10 +113,19 @@ class MyPageScreen extends ConsumerWidget {
     if (!context.mounted) return;
 
     if (success) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
+      // 탈퇴 처리 중 카카오/구글 재인증으로 외부 액티비티(카카오톡, 계정 선택
+      // 팝업 등)에 갔다가 앱으로 막 돌아온 직후라, 그 복귀로 인한 위젯 정리가
+      // 이 프레임에서 아직 안 끝났을 수 있다. 그 상태에서 바로
+      // pushAndRemoveUntil로 여러 라우트를 한꺼번에 갈아치우면 위젯 트리
+      // 정리가 꼬여 크래시가 날 수 있어(_dependents.isEmpty), 한 프레임
+      // 미뤄서 그 정리가 끝난 뒤에 안전하게 전환한다.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
+      });
     } else {
       showAndroidToast(context, '회원 탈퇴에 실패했습니다. 다시 시도해 주세요.');
     }
