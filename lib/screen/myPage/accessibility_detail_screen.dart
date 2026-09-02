@@ -7,6 +7,7 @@ import '../../model/accessibility/accessibility_profile.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_dialog.dart';
+import 'accessibility_profile_save.dart';
 import 'accessibility_region_screen.dart';
 
 const _kProfileOrder = [
@@ -97,16 +98,25 @@ class _AccessibilityDetailScreenState
     });
   }
 
-  // 건너뛰기 시 다이얼로그
+  // 건너뛰기 시 다이얼로그 — 지금까지(1단계에서 고른 유형) 입력한 내용은
+  // 저장하고 나간다. 편의정보를 아직 안 고른 대분류는 _resolveFieldsByProfile이
+  // 자동으로 빈 리스트(=전체)로 처리한다.
   Future<void> _handleSkip(BuildContext context) async {
     final skip = await showTwoButtonDialog(
       context,
-      title: '접근성 프로필을 설정하면 나에게 맞는\n장소를 쉽게 찾을 수 있습니다.',
-      content: '마이페이지에서 언제든 접근성 프로필을\n수정할 수 있습니다.',
+      title: '건너뛰기 시 지금까지 설정한 내용만 저장됩니다.',
+      content: '마이페이지에서 다시 수정할 수 있습니다.',
       primaryLabel: '건너뛰기',
       secondaryLabel: '취소',
     );
     if (skip != true || !context.mounted) return;
+    await saveAccessibilityProfile(
+      ref,
+      accessibilityFieldsByProfile: _resolveFieldsByProfile(
+        widget.selectedProfiles.toList(),
+      ),
+    );
+    if (!context.mounted) return;
     widget.onComplete();
   }
 

@@ -8,6 +8,7 @@ import '../../theme/app_colors.dart';
 import '../../widgets/app_dialog.dart';
 import '../../widgets/loading_overlay.dart';
 import '../../widgets/toast.dart';
+import 'accessibility_profile_save.dart';
 import 'accessibility_subregion_screen.dart';
 
 const _kCurrentStep = 3;
@@ -73,16 +74,22 @@ class _AccessibilityRegionScreenState
     });
   }
 
-  // 건너뛰기 시 다이얼로그
+  // 건너뛰기 시 다이얼로그 — 지금까지(1~2단계 유형/편의정보) 입력한 내용은
+  // 저장하고 나간다. 시/도를 아직 안 골랐으니 지역 필드는 건드리지 않는다.
   Future<void> _handleSkip(BuildContext context) async {
     final skip = await showTwoButtonDialog(
       context,
-      title: '접근성 프로필을 설정하면 나에게 맞는\n장소를 쉽게 찾을 수 있습니다.',
-      content: '마이페이지에서 언제든 접근성 프로필을\n수정할 수 있습니다.',
+      title: '건너뛰기 시 지금까지 설정한 내용만 저장됩니다.',
+      content: '마이페이지에서 다시 수정할 수 있습니다.',
       primaryLabel: '건너뛰기',
       secondaryLabel: '취소',
     );
     if (skip != true || !context.mounted) return;
+    await saveAccessibilityProfile(
+      ref,
+      accessibilityFieldsByProfile: widget.accessibilityFieldsByProfile,
+    );
+    if (!context.mounted) return;
     widget.onComplete();
   }
 

@@ -513,13 +513,24 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
     final baseFontSize = designFontSize.sp;
     final availableWidth = 67.8.w - 24.w;
     final textScaler = MediaQuery.textScalerOf(context);
+    // 실제 라벨 Text(줄 548 부근)는 fontSize/fontWeight만 지정하고 나머지는
+    // 앱 전역 테마의 DefaultTextStyle과 merge된다 — Material3 기본
+    // TextTheme엔 letterSpacing이 스케일마다 붙어있어서(예: bodyMedium
+    // 0.25), 이걸 빼고 fontSize/fontWeight만으로 측정하면 실제보다 좁게
+    // 측정돼(글자 수가 많을수록 누적 오차가 커짐) 계산한 배율로 줄여도
+    // 실제 렌더링에서는 넘쳐 잘리는 문제가 있었다. 실제 Text와 똑같이
+    // DefaultTextStyle을 merge해서 측정해야 letterSpacing 등 상속되는
+    // 속성까지 정확히 일치한다.
+    final baseStyle = DefaultTextStyle.of(context).style.merge(
+      const TextStyle(fontWeight: FontWeight.w500, fontFamily: 'Pretendard'),
+    );
 
     var maxWidth = 0.0;
     for (final field in fields) {
       final painter = TextPainter(
         text: TextSpan(
           text: field.label,
-          style: TextStyle(fontSize: baseFontSize, fontWeight: FontWeight.w500),
+          style: baseStyle.copyWith(fontSize: baseFontSize),
         ),
         textDirection: TextDirection.ltr,
         textScaler: textScaler,
@@ -527,8 +538,16 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
       if (painter.width > maxWidth) maxWidth = painter.width;
     }
 
-    if (maxWidth <= availableWidth) return baseFontSize;
-    return baseFontSize * (availableWidth / maxWidth);
+    // TextPainter로 잰 값과 실제 렌더링(Skia) 사이엔 서브픽셀 반올림 오차가
+    // 있을 수 있는데, 배율을 오차 없이 꽉 채우게(margin 0) 계산하면 실제
+    // 렌더링에서 아주 살짝(0.1px 미만) 넘치는 경우가 생긴다. 한 줄에서
+    // 살짝 넘친 만큼만 픽셀이 잘리는 게 아니라, softWrap 때문에 넘친 글자가
+    // 통째로 다음 줄로 밀렸다가 maxLines: 1에 의해 그 줄 전체가 사라지는
+    // 현상으로 나타난다(글자 일부가 아니라 마지막 글자 전체가 안 보임).
+    // 96%만 채우도록 여유를 둬서 이 경계 케이스를 없앤다.
+    final safeAvailableWidth = availableWidth * 0.96;
+    if (maxWidth <= safeAvailableWidth) return baseFontSize;
+    return baseFontSize * (safeAvailableWidth / maxWidth);
   }
 
   Widget _facilityFieldRow(FacilityFieldSpec spec, double labelFontSize) {
@@ -548,6 +567,12 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
             child: Text(
               spec.label,
               maxLines: 1,
+              // 계산한 폭에 살짝이라도 못 미치면(서브픽셀 오차 등) 줄바꿈으로
+              // 마지막 글자 전체가 다음 줄로 밀렸다가 maxLines: 1에 잘려
+              // 통째로 사라지는 문제가 있었다. 줄바꿈 자체를 막아서, 혹시
+              // 넘치더라도 글자가 사라지는 대신 눈에 덜 띄게 살짝 잘리는
+              // 정도로만 나오게 한다.
+              softWrap: false,
               style: TextStyle(
                 fontSize: labelFontSize,
                 fontWeight: FontWeight.w500,

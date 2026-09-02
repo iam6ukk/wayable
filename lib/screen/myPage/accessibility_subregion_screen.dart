@@ -3,11 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../model/region/area_code.dart';
 import '../../providers/auth_provider.dart';
-import '../../services/user_service.dart';
 import '../../theme/app_colors.dart';
-import '../../utils/app_logger.dart';
 import '../../widgets/app_dialog.dart';
 import '../../widgets/toast.dart';
+import 'accessibility_profile_save.dart';
 
 const _kCurrentStep = 4;
 const _kTotalSteps = 4;
@@ -41,8 +40,11 @@ class AccessibilitySubregionScreen extends ConsumerStatefulWidget {
 
 class _AccessibilitySubregionScreenState
     extends ConsumerState<AccessibilitySubregionScreen> {
-  final _userService = UserService();
   final Set<SigunguCode> _selected = {};
+  // 세부 지역 없이 시/도 전체를 관심 지역으로 삼고 싶다는 피드백에 따라 추가한
+  // "전체" 옵션. accessibility_detail_screen.dart의 _selectAllProfiles와 같은
+  // 패턴 — 개별 선택과는 상호 배타적이다.
+  bool _selectAll = false;
 
   @override
   void initState() {
@@ -52,6 +54,11 @@ class _AccessibilitySubregionScreenState
     final user = ref.read(authStateProvider).user;
     if (user?.interestSidoCode != widget.sido.code) return;
     final savedCodes = user?.interestSigunguCodes ?? const [];
+    if (savedCodes.isEmpty) {
+      // 같은 시/도인데 저장된 세부 지역이 없다는 건 이전에 "전체"로 저장했다는 뜻.
+      _selectAll = true;
+      return;
+    }
     _selected.addAll(
       widget.sido.sigungu.where((sg) => savedCodes.contains(sg.code)),
     );
@@ -59,6 +66,7 @@ class _AccessibilitySubregionScreenState
 
   void _toggleSelection(SigunguCode sigungu) {
     setState(() {
+      _selectAll = false;
       if (_selected.contains(sigungu)) {
         _selected.remove(sigungu);
         return;
@@ -71,49 +79,64 @@ class _AccessibilitySubregionScreenState
     });
   }
 
-  // 건너뛰기 시 다이얼로그
+  void _toggleSelectAll() {
+    setState(() {
+      if (_selectAll) {
+        _selectAll = false;
+      } else {
+        _selectAll = true;
+        // '전체'를 고르면 개별로 골라둔 세부 지역은 해제
+        _selected.clear();
+      }
+    });
+  }
+
+  // 건너뛰기 시 다이얼로그 — 지금까지(1~3단계 유형/편의정보/시·도) 입력한
+  // 내용은 저장하고 나간다. 세부 지역만 건너뛰는 셈이라 "전체"와 동일하게
+  // 빈 리스트로 저장한다.
   Future<void> _handleSkip(BuildContext context) async {
     final skip = await showTwoButtonDialog(
       context,
-      title: '접근성 프로필을 설정하면 나에게 맞는\n장소를 쉽게 찾을 수 있습니다.',
-      content: '마이페이지에서 언제든 접근성 프로필을\n수정할 수 있습니다.',
+      title: '건너뛰기 시 지금까지 설정한 내용만 저장됩니다.',
+      content: '마이페이지에서 다시 수정할 수 있습니다.',
       primaryLabel: '건너뛰기',
       secondaryLabel: '취소',
     );
     if (skip != true || !context.mounted) return;
+    await saveAccessibilityProfile(
+      ref,
+      accessibilityFieldsByProfile: widget.accessibilityFieldsByProfile,
+      interestSidoCode: widget.sido.code,
+      interestSigunguCodes: const [],
+    );
+    if (!context.mounted) return;
     widget.onComplete();
   }
 
   Future<void> _handleSave() async {
-    if (_selected.isEmpty) {
-      showAndroidToast(context, '지역을 최소 1개 이상 선택해 주세요.');
-      return;
+    if (!_selectAll && _selected.isEmpty) {
+      final confirmed = await showTwoButtonDialog(
+        context,
+        content: '세부 지역을 선택하지 않은 경우,\n전체 지역을 기준으로 정보가 제공됩니다.',
+        primaryLabel: '확인',
+        secondaryLabel: '취소',
+      );
+      if (confirmed != true || !mounted) return;
     }
 
-    final currentUser = ref.read(authStateProvider).user;
-    if (currentUser == null) {
-      AppLogger.error('[AccessibilitySubregionScreen] 로그인된 유저 정보가 없어 저장을 건너뜀');
-      if (!mounted) return;
-      widget.onComplete();
-      return;
-    }
-
-    final updatedUser = currentUser.copyWith(
+    final saved = await saveAccessibilityProfile(
+      ref,
       accessibilityFieldsByProfile: widget.accessibilityFieldsByProfile,
       interestSidoCode: widget.sido.code,
       interestSigunguCodes: _selected.map((sg) => sg.code).toList(),
     );
 
-    try {
-      await _userService.updateUser(updatedUser);
-      ref.read(authStateProvider.notifier).setUser(updatedUser);
-    } catch (e) {
-      if (!mounted) return;
+    if (!mounted) return;
+    if (!saved) {
       await showInfoDialog(context, content: '저장에 실패했습니다.\n다시 시도해 주세요.');
       return;
     }
 
-    if (!mounted) return;
     await showInfoDialog(
       context,
       content: '접근성 프로필이 저장됐습니다.\n마이페이지에서 수정할 수 있습니다.',
@@ -250,9 +273,12 @@ class _AccessibilitySubregionScreenState
                 child: Wrap(
                   spacing: 10.w,
                   runSpacing: 10.h,
-                  children: widget.sido.sigungu
-                      .map((sigungu) => _buildChip(sigungu))
-                      .toList(),
+                  children: [
+                    _buildSelectAllChip(),
+                    ...widget.sido.sigungu.map(
+                      (sigungu) => _buildChip(sigungu),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -284,6 +310,34 @@ class _AccessibilitySubregionScreenState
             ),
             SizedBox(height: 24.h),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectAllChip() {
+    return Semantics(
+      label: '전체',
+      button: true,
+      selected: _selectAll,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: _toggleSelectAll,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+          decoration: BoxDecoration(
+            color: _selectAll ? AppColors.primary : AppColors.surfaceCircle,
+            borderRadius: BorderRadius.circular(22.r),
+          ),
+          child: Text(
+            '전체',
+            style: TextStyle(
+              fontSize: 12.sp,
+              fontWeight: _selectAll ? FontWeight.w500 : FontWeight.w300,
+              color: _selectAll ? Colors.white : AppColors.textSecondary,
+            ),
+          ),
         ),
       ),
     );
