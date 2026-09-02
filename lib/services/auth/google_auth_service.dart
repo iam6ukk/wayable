@@ -136,6 +136,10 @@ class GoogleAuthService {
   }
 
   Future<void> _reauthenticateGoogle(User? user) async {
+    // 세션이 앱 재시작으로 복원된 경우(자동 로그인) 이번 실행에서
+    // GoogleSignIn.initialize()가 아직 호출되지 않았을 수 있다 — 이 상태로
+    // authenticate()를 바로 부르면 serverClientId 미설정 에러가 난다.
+    await initGoogleSignIn();
     final googleUser = await GoogleSignIn.instance.authenticate();
     final googleAuth = googleUser.authentication;
     final credential = GoogleAuthProvider.credential(
