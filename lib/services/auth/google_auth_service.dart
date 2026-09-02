@@ -92,6 +92,12 @@ class GoogleAuthService {
 
   // 회원탈퇴
   // 북마크 삭제 → Firestore 유저 문서 삭제 → Firebase 계정 삭제 → 구글 연결 해제
+  //
+  // user.delete()까지 성공했다면 탈퇴는 이미 끝난 것으로 본다. 그 뒤의
+  // GoogleSignIn.disconnect()(구글 쪽 연결 해제)는 부수적인 뒷정리라, 이게
+  // 실패해도 전체를 실패로 리턴하면 안 된다 — 계정/데이터는 이미 다
+  // 지워졌는데 사용자에게는 "탈퇴 실패"로 잘못 보고되고, 재시도해도 이미
+  // 지워진 계정이라 매번 같은 실패가 반복되는 상태에 갇히기 때문이다.
   Future<bool> deleteAccount() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -115,7 +121,11 @@ class GoogleAuthService {
         }
       }
 
-      await GoogleSignIn.instance.disconnect();
+      try {
+        await GoogleSignIn.instance.disconnect();
+      } catch (e) {
+        AppLogger.error('[Auth] 구글 연결 해제 실패 (계정 탈퇴 자체는 완료됨)', error: e);
+      }
 
       AppLogger.info('[Auth] 구글 회원탈퇴 완료');
       return true;
@@ -126,6 +136,10 @@ class GoogleAuthService {
   }
 
   Future<void> _reauthenticateGoogle(User? user) async {
+    // 세션이 앱 재시작으로 복원된 경우(자동 로그인) 이번 실행에서
+    // GoogleSignIn.initialize()가 아직 호출되지 않았을 수 있다 — 이 상태로
+    // authenticate()를 바로 부르면 serverClientId 미설정 에러가 난다.
+    await initGoogleSignIn();
     final googleUser = await GoogleSignIn.instance.authenticate();
     final googleAuth = googleUser.authentication;
     final credential = GoogleAuthProvider.credential(
