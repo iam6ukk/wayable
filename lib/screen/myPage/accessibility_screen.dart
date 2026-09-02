@@ -65,7 +65,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
     final skip = await showTwoButtonDialog(
       context,
       title: '접근성 프로필을 설정하면 나에게 맞는\n장소를 쉽게 찾을 수 있습니다.',
-      content: '마이페이지에서 언제든 접근성 프로필을\n수정할 수 있습니다.',
+      content: '마이페이지에서 다시 수정할 수 있습니다.',
       primaryLabel: '건너뛰기',
       secondaryLabel: '취소',
     );
