@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wayable/utils/app_logger.dart';
@@ -9,6 +10,7 @@ import '../../model/region/area_code.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/region/area_code_repository.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/loading_overlay.dart';
 import '../../widgets/toast.dart';
 import '../auth/login_screen.dart';
 import 'accessibility_screen.dart';
@@ -19,6 +21,11 @@ const _privacyPolicyUrl =
     'https://tattered-kookaburra-e94.notion.site/Wayable-3b49b554d701800189f1faf79b9d16ed';
 const _termsOfServiceUrl =
     'https://tattered-kookaburra-e94.notion.site/Wayable-3b49b554d70180cd99d0ec6cfb850997';
+
+// 회원탈퇴 중(특히 세션이 오래돼 재인증이 필요한 경우) 랜딩 화면으로 넘어가기
+// 전까지 1~3초 정도 걸릴 수 있어서, 그동안 화면이 멈춘 것처럼 보이지 않게
+// 로딩 오버레이를 띄운다. 로그아웃은 즉시 전환되니 대상에서 뺐다.
+final _isDeletingAccountProvider = StateProvider<bool>((ref) => false);
 
 AccessibilityProfile? _profileFromName(String name) {
   for (final profile in AccessibilityProfile.values) {
@@ -108,7 +115,9 @@ class MyPageScreen extends ConsumerWidget {
       return;
     }
 
+    ref.read(_isDeletingAccountProvider.notifier).state = true;
     final success = await ref.read(authStateProvider.notifier).deleteAccount();
+    ref.read(_isDeletingAccountProvider.notifier).state = false;
 
     if (!context.mounted) return;
 
@@ -133,6 +142,7 @@ class MyPageScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDeletingAccount = ref.watch(_isDeletingAccountProvider);
     final user = ref.watch(authStateProvider).user;
     // 마이페이지 탭 자체가 비로그인 사용자를 막아서(main_shell.dart의
     // kMemberOnlyTabs 게이트) user가 null인 경우는 실질적으로 없고, 여기서
@@ -148,71 +158,83 @@ class MyPageScreen extends ConsumerWidget {
         .whereType<AccessibilityProfile>()
         .toList();
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(height: 24.h),
-          Text(
-            '안녕하세요, $nickname님!',
-            style: TextStyle(
-              fontSize: 19.sp,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          SizedBox(height: 23.h),
-          _buildAccessibilityCard(context, profiles, user?.interestSidoCode),
-          SizedBox(height: 15.h),
-          _buildSection(
-            title: '내 설정',
-            items: [
-              _MenuEntry(
-                '접근성 프로필 설정',
-                () => _openAccessibilitySetting(context),
-              ),
-            ],
-          ),
-          _buildSection(
-            title: '정보 안내',
-            items: [
-              _MenuEntry('오픈소스 라이브러리', () => _openOpenSourceLicenses(context)),
-              _MenuEntry(
-                '이용약관',
-                () => _openExternalLink(context, _termsOfServiceUrl),
-              ),
-              _MenuEntry(
-                '개인정보처리방침',
-                () => _openExternalLink(context, _privacyPolicyUrl),
-              ),
-            ],
-          ),
-          _buildSection(
-            title: '참여 및 문의',
-            items: [
-              _MenuEntry('자주 묻는 질문', () => _openFaq(context)),
-              _MenuEntry(
-                '문의하기',
-                () => _openExternalLink(context, _inquiryFormUrl),
-              ),
-            ],
-          ),
-          SizedBox(height: 11.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+    return Stack(
+      children: [
+        SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildTextAction('로그아웃', () => _handleLogout(context, ref)),
-              SizedBox(width: 96.w),
-              _buildTextAction(
-                '회원탈퇴',
-                () => _handleDeleteAccount(context, ref),
+              SizedBox(height: 24.h),
+              Text(
+                '안녕하세요, $nickname님!',
+                style: TextStyle(
+                  fontSize: 19.sp,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
               ),
+              SizedBox(height: 23.h),
+              _buildAccessibilityCard(
+                context,
+                profiles,
+                user?.interestSidoCode,
+              ),
+              SizedBox(height: 15.h),
+              _buildSection(
+                title: '내 설정',
+                items: [
+                  _MenuEntry(
+                    '접근성 프로필 설정',
+                    () => _openAccessibilitySetting(context),
+                  ),
+                ],
+              ),
+              _buildSection(
+                title: '정보 안내',
+                items: [
+                  _MenuEntry(
+                    '오픈소스 라이브러리',
+                    () => _openOpenSourceLicenses(context),
+                  ),
+                  _MenuEntry(
+                    '이용약관',
+                    () => _openExternalLink(context, _termsOfServiceUrl),
+                  ),
+                  _MenuEntry(
+                    '개인정보처리방침',
+                    () => _openExternalLink(context, _privacyPolicyUrl),
+                  ),
+                ],
+              ),
+              _buildSection(
+                title: '참여 및 문의',
+                items: [
+                  _MenuEntry('자주 묻는 질문', () => _openFaq(context)),
+                  _MenuEntry(
+                    '문의하기',
+                    () => _openExternalLink(context, _inquiryFormUrl),
+                  ),
+                ],
+              ),
+              SizedBox(height: 11.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildTextAction('로그아웃', () => _handleLogout(context, ref)),
+                  SizedBox(width: 96.w),
+                  _buildTextAction(
+                    '회원탈퇴',
+                    () => _handleDeleteAccount(context, ref),
+                  ),
+                ],
+              ),
+              SizedBox(height: 24.h),
             ],
           ),
-          SizedBox(height: 24.h),
-        ],
-      ),
+        ),
+        if (isDeletingAccount) const LoadingOverlay(),
+      ],
     );
   }
 

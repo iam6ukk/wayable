@@ -351,7 +351,7 @@ class _ExploreFilterScreenState extends State<ExploreFilterScreen> {
         if (_sido != null) ...[
           SizedBox(height: 28.h),
           Text(
-            '2차 지역',
+            '2차 지역 (최대 3개 선택)',
             style: TextStyle(
               fontSize: 13.sp,
               fontWeight: FontWeight.w600,
