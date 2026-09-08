@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../model/accessibility/accessibility_field.dart';
@@ -66,6 +67,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   final _service = TourSpotService();
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
+
+  /// 페이지네이션 클릭 시 이 위치(검색 결과 N건)를 화면 상단에 맞춰
+  /// 스크롤한다 — 맨 위(접근성 대분류/필터)까지 올라가버리면 사용자가
+  /// 매번 다시 내려서 결과를 봐야 하는 불편함이 있었다.
+  final _resultCountKey = GlobalKey();
 
   /// 서버(Cloud Function)가 검색어/필터를 다 적용해서 돌려준 현재 배치
   /// (최대 _kBatchSize건). [_pageItems]가 이 안에서 _kPageSize씩 잘라 보여준다.
@@ -477,24 +483,30 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       });
     }
 
-    _scrollController.animateTo(
-      0,
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
-    );
+    // 맨 위(접근성 대분류/필터)까지 스크롤하지 않고, "검색 결과 N건"이
+    // 화면 상단 쪽에 오도록만 이동한다. Scrollable.ensureVisible(alignment: 0)은
+    // 뷰포트 맨 위에 완전히 붙여버려 답답해 보여서, 화면 맨 위 여백(24.h)과
+    // 같은 만큼 위쪽에 여백을 남기고 그 아래에 오도록 오프셋을 직접 계산한다.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final renderObject = _resultCountKey.currentContext?.findRenderObject();
+      if (renderObject == null || !_scrollController.hasClients) return;
+      final viewport = RenderAbstractViewport.of(renderObject);
+      final revealOffset = viewport.getOffsetToReveal(renderObject, 0).offset;
+      final destination = (revealOffset - 24.h).clamp(
+        0.0,
+        _scrollController.position.maxScrollExtent,
+      );
+      _scrollController.animateTo(
+        destination,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   void _scrollToTop() {
     _scrollController.animateTo(
       0,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
-    );
-  }
-
-  void _scrollToBottom() {
-    _scrollController.animateTo(
-      _scrollController.position.maxScrollExtent,
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
     );
@@ -526,24 +538,16 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     return Stack(
       children: [
         Positioned.fill(child: _buildScrollableContent()),
+        // 페이지네이션 이동 시 "검색 결과 N건" 위치로 스크롤해주기 때문에
+        // 맨 아래로 이동은 더 이상 필요 없어져서 뺐다 — 맨 위로 이동 버튼만
+        // 남기고, 원래 두 버튼 중 아래쪽(맨 아래로 이동) 자리에 그대로 둔다.
         Positioned(
           right: 20.w,
           bottom: 20.h,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ScrollFab(
-                icon: Icons.north,
-                semanticLabel: '맨 위로 이동',
-                onTap: _scrollToTop,
-              ),
-              SizedBox(height: 11.h),
-              ScrollFab(
-                icon: Icons.south,
-                semanticLabel: '맨 아래로 이동',
-                onTap: _scrollToBottom,
-              ),
-            ],
+          child: ScrollFab(
+            icon: Icons.north,
+            semanticLabel: '맨 위로 이동',
+            onTap: _scrollToTop,
           ),
         ),
         if (_isLoading) const Positioned.fill(child: LoadingOverlay()),
@@ -647,6 +651,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           ..._topContent(),
           SizedBox(height: 24.h),
           Semantics(
+            key: _resultCountKey,
             liveRegion: true,
             child: Text.rich(
               TextSpan(

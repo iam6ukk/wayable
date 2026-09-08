@@ -594,7 +594,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                         child: Text(
                           value,
                           style: TextStyle(
-                            fontSize: 13.sp,
+                            fontSize: labelFontSize,
                             color: AppColors.textTertiary,
                           ),
                         ),
@@ -603,7 +603,7 @@ class _SpotDetailScreenState extends ConsumerState<SpotDetailScreen> {
                   : Text(
                       isEmpty ? '정보 없음' : value,
                       style: TextStyle(
-                        fontSize: 13.sp,
+                        fontSize: labelFontSize,
                         fontWeight: FontWeight.w300,
                         color: isEmpty
                             ? AppColors.textQuaternary
