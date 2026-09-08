@@ -101,8 +101,20 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
     _folderScrollControllers[folderId] = controller;
   }
 
-  void _unregisterFolderScrollController(String folderId) {
-    _folderScrollControllers.remove(folderId);
+  // _snapshotEpoch가 바뀌면 모든 _FolderSpotList가 새 key로 교체되는데,
+  // 이때 "이전" 위젯의 dispose()는 "새" 위젯의 initState()보다 늦게(같은
+  // 프레임 끝에서) 실행된다. 그래서 폴더 id만으로 무조건 지우면, 이전
+  // 위젯의 뒤늦은 dispose가 방금 새로 등록된 컨트롤러까지 지워버려 재진입
+  // 후 상하단 이동 버튼이 먹통이 됐다. 지금 맵에 있는 게 자신이 등록했던
+  // 컨트롤러가 맞을 때만 지우도록 해서, 늦게 도착한 dispose가 더 최신
+  // 등록을 덮어쓰지 않게 한다.
+  void _unregisterFolderScrollController(
+    String folderId,
+    ScrollController controller,
+  ) {
+    if (identical(_folderScrollControllers[folderId], controller)) {
+      _folderScrollControllers.remove(folderId);
+    }
   }
 
   void _scrollActiveTab(double Function(ScrollController controller) target) {
@@ -251,21 +263,29 @@ class _SavedListScreenState extends ConsumerState<SavedListScreen>
         Positioned(
           right: 20.w,
           bottom: 20.h,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ScrollFab(
-                icon: Icons.north,
-                semanticLabel: '맨 위로 이동',
-                onTap: _scrollToTop,
-              ),
-              SizedBox(height: 11.h),
-              ScrollFab(
-                icon: Icons.south,
-                semanticLabel: '맨 아래로 이동',
-                onTap: _scrollToBottom,
-              ),
-            ],
+          // 두 버튼 사이 여백(11.h)이 투명해서 그 틈으로 아래 카드의 북마크
+          // 아이콘이 그대로 눌리던 문제가 있었다 — ColoredBox로 두 버튼을
+          // 포함한 직사각형 영역 전체를 히트테스트에 잡히게 감싸서, 이
+          // 영역 안에서는 버튼 두 개만 눌리고 틈으로는 아무것도 안 눌리게
+          // 막는다(투명색이라 시각적으로는 그대로 보인다).
+          child: ColoredBox(
+            color: Colors.transparent,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ScrollFab(
+                  icon: Icons.north,
+                  semanticLabel: '맨 위로 이동',
+                  onTap: _scrollToTop,
+                ),
+                SizedBox(height: 11.h),
+                ScrollFab(
+                  icon: Icons.south,
+                  semanticLabel: '맨 아래로 이동',
+                  onTap: _scrollToBottom,
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -400,7 +420,8 @@ class _FolderSpotList extends ConsumerStatefulWidget {
   /// — 상하단 이동 버튼이 "현재 보이는 탭"의 목록을 스크롤할 때 쓴다.
   final void Function(String folderId, ScrollController controller)
   onScrollControllerReady;
-  final void Function(String folderId) onScrollControllerDisposed;
+  final void Function(String folderId, ScrollController controller)
+  onScrollControllerDisposed;
 
   @override
   ConsumerState<_FolderSpotList> createState() => _FolderSpotListState();
@@ -434,7 +455,7 @@ class _FolderSpotListState extends ConsumerState<_FolderSpotList> {
 
   @override
   void dispose() {
-    widget.onScrollControllerDisposed(widget.folder.id);
+    widget.onScrollControllerDisposed(widget.folder.id, _scrollController);
     _scrollController.dispose();
     _loadSubscription?.close();
     super.dispose();
