@@ -109,11 +109,22 @@ class BookmarkNotifier extends StateNotifier<BookmarkState> {
     // 도착할 수 있는데, 그 빈 상태로 위 낙관적 기본 폴더 탭을 지워버리면
     // 탭이 잠깐 사라졌다 다시 생기는 것처럼 보이므로 무시한다.
     unawaited(_service.ensureDefaultFolder(uid));
-    _foldersSub = _service.watchFolders(uid).listen((folders) {
-      if (folders.isEmpty && state.folders.isNotEmpty) return;
-      state = state.copyWith(folders: folders);
-      _syncSpotSubscriptions(uid, folders);
-    });
+    _foldersSub = _service
+        .watchFolders(uid)
+        .listen(
+          (folders) {
+            if (folders.isEmpty && state.folders.isNotEmpty) return;
+            state = state.copyWith(folders: folders);
+            _syncSpotSubscriptions(uid, folders);
+          },
+          onError: (Object e) {
+            // 로그아웃/회원탈퇴로 세션이 끝나면 Firestore가 이 구독을 권한
+            // 거부로 끊는데, 이건 정상적인 상황이다 — authStateProvider의
+            // uid 변화를 Riverpod가 감지해 곧 이 notifier를 dispose할
+            // 것이므로 예외를 던지지 않고 조용히 무시한다.
+            AppLogger.debug('[Bookmark] 폴더 구독 종료(세션 종료 가능성): $e');
+          },
+        );
   }
 
   /// 폴더 목록이 바뀔 때마다(추가/삭제) 폴더별 여행지 구독도 맞춰 늘리고
@@ -141,16 +152,25 @@ class BookmarkNotifier extends StateNotifier<BookmarkState> {
 
     for (final folder in folders) {
       if (_spotsSubs.containsKey(folder.id)) continue;
-      _spotsSubs[folder.id] = _service.watchSpots(uid, folder.id).listen((
-        spots,
-      ) {
-        final spotsByFolderId = {...state.spotsByFolderId};
-        spotsByFolderId[folder.id] = spots;
-        state = state.copyWith(
-          spotsByFolderId: spotsByFolderId,
-          loadedFolderIds: {...state.loadedFolderIds, folder.id},
-        );
-      });
+      _spotsSubs[folder.id] = _service
+          .watchSpots(uid, folder.id)
+          .listen(
+            (spots) {
+              final spotsByFolderId = {...state.spotsByFolderId};
+              spotsByFolderId[folder.id] = spots;
+              state = state.copyWith(
+                spotsByFolderId: spotsByFolderId,
+                loadedFolderIds: {...state.loadedFolderIds, folder.id},
+              );
+            },
+            onError: (Object e) {
+              // 폴더 구독과 같은 이유(세션 종료로 인한 권한 거부)로 조용히
+              // 무시한다.
+              AppLogger.debug(
+                '[Bookmark] 여행지 구독 종료(세션 종료 가능성) folderId=${folder.id}: $e',
+              );
+            },
+          );
     }
   }
 
