@@ -61,6 +61,20 @@
 - **여행지 저장 목록** — 마음에 드는 여행지를 폴더별로 정리해 저장/관리 (로그인 회원 전용)
 - **마이페이지** — 카카오/구글 로그인, **접근성 프로필 설정**(지체·시각·청각장애 보조, 영유아 가족, 고령자 동반 등 유형별 세부 편의 정보 및 관심 지역 설정)
 
+<!-- <img width="1620" height="2880" alt="Image" src="https://github.com/user-attachments/assets/ac409c5e-f58a-4ecd-979c-57333ee3ee22" />
+<img width="1620" height="2880" alt="Image" src="https://github.com/user-attachments/assets/772d954e-7bc6-41ba-9f49-e29796bd3557" />
+<img width="1620" height="2880" alt="Image" src="https://github.com/user-attachments/assets/7a76d179-98e0-472d-b628-fea1712d0cdc" />
+<img width="1620" height="2880" alt="Image" src="https://github.com/user-attachments/assets/4d30f72a-00d2-4fd9-8b3e-307cf90a79bf" />
+<img width="1620" height="2880" alt="Image" src="https://github.com/user-attachments/assets/29adba2d-c465-4317-9204-522575e66908" />
+<img width="1620" height="2880" alt="Image" src="https://github.com/user-attachments/assets/2bbc0867-0364-4440-9fde-7e5b23c05890" /> -->
+
+| 홈 | 접근성 프로필 설정 | 맞춤 여행지 탐색 |
+| :---: | :---: | :---: |
+| <img width="180" height="320" alt="Image" src="https://github.com/user-attachments/assets/2bbc0867-0364-4440-9fde-7e5b23c05890" /> | <img width="180" height="320" alt="Image" src="https://github.com/user-attachments/assets/4d30f72a-00d2-4fd9-8b3e-307cf90a79bf" /> | <img width="180" height="320" alt="Image" src="https://github.com/user-attachments/assets/29adba2d-c465-4317-9204-522575e66908" /> |
+| **여행지 상세** | **지도 기반 탐색** | **여행지 저장 목록** |
+| <img width="180" height="320" alt="Image" src="https://github.com/user-attachments/assets/772d954e-7bc6-41ba-9f49-e29796bd3557" /> | <img width="180" height="320" alt="Image" src="https://github.com/user-attachments/assets/ac409c5e-f58a-4ecd-979c-57333ee3ee22" /> | <img width="180" height="320" alt="Image" src="https://github.com/user-attachments/assets/7a76d179-98e0-472d-b628-fea1712d0cdc" /> |
+
+
 
 <br>
 
