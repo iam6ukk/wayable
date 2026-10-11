@@ -16,6 +16,7 @@ import 'package:wayable/model/tour/tour_spot.dart';
 import 'package:wayable/services/location/location_service.dart';
 import 'package:wayable/services/region/area_code_repository.dart';
 import 'package:wayable/services/region/kakao_local_service.dart';
+import 'package:wayable/services/region/monthly_region_rotation.dart';
 import 'package:wayable/services/tour/tour_spot_service.dart';
 import 'package:wayable/utils/app_logger.dart';
 import 'package:wayable/utils/image_cache_size.dart';
@@ -146,9 +147,6 @@ class _DiscoverySpot {
   final String location;
   final String imageUrl;
 }
-
-// 이 시즌(2025년 봄)에 통합필터선택 지역 목록의 첫 번째(서울)가 걸리도록 잡은 기준점.
-final _kRegionRotationAnchor = DateTime(2025, 3, 1);
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -462,20 +460,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   /// 지역 순환도 기기 로컬 시간이 아니라 KST 기준으로 맞춰야 한다.
   DateTime _nowInKst() => DateTime.now().toUtc().add(const Duration(hours: 9));
 
-  int _seasonOrdinal(DateTime date) {
-    final bucketYear = date.month == 12 ? date.year + 1 : date.year;
-    return bucketYear * 4 + _seasonForMonth(date.month).index;
-  }
-
-  /// 통합필터선택 지역 목록의 순서(서울 → 전남광주 → ... → 세종)대로 계절마다 하나씩 순환한다.
-  AreaCode _pickThisSeasonsRegion(List<AreaCode> areaCodes) {
-    final nowKst = _nowInKst();
-    final seasonDiff =
-        _seasonOrdinal(nowKst) - _seasonOrdinal(_kRegionRotationAnchor);
-    final index = seasonDiff % areaCodes.length;
-    return areaCodes[index < 0 ? index + areaCodes.length : index];
-  }
-
   /// dailyDeltaSync(05:00 KST 시작) 배치에 데이터가 많아 언제 끝날지 보장이 안 되므로,
   /// 05:30 KST 전에는 아직 어제 뽑았던 5개를 그대로 보여주고, 05:30부터 오늘 몫으로 새로 랜덤 선정한다.
   DateTime _effectiveDailyDate(DateTime nowKst) {
@@ -489,7 +473,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Future<void> _loadFeaturedSpots() async {
     final areaCodes = await AreaCodeRepository.load();
-    final region = _pickThisSeasonsRegion(areaCodes);
+    final region = pickMonthlyRegion(areaCodes, _nowInKst());
 
     final spots = await _tourSpotService.searchByRegion(region.code);
     final withImages =
@@ -504,7 +488,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final season = _seasonForMonth(_nowInKst().month);
     AppLogger.debug(
-      '[HeroBanner] 이번시즌=${_kSeasonLabels[season]} 지역=${region.name}(${region.code}) '
+      '[HeroBanner] 이번달=${_nowInKst().month} 계절=${_kSeasonLabels[season]} 지역=${region.name}(${region.code}) '
       '전체 스팟=${spots.length}건 사진있음=${withImages.length}건 '
       '일별시드=$dailySeed',
     );
